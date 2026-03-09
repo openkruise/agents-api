@@ -28,7 +28,7 @@ import java.util.Map;
  */
 @ApiModel(description = "spec defines the desired state of SandboxClaim")
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen",
-    date = "2026-02-05T05:47:28.584Z[Etc/UTC]")
+    date = "2026-03-09T07:30:17.307Z[Etc/UTC]")
 public class V1alpha1SandboxClaimSpec {
     public static final String SERIALIZED_NAME_ANNOTATIONS = "annotations";
     @SerializedName(SERIALIZED_NAME_ANNOTATIONS)
@@ -38,9 +38,17 @@ public class V1alpha1SandboxClaimSpec {
     @SerializedName(SERIALIZED_NAME_CLAIM_TIMEOUT)
     private String claimTimeout;
 
+    public static final String SERIALIZED_NAME_CREATE_ON_NO_STOCK = "createOnNoStock";
+    @SerializedName(SERIALIZED_NAME_CREATE_ON_NO_STOCK)
+    private Boolean createOnNoStock;
+
     public static final String SERIALIZED_NAME_ENV_VARS = "envVars";
     @SerializedName(SERIALIZED_NAME_ENV_VARS)
     private Map<String, String> envVars = null;
+
+    public static final String SERIALIZED_NAME_INPLACE_UPDATE = "inplaceUpdate";
+    @SerializedName(SERIALIZED_NAME_INPLACE_UPDATE)
+    private V1alpha1InplaceUpdate inplaceUpdate;
 
     public static final String SERIALIZED_NAME_LABELS = "labels";
     @SerializedName(SERIALIZED_NAME_LABELS)
@@ -49,6 +57,10 @@ public class V1alpha1SandboxClaimSpec {
     public static final String SERIALIZED_NAME_REPLICAS = "replicas";
     @SerializedName(SERIALIZED_NAME_REPLICAS)
     private Integer replicas;
+
+    public static final String SERIALIZED_NAME_RESERVE_FAILED_SANDBOX = "reserveFailedSandbox";
+    @SerializedName(SERIALIZED_NAME_RESERVE_FAILED_SANDBOX)
+    private Boolean reserveFailedSandbox;
 
     public static final String SERIALIZED_NAME_SHUTDOWN_TIME = "shutdownTime";
     @SerializedName(SERIALIZED_NAME_SHUTDOWN_TIME)
@@ -61,6 +73,10 @@ public class V1alpha1SandboxClaimSpec {
     public static final String SERIALIZED_NAME_TTL_AFTER_COMPLETED = "ttlAfterCompleted";
     @SerializedName(SERIALIZED_NAME_TTL_AFTER_COMPLETED)
     private String ttlAfterCompleted;
+
+    public static final String SERIALIZED_NAME_WAIT_READY_TIMEOUT = "waitReadyTimeout";
+    @SerializedName(SERIALIZED_NAME_WAIT_READY_TIMEOUT)
+    private String waitReadyTimeout;
 
     public V1alpha1SandboxClaimSpec annotations(Map<String, String> annotations) {
 
@@ -119,6 +135,28 @@ public class V1alpha1SandboxClaimSpec {
         this.claimTimeout = claimTimeout;
     }
 
+    public V1alpha1SandboxClaimSpec createOnNoStock(Boolean createOnNoStock) {
+
+        this.createOnNoStock = createOnNoStock;
+        return this;
+    }
+
+    /**
+     * CreateOnNoStock allows to create new sandbox if no stock available
+     *
+     * @return createOnNoStock
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(value = "CreateOnNoStock allows to create new sandbox if no stock available")
+
+    public Boolean getCreateOnNoStock() {
+        return createOnNoStock;
+    }
+
+    public void setCreateOnNoStock(Boolean createOnNoStock) {
+        this.createOnNoStock = createOnNoStock;
+    }
+
     public V1alpha1SandboxClaimSpec envVars(Map<String, String> envVars) {
 
         this.envVars = envVars;
@@ -150,6 +188,28 @@ public class V1alpha1SandboxClaimSpec {
 
     public void setEnvVars(Map<String, String> envVars) {
         this.envVars = envVars;
+    }
+
+    public V1alpha1SandboxClaimSpec inplaceUpdate(V1alpha1InplaceUpdate inplaceUpdate) {
+
+        this.inplaceUpdate = inplaceUpdate;
+        return this;
+    }
+
+    /**
+     * Get inplaceUpdate
+     *
+     * @return inplaceUpdate
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(value = "")
+
+    public V1alpha1InplaceUpdate getInplaceUpdate() {
+        return inplaceUpdate;
+    }
+
+    public void setInplaceUpdate(V1alpha1InplaceUpdate inplaceUpdate) {
+        this.inplaceUpdate = inplaceUpdate;
     }
 
     public V1alpha1SandboxClaimSpec labels(Map<String, String> labels) {
@@ -206,6 +266,28 @@ public class V1alpha1SandboxClaimSpec {
 
     public void setReplicas(Integer replicas) {
         this.replicas = replicas;
+    }
+
+    public V1alpha1SandboxClaimSpec reserveFailedSandbox(Boolean reserveFailedSandbox) {
+
+        this.reserveFailedSandbox = reserveFailedSandbox;
+        return this;
+    }
+
+    /**
+     * Set ReserveFailedSandbox to true to reserve failed sandboxes
+     *
+     * @return reserveFailedSandbox
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(value = "Set ReserveFailedSandbox to true to reserve failed sandboxes")
+
+    public Boolean getReserveFailedSandbox() {
+        return reserveFailedSandbox;
+    }
+
+    public void setReserveFailedSandbox(Boolean reserveFailedSandbox) {
+        this.reserveFailedSandbox = reserveFailedSandbox;
     }
 
     public V1alpha1SandboxClaimSpec shutdownTime(OffsetDateTime shutdownTime) {
@@ -281,6 +363,33 @@ public class V1alpha1SandboxClaimSpec {
         this.ttlAfterCompleted = ttlAfterCompleted;
     }
 
+    public V1alpha1SandboxClaimSpec waitReadyTimeout(String waitReadyTimeout) {
+
+        this.waitReadyTimeout = waitReadyTimeout;
+        return this;
+    }
+
+    /**
+     * WaitReadyTimeout specifies the maximum duration for waiting claimed sandbox ready. Default: 30s. A waiting
+     * happens when an inplace update happens, a new sandbox created, etc. Format: duration string (e.g.,
+     * \&quot;3h\&quot;, \&quot;200s\&quot;, \&quot;15m\&quot;)
+     *
+     * @return waitReadyTimeout
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(
+        value = "WaitReadyTimeout specifies the maximum duration for waiting claimed sandbox ready. Default: 30s. A "
+            + "waiting happens when an inplace update happens, a new sandbox created, etc. Format: duration string (e"
+            + ".g., \"3h\", \"200s\", \"15m\")")
+
+    public String getWaitReadyTimeout() {
+        return waitReadyTimeout;
+    }
+
+    public void setWaitReadyTimeout(String waitReadyTimeout) {
+        this.waitReadyTimeout = waitReadyTimeout;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -292,18 +401,22 @@ public class V1alpha1SandboxClaimSpec {
         V1alpha1SandboxClaimSpec v1alpha1SandboxClaimSpec = (V1alpha1SandboxClaimSpec)o;
         return Objects.equals(this.annotations, v1alpha1SandboxClaimSpec.annotations) &&
             Objects.equals(this.claimTimeout, v1alpha1SandboxClaimSpec.claimTimeout) &&
+            Objects.equals(this.createOnNoStock, v1alpha1SandboxClaimSpec.createOnNoStock) &&
             Objects.equals(this.envVars, v1alpha1SandboxClaimSpec.envVars) &&
+            Objects.equals(this.inplaceUpdate, v1alpha1SandboxClaimSpec.inplaceUpdate) &&
             Objects.equals(this.labels, v1alpha1SandboxClaimSpec.labels) &&
             Objects.equals(this.replicas, v1alpha1SandboxClaimSpec.replicas) &&
+            Objects.equals(this.reserveFailedSandbox, v1alpha1SandboxClaimSpec.reserveFailedSandbox) &&
             Objects.equals(this.shutdownTime, v1alpha1SandboxClaimSpec.shutdownTime) &&
             Objects.equals(this.templateName, v1alpha1SandboxClaimSpec.templateName) &&
-            Objects.equals(this.ttlAfterCompleted, v1alpha1SandboxClaimSpec.ttlAfterCompleted);
+            Objects.equals(this.ttlAfterCompleted, v1alpha1SandboxClaimSpec.ttlAfterCompleted) &&
+            Objects.equals(this.waitReadyTimeout, v1alpha1SandboxClaimSpec.waitReadyTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(annotations, claimTimeout, envVars, labels, replicas, shutdownTime, templateName,
-            ttlAfterCompleted);
+        return Objects.hash(annotations, claimTimeout, createOnNoStock, envVars, inplaceUpdate, labels, replicas,
+            reserveFailedSandbox, shutdownTime, templateName, ttlAfterCompleted, waitReadyTimeout);
     }
 
     @Override
@@ -312,12 +425,16 @@ public class V1alpha1SandboxClaimSpec {
         sb.append("class V1alpha1SandboxClaimSpec {\n");
         sb.append("    annotations: ").append(toIndentedString(annotations)).append("\n");
         sb.append("    claimTimeout: ").append(toIndentedString(claimTimeout)).append("\n");
+        sb.append("    createOnNoStock: ").append(toIndentedString(createOnNoStock)).append("\n");
         sb.append("    envVars: ").append(toIndentedString(envVars)).append("\n");
+        sb.append("    inplaceUpdate: ").append(toIndentedString(inplaceUpdate)).append("\n");
         sb.append("    labels: ").append(toIndentedString(labels)).append("\n");
         sb.append("    replicas: ").append(toIndentedString(replicas)).append("\n");
+        sb.append("    reserveFailedSandbox: ").append(toIndentedString(reserveFailedSandbox)).append("\n");
         sb.append("    shutdownTime: ").append(toIndentedString(shutdownTime)).append("\n");
         sb.append("    templateName: ").append(toIndentedString(templateName)).append("\n");
         sb.append("    ttlAfterCompleted: ").append(toIndentedString(ttlAfterCompleted)).append("\n");
+        sb.append("    waitReadyTimeout: ").append(toIndentedString(waitReadyTimeout)).append("\n");
         sb.append("}");
         return sb.toString();
     }

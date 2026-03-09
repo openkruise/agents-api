@@ -29,7 +29,7 @@ import java.util.List;
  */
 @ApiModel(description = "spec defines the desired state of SandboxSet")
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen",
-    date = "2026-02-05T05:47:28.584Z[Etc/UTC]")
+    date = "2026-03-09T07:30:17.307Z[Etc/UTC]")
 public class V1alpha1SandboxSetSpec {
     public static final String SERIALIZED_NAME_PERSISTENT_CONTENTS = "persistentContents";
     @SerializedName(SERIALIZED_NAME_PERSISTENT_CONTENTS)
@@ -38,6 +38,10 @@ public class V1alpha1SandboxSetSpec {
     public static final String SERIALIZED_NAME_REPLICAS = "replicas";
     @SerializedName(SERIALIZED_NAME_REPLICAS)
     private Integer replicas;
+
+    public static final String SERIALIZED_NAME_SCALE_STRATEGY = "scaleStrategy";
+    @SerializedName(SERIALIZED_NAME_SCALE_STRATEGY)
+    private V1alpha1ScaleStrategy scaleStrategy;
 
     public static final String SERIALIZED_NAME_TEMPLATE = "template";
     @SerializedName(SERIALIZED_NAME_TEMPLATE)
@@ -102,6 +106,28 @@ public class V1alpha1SandboxSetSpec {
 
     public void setReplicas(Integer replicas) {
         this.replicas = replicas;
+    }
+
+    public V1alpha1SandboxSetSpec scaleStrategy(V1alpha1ScaleStrategy scaleStrategy) {
+
+        this.scaleStrategy = scaleStrategy;
+        return this;
+    }
+
+    /**
+     * Get scaleStrategy
+     *
+     * @return scaleStrategy
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(value = "")
+
+    public V1alpha1ScaleStrategy getScaleStrategy() {
+        return scaleStrategy;
+    }
+
+    public void setScaleStrategy(V1alpha1ScaleStrategy scaleStrategy) {
+        this.scaleStrategy = scaleStrategy;
     }
 
     public V1alpha1SandboxSetSpec template(V1PodTemplateSpec template) {
@@ -182,6 +208,7 @@ public class V1alpha1SandboxSetSpec {
         V1alpha1SandboxSetSpec v1alpha1SandboxSetSpec = (V1alpha1SandboxSetSpec)o;
         return Objects.equals(this.persistentContents, v1alpha1SandboxSetSpec.persistentContents) &&
             Objects.equals(this.replicas, v1alpha1SandboxSetSpec.replicas) &&
+            Objects.equals(this.scaleStrategy, v1alpha1SandboxSetSpec.scaleStrategy) &&
             Objects.equals(this.template, v1alpha1SandboxSetSpec.template) &&
             Objects.equals(this.templateRef, v1alpha1SandboxSetSpec.templateRef) &&
             Objects.equals(this.volumeClaimTemplates, v1alpha1SandboxSetSpec.volumeClaimTemplates);
@@ -189,7 +216,7 @@ public class V1alpha1SandboxSetSpec {
 
     @Override
     public int hashCode() {
-        return Objects.hash(persistentContents, replicas, template, templateRef, volumeClaimTemplates);
+        return Objects.hash(persistentContents, replicas, scaleStrategy, template, templateRef, volumeClaimTemplates);
     }
 
     @Override
@@ -198,6 +225,7 @@ public class V1alpha1SandboxSetSpec {
         sb.append("class V1alpha1SandboxSetSpec {\n");
         sb.append("    persistentContents: ").append(toIndentedString(persistentContents)).append("\n");
         sb.append("    replicas: ").append(toIndentedString(replicas)).append("\n");
+        sb.append("    scaleStrategy: ").append(toIndentedString(scaleStrategy)).append("\n");
         sb.append("    template: ").append(toIndentedString(template)).append("\n");
         sb.append("    templateRef: ").append(toIndentedString(templateRef)).append("\n");
         sb.append("    volumeClaimTemplates: ").append(toIndentedString(volumeClaimTemplates)).append("\n");
