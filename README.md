@@ -8,8 +8,9 @@ This library is the canonical location of the Kruise Agents API definition and c
 We recommend using the go types in this repo. You may serialize them directly to JSON.
 
 ## What's included
-* The `client` package contains the clientset to access Kruise Agents API.
+* The `client` package contains the go clientset to access Kruise Agents API.
 * The `agents` packages contain api definition in go
+* The `clients` contain clients for other languages including Python and Java
 
 ## Versioning
 For each `v0.x.y` Kruise Agents release, the corresponding agents-api will `v0.x.z`.
@@ -35,6 +36,11 @@ To get a specific version, use go1.11+ and fetch the desired version using the `
 ```
 go get github.com/openkruise/agents-api@v0.1.0
 ```
+
+### How to use it
+
+please refer to the [example](examples/sandboxclaim-example)
+
 
 ## Things you should NOT do
 
