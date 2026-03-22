@@ -1,6 +1,7 @@
 module github.com/openkruise/agents-api
 
-go 1.25.0
+go 1.24.7
+
 
 require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
