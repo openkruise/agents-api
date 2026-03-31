@@ -16,8 +16,8 @@ class SandboxClaimClient:
         self.api = client.CustomObjectsApi()
 
     def create_sandboxclaim(self, sandbox_claim: SandboxClaim) -> dict:
-        sandbox_claim.apiVersion = f"{self.group}/{self.version}",
-        sandbox_claim.kind = self.kind,
+        sandbox_claim.apiVersion = f"{self.group}/{self.version}"
+        sandbox_claim.kind = self.kind
         # Pydantic -> dict
         body = sandbox_claim.model_dump(exclude_unset=True, by_alias=True)
         return self.api.create_namespaced_custom_object(
