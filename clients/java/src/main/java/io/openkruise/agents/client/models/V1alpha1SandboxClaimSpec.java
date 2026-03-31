@@ -20,7 +20,9 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,7 +30,7 @@ import java.util.Map;
  */
 @ApiModel(description = "spec defines the desired state of SandboxClaim")
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen",
-    date = "2026-03-09T07:30:17.307Z[Etc/UTC]")
+    date = "2026-03-31T05:53:52.286Z[Etc/UTC]")
 public class V1alpha1SandboxClaimSpec {
     public static final String SERIALIZED_NAME_ANNOTATIONS = "annotations";
     @SerializedName(SERIALIZED_NAME_ANNOTATIONS)
@@ -41,6 +43,10 @@ public class V1alpha1SandboxClaimSpec {
     public static final String SERIALIZED_NAME_CREATE_ON_NO_STOCK = "createOnNoStock";
     @SerializedName(SERIALIZED_NAME_CREATE_ON_NO_STOCK)
     private Boolean createOnNoStock;
+
+    public static final String SERIALIZED_NAME_DYNAMIC_VOLUMES_MOUNT = "dynamicVolumesMount";
+    @SerializedName(SERIALIZED_NAME_DYNAMIC_VOLUMES_MOUNT)
+    private List<V1alpha1DynamicVolumesMount> dynamicVolumesMount = null;
 
     public static final String SERIALIZED_NAME_ENV_VARS = "envVars";
     @SerializedName(SERIALIZED_NAME_ENV_VARS)
@@ -155,6 +161,38 @@ public class V1alpha1SandboxClaimSpec {
 
     public void setCreateOnNoStock(Boolean createOnNoStock) {
         this.createOnNoStock = createOnNoStock;
+    }
+
+    public V1alpha1SandboxClaimSpec dynamicVolumesMount(
+        List<V1alpha1DynamicVolumesMount> dynamicVolumesMount) {
+
+        this.dynamicVolumesMount = dynamicVolumesMount;
+        return this;
+    }
+
+    public V1alpha1SandboxClaimSpec addDynamicVolumesMountItem(
+        V1alpha1DynamicVolumesMount dynamicVolumesMountItem) {
+        if (this.dynamicVolumesMount == null) {
+            this.dynamicVolumesMount = new ArrayList<>();
+        }
+        this.dynamicVolumesMount.add(dynamicVolumesMountItem);
+        return this;
+    }
+
+    /**
+     * DynamicVolumesMount specifies the dynamic volumes to be mounted into the sandbox
+     *
+     * @return dynamicVolumesMount
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(value = "DynamicVolumesMount specifies the dynamic volumes to be mounted into the sandbox")
+
+    public List<V1alpha1DynamicVolumesMount> getDynamicVolumesMount() {
+        return dynamicVolumesMount;
+    }
+
+    public void setDynamicVolumesMount(List<V1alpha1DynamicVolumesMount> dynamicVolumesMount) {
+        this.dynamicVolumesMount = dynamicVolumesMount;
     }
 
     public V1alpha1SandboxClaimSpec envVars(Map<String, String> envVars) {
@@ -402,6 +440,7 @@ public class V1alpha1SandboxClaimSpec {
         return Objects.equals(this.annotations, v1alpha1SandboxClaimSpec.annotations) &&
             Objects.equals(this.claimTimeout, v1alpha1SandboxClaimSpec.claimTimeout) &&
             Objects.equals(this.createOnNoStock, v1alpha1SandboxClaimSpec.createOnNoStock) &&
+            Objects.equals(this.dynamicVolumesMount, v1alpha1SandboxClaimSpec.dynamicVolumesMount) &&
             Objects.equals(this.envVars, v1alpha1SandboxClaimSpec.envVars) &&
             Objects.equals(this.inplaceUpdate, v1alpha1SandboxClaimSpec.inplaceUpdate) &&
             Objects.equals(this.labels, v1alpha1SandboxClaimSpec.labels) &&
@@ -415,8 +454,8 @@ public class V1alpha1SandboxClaimSpec {
 
     @Override
     public int hashCode() {
-        return Objects.hash(annotations, claimTimeout, createOnNoStock, envVars, inplaceUpdate, labels, replicas,
-            reserveFailedSandbox, shutdownTime, templateName, ttlAfterCompleted, waitReadyTimeout);
+        return Objects.hash(annotations, claimTimeout, createOnNoStock, dynamicVolumesMount, envVars, inplaceUpdate,
+            labels, replicas, reserveFailedSandbox, shutdownTime, templateName, ttlAfterCompleted, waitReadyTimeout);
     }
 
     @Override
@@ -426,6 +465,7 @@ public class V1alpha1SandboxClaimSpec {
         sb.append("    annotations: ").append(toIndentedString(annotations)).append("\n");
         sb.append("    claimTimeout: ").append(toIndentedString(claimTimeout)).append("\n");
         sb.append("    createOnNoStock: ").append(toIndentedString(createOnNoStock)).append("\n");
+        sb.append("    dynamicVolumesMount: ").append(toIndentedString(dynamicVolumesMount)).append("\n");
         sb.append("    envVars: ").append(toIndentedString(envVars)).append("\n");
         sb.append("    inplaceUpdate: ").append(toIndentedString(inplaceUpdate)).append("\n");
         sb.append("    labels: ").append(toIndentedString(labels)).append("\n");
