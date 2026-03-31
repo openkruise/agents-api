@@ -35,6 +35,16 @@ const (
 	// Note: SandboxSet creates sandboxes with priority 0 by default.
 	// Sandbox Manager or Sandbox Claim creates high-priority sandboxes by default.
 	SandboxAnnotationPriority = "agents.kruise.io/sandbox-priority"
+
+	// ShouldInjectCsiMount is the annotation key for inject csi mount plugin container.
+	// If set, the csi sidecar will be injected into the pod when the sandbox is created.
+	// The csi mount sidecar is used to mount the remote oss/nas storage to the sandbox container.
+	ShouldInjectCsiMount = "agents.kruise.io/inject-csi-plugin"
+
+	// ShouldInjectAgentRuntime is the annotation key for inject agent runtime sidecar in init container.
+	// If set, the agent runtime sidecar will be injected into the pod when the sandbox is created.
+	// Some binary tools which are contained in the init agent runtime container. These are the basic tools for sandbox running.
+	ShouldInjectAgentRuntime = "agents.kruise.io/inject-agent-runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
