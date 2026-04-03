@@ -78,6 +78,10 @@ type SandboxClaimSpec struct {
 	// +optional
 	DynamicVolumesMount []CSIMountConfig `json:"dynamicVolumesMount"`
 
+	// Runtimes - Runtime configuration for sandbox object
+	// +optional
+	Runtimes []RuntimeConfig `json:"runtimes,omitempty"`
+
 	// Set ReserveFailedSandbox to true to reserve failed sandboxes
 	// +optional
 	ReserveFailedSandbox bool `json:"reserveFailedSandbox,omitempty"`

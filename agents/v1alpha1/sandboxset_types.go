@@ -39,6 +39,7 @@ const (
 	AnnotationClaimTime          = InternalPrefix + "claim-timestamp"
 	AnnotationRestoreFrom        = InternalPrefix + "restore-from"
 	AnnotationInitRuntimeRequest = InternalPrefix + "init-runtime-request"
+	AnnotationSandboxID          = InternalPrefix + "sandbox-id"
 )
 
 const (
@@ -58,6 +59,10 @@ type SandboxSetSpec struct {
 
 	// PersistentContents indicates resume pod with persistent content, Enum: ip, memory, filesystem
 	PersistentContents []string `json:"persistentContents,omitempty"`
+
+	// Runtimes - Runtime configuration for sandbox object
+	// +optional
+	Runtimes []RuntimeConfig `json:"runtimes,omitempty"`
 
 	EmbeddedSandboxTemplate `json:",inline"`
 

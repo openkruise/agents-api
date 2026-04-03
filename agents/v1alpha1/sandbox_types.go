@@ -36,16 +36,17 @@ const (
 	// Sandbox Manager or Sandbox Claim creates high-priority sandboxes by default.
 	SandboxAnnotationPriority = "agents.kruise.io/sandbox-priority"
 
-	// ShouldInjectCsiMount is the annotation key for inject csi mount plugin container.
-	// If set, the csi sidecar will be injected into the pod when the sandbox is created.
-	// The csi mount sidecar is used to mount the remote oss/nas storage to the sandbox container.
-	ShouldInjectCsiMount = "agents.kruise.io/inject-csi-plugin"
-
-	// ShouldInjectAgentRuntime is the annotation key for inject agent runtime sidecar in init container.
-	// If set, the agent runtime sidecar will be injected into the pod when the sandbox is created.
-	// Some binary tools which are contained in the init agent runtime container. These are the basic tools for sandbox running.
-	ShouldInjectAgentRuntime = "agents.kruise.io/inject-agent-runtime"
+	// RuntimeConfigForInjectCsiMount is a valid value for RuntimeConfig.Name.
+	// When set, enables CSI mount sidecar injection for the sandbox.
+	RuntimeConfigForInjectCsiMount = "csi"
+	// RuntimeConfigForInjectAgentRuntime is a valid value for RuntimeConfig.Name.
+	// When set, enables agent runtime sidecar injection for the sandbox.
+	RuntimeConfigForInjectAgentRuntime = "agent-runtime"
 )
+
+type RuntimeConfig struct {
+	Name string `json:"name"`
+}
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -68,6 +69,10 @@ type SandboxSpec struct {
 	// If a time in the past is provided, the sandbox will be deleted immediately.
 	// +kubebuilder:validation:Format="date-time"
 	ShutdownTime *metav1.Time `json:"shutdownTime,omitempty"`
+
+	// Runtimes - Runtime configuration for sandbox object
+	// +optional
+	Runtimes []RuntimeConfig `json:"runtimes,omitempty"`
 
 	// PauseTime - Absolute time when the sandbox will be paused automatically.
 	// +kubebuilder:validation:Format="date-time"

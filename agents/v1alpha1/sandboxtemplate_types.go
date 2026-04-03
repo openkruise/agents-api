@@ -38,6 +38,10 @@ type SandboxTemplateSpec struct {
 
 	// PersistentContents indicates resume pod with persistent content, Enum: ip, memory, filesystem
 	PersistentContents []string `json:"persistentContents,omitempty"`
+
+	// Runtimes - Runtime configuration for sandbox object
+	// +optional
+	Runtimes []RuntimeConfig `json:"runtimes,omitempty"`
 }
 
 // +genclient
