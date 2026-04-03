@@ -5,6 +5,7 @@ from .sandbox import (
     TemplateRef as SandboxTemplateRef,
     Condition as SandboxCondition,
     PodInfo as SandboxPodInfo,
+    Runtime as SandboxRuntime,
 )
 from .sandboxset import (
     SandboxSet,
@@ -13,6 +14,7 @@ from .sandboxset import (
     TemplateRef as SandboxSetTemplateRef,
     Condition as SandboxSetCondition,
     ScaleStrategy as SandboxSetScaleStrategy,
+    Runtime as SandboxSetRuntime,
 )
 from .sandboxclaim import (
     SandboxClaim,
@@ -20,4 +22,5 @@ from .sandboxclaim import (
     Status as SandboxClaimStatus,
     Condition as SandboxClaimCondition,
     InplaceUpdate as SandboxClaimInplaceUpdate,
+    Runtime as SandboxClaimRuntime,
 )
