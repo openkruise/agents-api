@@ -30,7 +30,7 @@ import java.util.Map;
  */
 @ApiModel(description = "spec defines the desired state of SandboxClaim")
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen",
-    date = "2026-03-31T05:53:52.286Z[Etc/UTC]")
+    date = "2026-04-03T09:31:05.089Z[Etc/UTC]")
 public class V1alpha1SandboxClaimSpec {
     public static final String SERIALIZED_NAME_ANNOTATIONS = "annotations";
     @SerializedName(SERIALIZED_NAME_ANNOTATIONS)
@@ -67,6 +67,10 @@ public class V1alpha1SandboxClaimSpec {
     public static final String SERIALIZED_NAME_RESERVE_FAILED_SANDBOX = "reserveFailedSandbox";
     @SerializedName(SERIALIZED_NAME_RESERVE_FAILED_SANDBOX)
     private Boolean reserveFailedSandbox;
+
+    public static final String SERIALIZED_NAME_RUNTIMES = "runtimes";
+    @SerializedName(SERIALIZED_NAME_RUNTIMES)
+    private List<V1alpha1Runtimes> runtimes = null;
 
     public static final String SERIALIZED_NAME_SHUTDOWN_TIME = "shutdownTime";
     @SerializedName(SERIALIZED_NAME_SHUTDOWN_TIME)
@@ -328,6 +332,36 @@ public class V1alpha1SandboxClaimSpec {
         this.reserveFailedSandbox = reserveFailedSandbox;
     }
 
+    public V1alpha1SandboxClaimSpec runtimes(List<V1alpha1Runtimes> runtimes) {
+
+        this.runtimes = runtimes;
+        return this;
+    }
+
+    public V1alpha1SandboxClaimSpec addRuntimesItem(V1alpha1Runtimes runtimesItem) {
+        if (this.runtimes == null) {
+            this.runtimes = new ArrayList<>();
+        }
+        this.runtimes.add(runtimesItem);
+        return this;
+    }
+
+    /**
+     * Runtimes - Runtime configuration for sandbox object
+     *
+     * @return runtimes
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(value = "Runtimes - Runtime configuration for sandbox object")
+
+    public List<V1alpha1Runtimes> getRuntimes() {
+        return runtimes;
+    }
+
+    public void setRuntimes(List<V1alpha1Runtimes> runtimes) {
+        this.runtimes = runtimes;
+    }
+
     public V1alpha1SandboxClaimSpec shutdownTime(OffsetDateTime shutdownTime) {
 
         this.shutdownTime = shutdownTime;
@@ -446,6 +480,7 @@ public class V1alpha1SandboxClaimSpec {
             Objects.equals(this.labels, v1alpha1SandboxClaimSpec.labels) &&
             Objects.equals(this.replicas, v1alpha1SandboxClaimSpec.replicas) &&
             Objects.equals(this.reserveFailedSandbox, v1alpha1SandboxClaimSpec.reserveFailedSandbox) &&
+            Objects.equals(this.runtimes, v1alpha1SandboxClaimSpec.runtimes) &&
             Objects.equals(this.shutdownTime, v1alpha1SandboxClaimSpec.shutdownTime) &&
             Objects.equals(this.templateName, v1alpha1SandboxClaimSpec.templateName) &&
             Objects.equals(this.ttlAfterCompleted, v1alpha1SandboxClaimSpec.ttlAfterCompleted) &&
@@ -455,7 +490,8 @@ public class V1alpha1SandboxClaimSpec {
     @Override
     public int hashCode() {
         return Objects.hash(annotations, claimTimeout, createOnNoStock, dynamicVolumesMount, envVars, inplaceUpdate,
-            labels, replicas, reserveFailedSandbox, shutdownTime, templateName, ttlAfterCompleted, waitReadyTimeout);
+            labels, replicas, reserveFailedSandbox, runtimes, shutdownTime, templateName, ttlAfterCompleted,
+            waitReadyTimeout);
     }
 
     @Override
@@ -471,6 +507,7 @@ public class V1alpha1SandboxClaimSpec {
         sb.append("    labels: ").append(toIndentedString(labels)).append("\n");
         sb.append("    replicas: ").append(toIndentedString(replicas)).append("\n");
         sb.append("    reserveFailedSandbox: ").append(toIndentedString(reserveFailedSandbox)).append("\n");
+        sb.append("    runtimes: ").append(toIndentedString(runtimes)).append("\n");
         sb.append("    shutdownTime: ").append(toIndentedString(shutdownTime)).append("\n");
         sb.append("    templateName: ").append(toIndentedString(templateName)).append("\n");
         sb.append("    ttlAfterCompleted: ").append(toIndentedString(ttlAfterCompleted)).append("\n");

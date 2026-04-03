@@ -30,7 +30,7 @@ import java.util.List;
  */
 @ApiModel(description = "spec defines the desired state of Sandbox")
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen",
-    date = "2026-02-05T05:47:28.584Z[Etc/UTC]")
+    date = "2026-04-03T09:31:05.089Z[Etc/UTC]")
 public class V1alpha1SandboxSpec {
     public static final String SERIALIZED_NAME_PAUSE_TIME = "pauseTime";
     @SerializedName(SERIALIZED_NAME_PAUSE_TIME)
@@ -43,6 +43,10 @@ public class V1alpha1SandboxSpec {
     public static final String SERIALIZED_NAME_PERSISTENT_CONTENTS = "persistentContents";
     @SerializedName(SERIALIZED_NAME_PERSISTENT_CONTENTS)
     private List<String> persistentContents = null;
+
+    public static final String SERIALIZED_NAME_RUNTIMES = "runtimes";
+    @SerializedName(SERIALIZED_NAME_RUNTIMES)
+    private List<V1alpha1Runtimes> runtimes = null;
 
     public static final String SERIALIZED_NAME_SHUTDOWN_TIME = "shutdownTime";
     @SerializedName(SERIALIZED_NAME_SHUTDOWN_TIME)
@@ -133,6 +137,36 @@ public class V1alpha1SandboxSpec {
 
     public void setPersistentContents(List<String> persistentContents) {
         this.persistentContents = persistentContents;
+    }
+
+    public V1alpha1SandboxSpec runtimes(List<V1alpha1Runtimes> runtimes) {
+
+        this.runtimes = runtimes;
+        return this;
+    }
+
+    public V1alpha1SandboxSpec addRuntimesItem(V1alpha1Runtimes runtimesItem) {
+        if (this.runtimes == null) {
+            this.runtimes = new ArrayList<>();
+        }
+        this.runtimes.add(runtimesItem);
+        return this;
+    }
+
+    /**
+     * Runtimes - Runtime configuration for sandbox object
+     *
+     * @return runtimes
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(value = "Runtimes - Runtime configuration for sandbox object")
+
+    public List<V1alpha1Runtimes> getRuntimes() {
+        return runtimes;
+    }
+
+    public void setRuntimes(List<V1alpha1Runtimes> runtimes) {
+        this.runtimes = runtimes;
     }
 
     public V1alpha1SandboxSpec shutdownTime(OffsetDateTime shutdownTime) {
@@ -239,6 +273,7 @@ public class V1alpha1SandboxSpec {
         return Objects.equals(this.pauseTime, v1alpha1SandboxSpec.pauseTime) &&
             Objects.equals(this.paused, v1alpha1SandboxSpec.paused) &&
             Objects.equals(this.persistentContents, v1alpha1SandboxSpec.persistentContents) &&
+            Objects.equals(this.runtimes, v1alpha1SandboxSpec.runtimes) &&
             Objects.equals(this.shutdownTime, v1alpha1SandboxSpec.shutdownTime) &&
             Objects.equals(this.template, v1alpha1SandboxSpec.template) &&
             Objects.equals(this.templateRef, v1alpha1SandboxSpec.templateRef) &&
@@ -247,7 +282,7 @@ public class V1alpha1SandboxSpec {
 
     @Override
     public int hashCode() {
-        return Objects.hash(pauseTime, paused, persistentContents, shutdownTime, template, templateRef,
+        return Objects.hash(pauseTime, paused, persistentContents, runtimes, shutdownTime, template, templateRef,
             volumeClaimTemplates);
     }
 
@@ -258,6 +293,7 @@ public class V1alpha1SandboxSpec {
         sb.append("    pauseTime: ").append(toIndentedString(pauseTime)).append("\n");
         sb.append("    paused: ").append(toIndentedString(paused)).append("\n");
         sb.append("    persistentContents: ").append(toIndentedString(persistentContents)).append("\n");
+        sb.append("    runtimes: ").append(toIndentedString(runtimes)).append("\n");
         sb.append("    shutdownTime: ").append(toIndentedString(shutdownTime)).append("\n");
         sb.append("    template: ").append(toIndentedString(template)).append("\n");
         sb.append("    templateRef: ").append(toIndentedString(templateRef)).append("\n");

@@ -29,7 +29,7 @@ import java.util.List;
  */
 @ApiModel(description = "spec defines the desired state of SandboxSet")
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen",
-    date = "2026-03-09T07:30:17.307Z[Etc/UTC]")
+    date = "2026-04-03T09:31:05.089Z[Etc/UTC]")
 public class V1alpha1SandboxSetSpec {
     public static final String SERIALIZED_NAME_PERSISTENT_CONTENTS = "persistentContents";
     @SerializedName(SERIALIZED_NAME_PERSISTENT_CONTENTS)
@@ -38,6 +38,10 @@ public class V1alpha1SandboxSetSpec {
     public static final String SERIALIZED_NAME_REPLICAS = "replicas";
     @SerializedName(SERIALIZED_NAME_REPLICAS)
     private Integer replicas;
+
+    public static final String SERIALIZED_NAME_RUNTIMES = "runtimes";
+    @SerializedName(SERIALIZED_NAME_RUNTIMES)
+    private List<V1alpha1Runtimes> runtimes = null;
 
     public static final String SERIALIZED_NAME_SCALE_STRATEGY = "scaleStrategy";
     @SerializedName(SERIALIZED_NAME_SCALE_STRATEGY)
@@ -106,6 +110,36 @@ public class V1alpha1SandboxSetSpec {
 
     public void setReplicas(Integer replicas) {
         this.replicas = replicas;
+    }
+
+    public V1alpha1SandboxSetSpec runtimes(List<V1alpha1Runtimes> runtimes) {
+
+        this.runtimes = runtimes;
+        return this;
+    }
+
+    public V1alpha1SandboxSetSpec addRuntimesItem(V1alpha1Runtimes runtimesItem) {
+        if (this.runtimes == null) {
+            this.runtimes = new ArrayList<>();
+        }
+        this.runtimes.add(runtimesItem);
+        return this;
+    }
+
+    /**
+     * Runtimes - Runtime configuration for sandbox object
+     *
+     * @return runtimes
+     **/
+    @javax.annotation.Nullable
+    @ApiModelProperty(value = "Runtimes - Runtime configuration for sandbox object")
+
+    public List<V1alpha1Runtimes> getRuntimes() {
+        return runtimes;
+    }
+
+    public void setRuntimes(List<V1alpha1Runtimes> runtimes) {
+        this.runtimes = runtimes;
     }
 
     public V1alpha1SandboxSetSpec scaleStrategy(V1alpha1ScaleStrategy scaleStrategy) {
@@ -208,6 +242,7 @@ public class V1alpha1SandboxSetSpec {
         V1alpha1SandboxSetSpec v1alpha1SandboxSetSpec = (V1alpha1SandboxSetSpec)o;
         return Objects.equals(this.persistentContents, v1alpha1SandboxSetSpec.persistentContents) &&
             Objects.equals(this.replicas, v1alpha1SandboxSetSpec.replicas) &&
+            Objects.equals(this.runtimes, v1alpha1SandboxSetSpec.runtimes) &&
             Objects.equals(this.scaleStrategy, v1alpha1SandboxSetSpec.scaleStrategy) &&
             Objects.equals(this.template, v1alpha1SandboxSetSpec.template) &&
             Objects.equals(this.templateRef, v1alpha1SandboxSetSpec.templateRef) &&
@@ -216,7 +251,8 @@ public class V1alpha1SandboxSetSpec {
 
     @Override
     public int hashCode() {
-        return Objects.hash(persistentContents, replicas, scaleStrategy, template, templateRef, volumeClaimTemplates);
+        return Objects.hash(persistentContents, replicas, runtimes, scaleStrategy, template, templateRef,
+            volumeClaimTemplates);
     }
 
     @Override
@@ -225,6 +261,7 @@ public class V1alpha1SandboxSetSpec {
         sb.append("class V1alpha1SandboxSetSpec {\n");
         sb.append("    persistentContents: ").append(toIndentedString(persistentContents)).append("\n");
         sb.append("    replicas: ").append(toIndentedString(replicas)).append("\n");
+        sb.append("    runtimes: ").append(toIndentedString(runtimes)).append("\n");
         sb.append("    scaleStrategy: ").append(toIndentedString(scaleStrategy)).append("\n");
         sb.append("    template: ").append(toIndentedString(template)).append("\n");
         sb.append("    templateRef: ").append(toIndentedString(templateRef)).append("\n");
