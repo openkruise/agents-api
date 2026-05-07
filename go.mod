@@ -3,7 +3,9 @@ module github.com/openkruise/agents-api
 go 1.25.0
 
 require (
+	connectrpc.com/connect v1.19.2
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
+	google.golang.org/protobuf v1.36.9
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.35.0
@@ -43,7 +45,6 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
