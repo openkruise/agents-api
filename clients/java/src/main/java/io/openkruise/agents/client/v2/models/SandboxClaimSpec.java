@@ -108,10 +108,10 @@ public class SandboxClaimSpec implements io.fabric8.kubernetes.api.model.Kuberne
 
     /**
      * Labels contains key-value pairs to be added as labels
-     * to claimed Sandbox resources
+     * to claimed Sandbox resources and synced to sandbox template labels.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("labels")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Labels contains key-value pairs to be added as labels\nto claimed Sandbox resources")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Labels contains key-value pairs to be added as labels\nto claimed Sandbox resources and synced to sandbox template labels.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.Map<java.lang.String, String> labels;
 
