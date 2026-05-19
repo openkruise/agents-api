@@ -33,7 +33,7 @@ import (
 )
 
 // SandboxUpdateOpsInformer provides access to a shared informer and lister for
-// SandboxUpdateOpses.
+// SandboxUpdateOps.
 type SandboxUpdateOpsInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() agentsv1alpha1.SandboxUpdateOpsLister
@@ -62,25 +62,25 @@ func NewFilteredSandboxUpdateOpsInformer(client versioned.Interface, namespace s
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AgentsV1alpha1().SandboxUpdateOpses(namespace).List(context.Background(), options)
+				return client.AgentsV1alpha1().SandboxUpdateOps(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AgentsV1alpha1().SandboxUpdateOpses(namespace).Watch(context.Background(), options)
+				return client.AgentsV1alpha1().SandboxUpdateOps(namespace).Watch(context.Background(), options)
 			},
 			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AgentsV1alpha1().SandboxUpdateOpses(namespace).List(ctx, options)
+				return client.AgentsV1alpha1().SandboxUpdateOps(namespace).List(ctx, options)
 			},
 			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AgentsV1alpha1().SandboxUpdateOpses(namespace).Watch(ctx, options)
+				return client.AgentsV1alpha1().SandboxUpdateOps(namespace).Watch(ctx, options)
 			},
 		}, client),
 		&agentsapiagentsv1alpha1.SandboxUpdateOps{},

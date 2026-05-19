@@ -29,10 +29,10 @@ import (
 	gentype "k8s.io/client-go/gentype"
 )
 
-// SandboxUpdateOpsesGetter has a method to return a SandboxUpdateOpsInterface.
+// SandboxUpdateOpsGetter has a method to return a SandboxUpdateOpsInterface.
 // A group's client should implement this interface.
-type SandboxUpdateOpsesGetter interface {
-	SandboxUpdateOpses(namespace string) SandboxUpdateOpsInterface
+type SandboxUpdateOpsGetter interface {
+	SandboxUpdateOps(namespace string) SandboxUpdateOpsInterface
 }
 
 // SandboxUpdateOpsInterface has methods to work with SandboxUpdateOps resources.
@@ -50,16 +50,16 @@ type SandboxUpdateOpsInterface interface {
 	SandboxUpdateOpsExpansion
 }
 
-// sandboxUpdateOpses implements SandboxUpdateOpsInterface
-type sandboxUpdateOpses struct {
+// sandboxUpdateOps implements SandboxUpdateOpsInterface
+type sandboxUpdateOps struct {
 	*gentype.ClientWithList[*agentsv1alpha1.SandboxUpdateOps, *agentsv1alpha1.SandboxUpdateOpsList]
 }
 
-// newSandboxUpdateOpses returns a SandboxUpdateOpses
-func newSandboxUpdateOpses(c *AgentsV1alpha1Client, namespace string) *sandboxUpdateOpses {
-	return &sandboxUpdateOpses{
+// newSandboxUpdateOps returns a SandboxUpdateOps
+func newSandboxUpdateOps(c *AgentsV1alpha1Client, namespace string) *sandboxUpdateOps {
+	return &sandboxUpdateOps{
 		gentype.NewClientWithList[*agentsv1alpha1.SandboxUpdateOps, *agentsv1alpha1.SandboxUpdateOpsList](
-			"sandboxupdateopses",
+			"sandboxupdateops",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,

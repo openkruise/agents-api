@@ -46,6 +46,7 @@ GOPATH=${TMP_DIR} GO111MODULE=off kube::codegen::gen_helpers \
 echo "gen_client"
 GOPATH=${TMP_DIR} GO111MODULE=off kube::codegen::gen_client \
     --with-watch \
+    --plural-exceptions "SandboxUpdateOps:SandboxUpdateOps" \
     --output-dir "${SCRIPT_ROOT}/client" \
     --output-pkg "github.com/openkruise/agents-api/client" \
     --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
