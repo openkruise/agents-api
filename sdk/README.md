@@ -96,10 +96,14 @@ When a sandbox is already running, directly operate the in-container environment
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/openkruise/agents-api/sdk/runtime"
+)
 
 func main() {
+	ctx := context.Background()
+
 	c := runtime.New("your-sandbox-id",
 		runtime.WithDomain("your.domain.com"),
 		runtime.WithRuntimeToken("your-runtime-token"),
@@ -110,10 +114,104 @@ func main() {
 
 	c.Files.MakeDir(ctx, "/tmp/demo")
 }
-
 ```
 
-[Full example](https://github.com/openkruise/agents-api/blob/master/sdk/example/envd_client/main.go)
+### Retrieving RuntimeToken via K8s Client
+
+When running inside a cluster or with kubeconfig access, you can query the Sandbox CR via K8s API to automatically obtain `runtimeToken` and `sandboxID`:
+
+```go
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"path/filepath"
+
+	"github.com/openkruise/agents-api/agents/v1alpha1"
+	kruiseclient "github.com/openkruise/agents-api/client/clientset/versioned"
+	"github.com/openkruise/agents-api/sdk/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
+)
+
+const (
+	sandboxName = "your-sandbox-name"
+	namespace   = "default"
+	runtimeUrl  = "127.0.0.1:7788"
+)
+
+func main() {
+	ctx := context.Background()
+
+	// 1. Build K8s Client
+	k8sClient, err := GetK8sClient()
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	// 2. Query Sandbox CR
+	sandbox, err := k8sClient.AgentsV1alpha1().Sandboxes(namespace).Get(ctx, sandboxName, metav1.GetOptions{})
+	if err != nil {
+		fmt.Printf("Error getting sandbox: %v\n", err)
+		return
+	}
+
+	// 3. Parse runtimeToken from annotation
+	//    annotation key: agents.kruise.io/runtime-access-token
+	runtimeToken := sandbox.Annotations[v1alpha1.AnnotationRuntimeAccessToken]
+
+	// 4. Compose sandboxID = namespace + "--" + sandboxName
+	sandboxID := namespace + "--" + sandboxName
+
+	// 5. Build runtime client
+	c := runtime.New(sandboxID,
+		runtime.WithDomain(runtimeUrl),
+		runtime.WithRuntimeToken(runtimeToken),
+	)
+
+	fmt.Printf("Runtime URL: %s\n", c.RuntimeURL())
+
+	res, _ := c.Commands.Run(ctx, "uname -a")
+	fmt.Println(res.Stdout)
+}
+
+func GetK8sClient() (*kruiseclient.Clientset, error) {
+  // 1. Try KUBECONFIG env var
+  kubeconfigPath := os.Getenv("KUBECONFIG")
+
+  // 2. Try command-line flag
+  if kubeconfigPath == "" {
+    kubeconfig := flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+    flag.Parse()
+    kubeconfigPath = *kubeconfig
+  }
+
+  // 3. Fallback to default ~/.kube/config
+  if kubeconfigPath == "" {
+    if home := homedir.HomeDir(); home != "" {
+      kubeconfigPath = filepath.Join(home, ".kube", "config")
+    }
+  }
+
+  // 4. Build config: try kubeconfig file first, fallback to in-cluster
+  config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+  if err != nil {
+    return nil, fmt.Errorf("failed to build kubeconfig: %w", err)
+  }
+
+  return kruiseclient.NewForConfig(config)
+}
+```
+
+**Key Notes:**
+- **runtimeToken**: Retrieved from the Sandbox CR annotation `.metadata.annotations["agents.kruise.io/runtime-access-token"]`
+- **sandboxID**: Format is `namespace--sandboxName` (double-dash separator)
+
+[Full example](https://github.com/openkruise/agents-api/blob/master/sdk/example/runtime_client/main.go)
 
 ---
 
@@ -175,7 +273,7 @@ address (`<scheme>://<domain>`).
 | `WithDomain(domain string)`           | envd domain, default `your.domain.com`         |
 | `WithScheme(scheme string)`           | URL scheme, default `http`                     |
 | `WithRuntimeToken(token string)`      | Runtime token, sent as `X-Access-Token` header |
-| `WithEnvdPort(port int)`              | envd port, default `49983`                     |
+| `WithRuntimePort(port int)`           | Runtime port, default `49983`                  |
 | `WithAPIKey(apiKey string)`           | Optional API Key                               |
 | `WithAuthHeader(header string)`       | Override default Authorization header          |
 | `WithSandboxBaseURL(url string)`      | Fully override URL composition                 |

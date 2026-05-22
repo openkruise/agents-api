@@ -1,4 +1,4 @@
-// Package runtime provides a client that talks directly to the envd service
+// Package runtime provides a client that talks directly to the runtime service
 // inside a sandbox for in-sandbox operations (filesystem and process).
 package runtime
 
@@ -9,36 +9,36 @@ import (
 )
 
 const (
-	defaultDomain         = "e2b.app"
+	defaultDomain         = "domain.app"
 	defaultScheme         = "http"
 	defaultRequestTimeout = 60 * time.Second
-	defaultEnvdPort       = 49983
-	defaultEnvdAuthHeader = "Basic cm9vdDo="
+	defaultRuntimePort    = 49983
+	defaultAuthHeader     = "Basic cm9vdDo="
 )
 
-// Config stores everything needed to address and authenticate against envd.
+// Config stores everything needed to address and authenticate against the runtime service.
 type Config struct {
-	// Domain is the base domain envd is served from. Default: "e2b.app".
+	// Domain is the base domain the runtime service is served from. Default: "domain.app".
 	Domain string
 	// Scheme is the URL scheme: "https" (default) or "http".
 	Scheme string
-	// EnvdPort is the port envd listens on inside the sandbox.
-	EnvdPort int
+	// RuntimePort is the port the runtime service listens on inside the sandbox.
+	RuntimePort int
 	// RuntimeToken is the token used to authenticate with the runtime.
 	RuntimeToken string
 
 	// SandboxBaseURL, when non-empty, fully overrides Protocol/Domain based
-	// URL composition. The final envd URL is "<SandboxBaseURL>/<sandboxID>".
+	// URL composition. The final runtime URL is "<SandboxBaseURL>/<sandboxID>".
 	SandboxBaseURL string
 
-	// AuthHeader is the value sent in the "Authorization" header to envd.
+	// AuthHeader is the value sent in the "Authorization" header to the runtime service.
 	// Defaults to "Basic cm9vdDo=" (root with empty password) which matches
-	// the stock envd deployment.
+	// the stock runtime deployment.
 	AuthHeader string
 	// APIKey, when non-empty, is sent as "X-API-Key" header. Only useful when
-	// the ingress in front of envd also validates this header.
+	// the ingress in front of the runtime service also validates this header.
 	APIKey string
-	// Headers contains additional headers to send with every envd request.
+	// Headers contains additional headers to send with every runtime request.
 	Headers map[string]string
 
 	// RequestTimeout is the timeout applied to the underlying HTTP client.
@@ -53,27 +53,19 @@ type Option func(*Config)
 //
 // Environment variables consumed:
 //
-//	E2B_DOMAIN     -> Domain
 //	SCHEME     -> Scheme
-//	E2B_API_KEY    -> APIKey  (optional pass-through)
 func NewConfig(opts ...Option) *Config {
 	cfg := &Config{
 		Domain:         defaultDomain,
 		Scheme:         defaultScheme,
-		EnvdPort:       defaultEnvdPort,
-		AuthHeader:     defaultEnvdAuthHeader,
+		RuntimePort:    defaultRuntimePort,
+		AuthHeader:     defaultAuthHeader,
 		Headers:        make(map[string]string),
 		RequestTimeout: defaultRequestTimeout,
 	}
 
-	if v := os.Getenv("E2B_DOMAIN"); v != "" {
-		cfg.Domain = v
-	}
 	if v := os.Getenv("SCHEME"); v != "" {
 		cfg.Scheme = v
-	}
-	if v := os.Getenv("E2B_API_KEY"); v != "" {
-		cfg.APIKey = v
 	}
 
 	for _, opt := range opts {
@@ -82,7 +74,7 @@ func NewConfig(opts ...Option) *Config {
 	return cfg
 }
 
-// WithDomain sets the envd domain.
+// WithDomain sets the runtime service domain.
 func WithDomain(domain string) Option {
 	return func(c *Config) { c.Domain = domain }
 }
@@ -92,9 +84,9 @@ func WithScheme(scheme string) Option {
 	return func(c *Config) { c.Scheme = scheme }
 }
 
-// WithEnvdPort sets a custom envd port.
-func WithEnvdPort(port int) Option {
-	return func(c *Config) { c.EnvdPort = port }
+// WithRuntimePort sets a custom runtime port.
+func WithRuntimePort(port int) Option {
+	return func(c *Config) { c.RuntimePort = port }
 }
 
 // WithRuntimeToken sets a runtimeToken.
@@ -107,7 +99,7 @@ func WithSandboxBaseURL(url string) Option {
 	return func(c *Config) { c.SandboxBaseURL = url }
 }
 
-// WithAuthHeader overrides the default envd Authorization header.
+// WithAuthHeader overrides the default runtime Authorization header.
 func WithAuthHeader(header string) Option {
 	return func(c *Config) { c.AuthHeader = header }
 }
@@ -161,7 +153,7 @@ func WithConfig(cfg *Config) Option {
 	}
 }
 
-// SandboxURL returns the envd base URL for a given sandbox ID.
+// SandboxURL returns the runtime base URL for a given sandbox ID.
 // If SandboxBaseURL is set, it is returned as-is; otherwise composed from Scheme and Domain.
 func (c *Config) SandboxURL(sandboxID string) string {
 	if c.SandboxBaseURL != "" {
@@ -170,13 +162,13 @@ func (c *Config) SandboxURL(sandboxID string) string {
 	return fmt.Sprintf("%s://%s", c.scheme(), c.Domain)
 }
 
-// SandboxHeaders builds the headers map sent with every envd request for sandboxID.
+// SandboxHeaders builds the headers map sent with every runtime request for sandboxID.
 func (c *Config) SandboxHeaders(sandboxID string) map[string]string {
 	headers := make(map[string]string, 4+len(c.Headers))
 
 	auth := c.AuthHeader
 	if auth == "" {
-		auth = defaultEnvdAuthHeader
+		auth = defaultAuthHeader
 	}
 	headers["Authorization"] = auth
 
@@ -188,7 +180,7 @@ func (c *Config) SandboxHeaders(sandboxID string) map[string]string {
 		headers["X-Access-Token"] = c.RuntimeToken
 	}
 	headers["e2b-sandbox-id"] = sandboxID
-	headers["e2b-sandbox-port"] = fmt.Sprintf("%d", c.EnvdPort)
+	headers["e2b-sandbox-port"] = fmt.Sprintf("%d", c.RuntimePort)
 
 	for k, v := range c.Headers {
 		headers[k] = v

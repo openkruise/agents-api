@@ -21,7 +21,6 @@ type ProcessInfo struct {
 }
 
 // Commands provides command execution functionality in the sandbox via the
-// envd Process gRPC service.
 type Commands struct {
 	Rpc     processconnect.ProcessClient
 	headers map[string]string

@@ -7,7 +7,7 @@ import (
 	"github.com/openkruise/agents-api/sdk/proto/envd/process/processconnect"
 )
 
-// Client talks directly to the envd service of a single sandbox,
+// Client talks directly to the runtime service of a single sandbox,
 // exposing in-sandbox capabilities (Files, Commands).
 type Client struct {
 	// Commands provides command execution in the sandbox.
@@ -17,11 +17,11 @@ type Client struct {
 
 	sandboxID  string
 	config     *Config
-	envdURL    string
+	runtimeURL string
 	httpClient *http.Client
 }
 
-// New constructs an envd Client for a known sandbox ID.
+// New constructs a runtime Client for a known sandbox ID.
 func New(sandboxID string, opts ...Option) *Client {
 	cfg := NewConfig(opts...)
 	return NewWithConfig(sandboxID, cfg)
@@ -33,18 +33,18 @@ func NewWithConfig(sandboxID string, cfg *Config) *Client {
 		cfg = NewConfig()
 	}
 	httpClient := &http.Client{Timeout: cfg.RequestTimeout}
-	envdURL := cfg.SandboxURL(sandboxID)
+	runtimeURL := cfg.SandboxURL(sandboxID)
 	headers := cfg.SandboxHeaders(sandboxID)
 
-	fsRPC := filesystemconnect.NewFilesystemClient(httpClient, envdURL)
-	procRPC := processconnect.NewProcessClient(httpClient, envdURL)
+	fsRPC := filesystemconnect.NewFilesystemClient(httpClient, runtimeURL)
+	procRPC := processconnect.NewProcessClient(httpClient, runtimeURL)
 
 	return &Client{
 		Commands:   NewCommands(procRPC, headers),
-		Files:      NewFilesystem(fsRPC, httpClient, envdURL, headers),
+		Files:      NewFilesystem(fsRPC, httpClient, runtimeURL, headers),
 		sandboxID:  sandboxID,
 		config:     cfg,
-		envdURL:    envdURL,
+		runtimeURL: runtimeURL,
 		httpClient: httpClient,
 	}
 }
@@ -54,9 +54,9 @@ func (c *Client) SandboxID() string {
 	return c.sandboxID
 }
 
-// EnvdURL returns the resolved envd base URL for the bound sandbox.
-func (c *Client) EnvdURL() string {
-	return c.envdURL
+// RuntimeURL returns the resolved runtime base URL for the bound sandbox.
+func (c *Client) RuntimeURL() string {
+	return c.runtimeURL
 }
 
 // Config returns the underlying configuration (read-only).

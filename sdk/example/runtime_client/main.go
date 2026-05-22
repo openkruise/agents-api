@@ -2,32 +2,62 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/openkruise/agents-api/agents/v1alpha1"
+	kruiseclient "github.com/openkruise/agents-api/client/clientset/versioned"
 	"github.com/openkruise/agents-api/sdk/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 const (
-	sandboxID    = "your-sandbox-id"
-	domain       = "your.domain.com"
-	runtimeToken = "you runtime token"
+	sandboxName = "openclaw-advanced-k8s-sbs-lght9"
+	namespace   = "default"
+	gatewayUrl  = "127.0.0.1:7788"
 )
 
 func main() {
 	ctx := context.Background()
 
-	fmt.Println("========== envd direct client example ==========")
+	k8sClient, err := GetK8sClient()
+	if err != nil {
+		fmt.Printf("    Error GetK8sClient: %v\n", err)
+		return
+	}
 
-	// Build a direct envd client. Defaults: Scheme = "https".
+	// Query sandbox from k8s to get runtimeToken and sandboxID
+	sandbox, err := k8sClient.AgentsV1alpha1().Sandboxes(namespace).Get(ctx, sandboxName, metav1.GetOptions{})
+	if err != nil {
+		fmt.Printf("    Error getting sandbox: %v\n", err)
+		return
+	}
+
+	// Parse runtimeToken from annotation: agents.kruise.io/runtime-access-token
+	runtimeToken := sandbox.Annotations[v1alpha1.AnnotationRuntimeAccessToken]
+	if runtimeToken == "" {
+		fmt.Println("    Warning: runtime-access-token annotation not found on sandbox")
+	}
+
+	sandboxID := namespace + "--" + sandboxName
+	fmt.Printf("Sandbox ID: %s\n", sandboxID)
+	fmt.Printf("Runtime Token: %s\n", runtimeToken)
+
+	fmt.Println("\n========== runtime direct client example ==========")
+
+	// Build a direct runtime client.
 	c := runtime.New(sandboxID,
-		runtime.WithDomain(domain),
+		runtime.WithDomain(gatewayUrl),
 		runtime.WithRuntimeToken(runtimeToken),
 	)
 
-	fmt.Printf("envd URL: %s\n", c.EnvdURL())
+	fmt.Printf("runtime URL: %s\n", c.RuntimeURL())
 
 	// ========== 1. Command Operations Demo ==========
 	fmt.Println("\n--- Command Operations Demo ---")
@@ -42,6 +72,33 @@ func main() {
 	writeAndReadFile(ctx, c.Files)
 
 	fmt.Println("\n========== done ==========")
+}
+
+func GetK8sClient() (*kruiseclient.Clientset, error) {
+	// 1. Try KUBECONFIG env var
+	kubeconfigPath := os.Getenv("KUBECONFIG")
+
+	// 2. Try command-line flag
+	if kubeconfigPath == "" {
+		kubeconfig := flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		flag.Parse()
+		kubeconfigPath = *kubeconfig
+	}
+
+	// 3. Fallback to default ~/.kube/config
+	if kubeconfigPath == "" {
+		if home := homedir.HomeDir(); home != "" {
+			kubeconfigPath = filepath.Join(home, ".kube", "config")
+		}
+	}
+
+	// 4. Build config: try kubeconfig file first, fallback to in-cluster
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build kubeconfig: %w", err)
+	}
+
+	return kruiseclient.NewForConfig(config)
 }
 
 func writeAndReadFile(ctx context.Context, files *runtime.Filesystem) {

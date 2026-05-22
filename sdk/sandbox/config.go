@@ -26,7 +26,7 @@ const (
 	defaultScheme         = "https"
 	defaultRequestTimeout = 60 * time.Second
 	defaultSandboxTimeout = 300 // seconds
-	defaultEnvdPort       = 49983
+	defaultRuntimePort    = 49983
 )
 
 // ConnectionConfig stores the configuration for connecting to E2B services.
@@ -49,8 +49,8 @@ type ConnectionConfig struct {
 	Debug bool
 	// RequestTimeout is the timeout for HTTP requests.
 	RequestTimeout time.Duration
-	// EnvdPort is the port for the envd service inside the sandbox.
-	EnvdPort int
+	// RuntimePort is the port for the runtime service inside the sandbox.
+	RuntimePort int
 	// Headers contains additional headers to send with sandbox requests.
 	Headers map[string]string
 }
@@ -62,22 +62,16 @@ func NewConnectionConfig(opts ...ConnectionConfigOption) *ConnectionConfig {
 		Scheme:         defaultScheme,
 		Protocol:       ProtocolNative,
 		RequestTimeout: defaultRequestTimeout,
-		EnvdPort:       defaultEnvdPort,
+		RuntimePort:    defaultRuntimePort,
 		Headers:        make(map[string]string),
 	}
 
 	// Apply environment variable defaults
-	if apiKey := os.Getenv("E2B_API_KEY"); apiKey != "" {
+	if apiKey := os.Getenv("X_API_KEY"); apiKey != "" {
 		config.APIKey = apiKey
 	}
-	if accessToken := os.Getenv("E2B_ACCESS_TOKEN"); accessToken != "" {
+	if accessToken := os.Getenv("X_ACCESS_TOKEN"); accessToken != "" {
 		config.AccessToken = accessToken
-	}
-	if domain := os.Getenv("E2B_DOMAIN"); domain != "" {
-		config.Domain = domain
-	}
-	if apiURL := os.Getenv("E2B_API_URL"); apiURL != "" {
-		config.APIURL = apiURL
 	}
 	if scheme := os.Getenv("SCHEME"); scheme != "" {
 		config.Scheme = scheme
@@ -179,9 +173,9 @@ func (c *ConnectionConfig) GetSandboxURL(sandboxID string) string {
 	}
 	scheme := c.getScheme()
 	if c.Protocol == ProtocolPrivate {
-		return fmt.Sprintf("%s://%s/kruise/%s/%d", scheme, c.Domain, sandboxID, c.EnvdPort)
+		return fmt.Sprintf("%s://%s/kruise/%s/%d", scheme, c.Domain, sandboxID, c.RuntimePort)
 	}
-	return fmt.Sprintf("%s://%d-%s.%s", scheme, c.EnvdPort, sandboxID, c.Domain)
+	return fmt.Sprintf("%s://%d-%s.%s", scheme, c.RuntimePort, sandboxID, c.Domain)
 }
 
 // getScheme returns the URL scheme, defaulting to "https".
@@ -197,7 +191,7 @@ func (c *ConnectionConfig) toEnvdConfig(sandboxID string) *runtime.Config {
 	cfg := &runtime.Config{
 		Domain:         c.Domain,
 		Scheme:         c.Scheme,
-		EnvdPort:       c.EnvdPort,
+		RuntimePort:    c.RuntimePort,
 		APIKey:         c.APIKey,
 		RequestTimeout: c.RequestTimeout,
 	}

@@ -17,10 +17,8 @@ import (
 )
 
 const (
-	// envdFilesRoute is the HTTP endpoint for file read/write operations on envd.
-	envdFilesRoute = "/files"
-	// defaultUsername is the default Linux user for file operations in the sandbox.
-	defaultUsername = "node"
+	runtimeFilesRoute = "/files"
+	defaultUsername   = "node"
 )
 
 // EntryType represents the type of a filesystem entry.
@@ -53,21 +51,20 @@ type WriteInfo struct {
 }
 
 // Filesystem provides filesystem operations in the sandbox over the official
-// envd Filesystem gRPC service and HTTP file API.
 type Filesystem struct {
 	Rpc        filesystemconnect.FilesystemClient
 	httpClient *http.Client
-	envdURL    string
+	runtimeURL string
 	headers    map[string]string
 }
 
-// NewFilesystem creates a new Filesystem instance backed by the envd gRPC client
+// NewFilesystem creates a new Filesystem instance backed by the gRPC client
 // and HTTP client for file content read/write.
-func NewFilesystem(rpc filesystemconnect.FilesystemClient, httpClient *http.Client, envdURL string, headers map[string]string) *Filesystem {
+func NewFilesystem(rpc filesystemconnect.FilesystemClient, httpClient *http.Client, runtimeURL string, headers map[string]string) *Filesystem {
 	return &Filesystem{
 		Rpc:        rpc,
 		httpClient: httpClient,
-		envdURL:    envdURL,
+		runtimeURL: runtimeURL,
 		headers:    headers,
 	}
 }
@@ -75,7 +72,7 @@ func NewFilesystem(rpc filesystemconnect.FilesystemClient, httpClient *http.Clie
 // Read reads the content of a file and returns it as a byte slice.
 // An optional user can be provided to run the operation as that user.
 func (f *Filesystem) Read(ctx context.Context, path string, user ...string) ([]byte, error) {
-	u, err := url.Parse(f.envdURL + envdFilesRoute)
+	u, err := url.Parse(f.runtimeURL + runtimeFilesRoute)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
@@ -140,7 +137,7 @@ func (f *Filesystem) Write(ctx context.Context, path string, data []byte, user .
 		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	u, err := url.Parse(f.envdURL + envdFilesRoute)
+	u, err := url.Parse(f.runtimeURL + runtimeFilesRoute)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
