@@ -134,8 +134,14 @@ import (
 func main() {
 	ctx := context.Background()
 
-	c, err := runtime.NewFromK8s(ctx, "default", "your-sandbox-name",
-		runtime.WithDomain("127.0.0.1:7788"),
+	// domain is the address of the sandbox gateway.
+	// In-cluster: use the K8s Service DNS, e.g. "sandbox-gateway.sandbox-system.svc:7788"
+	// Local dev:  use port-forward address, e.g. "127.0.0.1:7788"
+	domain := "sandbox-gateway.sandbox-system.svc:7788"
+	namespace := "default"
+	sandboxName := "your-sandbox-name"
+	c, err := runtime.NewFromK8s(ctx, namespace, sandboxName,
+		runtime.WithDomain(domain),
 	)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
