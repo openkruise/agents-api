@@ -91,34 +91,6 @@ func main() {
 
 ## Quick Start: runtime (Runtime Client)
 
-When a sandbox is already running, directly operate the in-container environment:
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/openkruise/agents-api/sdk/runtime"
-)
-
-func main() {
-	ctx := context.Background()
-
-	c := runtime.New("your-sandbox-id",
-		runtime.WithDomain("your.domain.com"),
-		runtime.WithRuntimeToken("your-runtime-token"),
-	)
-
-	res, _ := c.Commands.Run(ctx, "uname -a")
-	fmt.Println(res.Stdout)
-
-	c.Files.MakeDir(ctx, "/tmp/demo")
-}
-```
-
-### Creating a Client from Kubernetes (NewFromK8s)
-
 When running inside a cluster or with kubeconfig access, use `NewFromK8s` to automatically resolve `sandboxID` and `runtimeToken` from the Sandbox CR:
 
 ```go

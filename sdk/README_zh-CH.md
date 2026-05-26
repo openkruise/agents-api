@@ -88,34 +88,6 @@ func main() {
 
 ## 快速开始：runtime（运行时客户端）
 
-sandbox 正在运行，直接操作容器内环境时：
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/openkruise/agents-api/sdk/runtime"
-)
-
-func main() {
-	ctx := context.Background()
-
-	c := runtime.New("your-sandbox-id",
-		runtime.WithDomain("your.domain.com"),
-		runtime.WithRuntimeToken("your-runtime-token"),
-	)
-
-	res, _ := c.Commands.Run(ctx, "uname -a")
-	fmt.Println(res.Stdout)
-
-	c.Files.MakeDir(ctx, "/tmp/demo")
-}
-```
-
-### 通过 Kubernetes 创建客户端（NewFromK8s）
-
 在集群内或有 kubeconfig 权限时，使用 `NewFromK8s` 自动从 Sandbox CR 解析 `sandboxID` 和 `runtimeToken`：
 
 ```go
