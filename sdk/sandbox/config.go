@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/openkruise/agents-api/sdk/proto/api"
@@ -53,6 +54,10 @@ type ConnectionConfig struct {
 	RuntimePort int
 	// Headers contains additional headers to send with sandbox requests.
 	Headers map[string]string
+
+	// apiClient is a lazily-initialized shared API client.
+	apiClient     *api.APIClient
+	apiClientOnce sync.Once
 }
 
 // NewConnectionConfig creates a new ConnectionConfig with defaults and environment variable fallback.
@@ -209,17 +214,22 @@ func (c *ConnectionConfig) toEnvdConfig(sandboxID string) *runtime.Config {
 	return cfg
 }
 
-// NewAPIClient creates a new OpenAPI client configured for this connection.
+// NewAPIClient returns a shared OpenAPI client configured for this connection.
+// The client is lazily initialized on first call and reused across subsequent calls,
+// sharing a single HTTP Transport and connection pool.
 func (c *ConnectionConfig) NewAPIClient() *api.APIClient {
-	cfg := api.NewConfiguration()
-	cfg.Servers = api.ServerConfigurations{
-		{URL: c.GetAPIURL()},
-	}
-	cfg.HTTPClient = &http.Client{
-		Timeout: c.RequestTimeout,
-	}
-	if c.APIKey != "" {
-		cfg.DefaultHeader["X-API-Key"] = c.APIKey
-	}
-	return api.NewAPIClient(cfg)
+	c.apiClientOnce.Do(func() {
+		cfg := api.NewConfiguration()
+		cfg.Servers = api.ServerConfigurations{
+			{URL: c.GetAPIURL()},
+		}
+		cfg.HTTPClient = &http.Client{
+			Timeout: c.RequestTimeout,
+		}
+		if c.APIKey != "" {
+			cfg.DefaultHeader["X-API-Key"] = c.APIKey
+		}
+		c.apiClient = api.NewAPIClient(cfg)
+	})
+	return c.apiClient
 }

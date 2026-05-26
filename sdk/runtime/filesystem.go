@@ -52,30 +52,31 @@ type WriteInfo struct {
 
 // Filesystem provides filesystem operations in the sandbox over the official
 type Filesystem struct {
-	Rpc        filesystemconnect.FilesystemClient
-	httpClient *http.Client
-	runtimeURL string
-	headers    map[string]string
+	Rpc         filesystemconnect.FilesystemClient
+	httpClient  *http.Client
+	runtimeURL  string
+	baseFileURL *url.URL // pre-parsed base URL for file operations
+	headers     map[string]string
 }
 
 // NewFilesystem creates a new Filesystem instance backed by the gRPC client
 // and HTTP client for file content read/write.
 func NewFilesystem(rpc filesystemconnect.FilesystemClient, httpClient *http.Client, runtimeURL string, headers map[string]string) *Filesystem {
+	// Pre-parse the base file URL to avoid repeated parsing on every request.
+	baseURL, _ := url.Parse(runtimeURL + runtimeFilesRoute)
 	return &Filesystem{
-		Rpc:        rpc,
-		httpClient: httpClient,
-		runtimeURL: runtimeURL,
-		headers:    headers,
+		Rpc:         rpc,
+		httpClient:  httpClient,
+		runtimeURL:  runtimeURL,
+		baseFileURL: baseURL,
+		headers:     headers,
 	}
 }
 
 // Read reads the content of a file and returns it as a byte slice.
 // An optional user can be provided to run the operation as that user.
 func (f *Filesystem) Read(ctx context.Context, path string, user ...string) ([]byte, error) {
-	u, err := url.Parse(f.runtimeURL + runtimeFilesRoute)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %w", err)
-	}
+	u := *f.baseFileURL // shallow copy of pre-parsed URL
 	q := u.Query()
 	q.Set("path", path)
 	username := defaultUsername
@@ -137,10 +138,7 @@ func (f *Filesystem) Write(ctx context.Context, path string, data []byte, user .
 		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	u, err := url.Parse(f.runtimeURL + runtimeFilesRoute)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %w", err)
-	}
+	u := *f.baseFileURL // shallow copy of pre-parsed URL
 	q := u.Query()
 	q.Set("path", path)
 	username := defaultUsername

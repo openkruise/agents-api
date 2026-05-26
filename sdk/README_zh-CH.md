@@ -28,6 +28,7 @@ sdk/
 │
 ├── runtime/                          #   运行时客户端（package runtime）
 │   ├── client.go                     #   Client 结构体：New / NewWithConfig
+│   ├── k8s.go                        #   NewFromK8s：从 K8s 自动解析 sandboxID 和 runtimeToken
 │   ├── config.go                     #   Config 与 Options：Domain / Scheme / RuntimeToken / ...
 │   ├── commands.go                   #   Commands：Run / Start / Kill / SendStdin / List / ConnectToProcess
 │   ├── command_handle.go             #   CommandHandle：Wait / Disconnect / Kill
@@ -113,101 +114,42 @@ func main() {
 }
 ```
 
-### 通过 K8s Client 查询 Sandbox 获取 RuntimeToken
+### 通过 Kubernetes 创建客户端（NewFromK8s）
 
-在集群内或有 kubeconfig 权限时，可以通过 K8s API 查询 Sandbox CR，自动获取 `runtimeToken` 和 `sandboxID`：
+在集群内或有 kubeconfig 权限时，使用 `NewFromK8s` 自动从 Sandbox CR 解析 `sandboxID` 和 `runtimeToken`：
 
 ```go
 package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"path/filepath"
 
-	"github.com/openkruise/agents-api/agents/v1alpha1"
-	kruiseclient "github.com/openkruise/agents-api/client/clientset/versioned"
 	"github.com/openkruise/agents-api/sdk/runtime"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
-)
-
-const (
-	sandboxName = "your-sandbox-name"
-	namespace   = "default"
-	runtimeUrl  = "127.0.0.1:7788"
 )
 
 func main() {
 	ctx := context.Background()
 
-	// 1. 构建 K8s Client
-	k8sClient, err := GetK8sClient()
+	c, err := runtime.NewFromK8s(ctx, "default", "your-sandbox-name",
+		runtime.WithDomain("127.0.0.1:7788"),
+	)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
-
-	// 2. 查询 Sandbox CR
-	sandbox, err := k8sClient.AgentsV1alpha1().Sandboxes(namespace).Get(ctx, sandboxName, metav1.GetOptions{})
-	if err != nil {
-		fmt.Printf("Error getting sandbox: %v\n", err)
-		return
-	}
-
-	// 3. 从 annotation 解析 runtimeToken
-	//    annotation key: agents.kruise.io/runtime-access-token
-	runtimeToken := sandbox.Annotations[v1alpha1.AnnotationRuntimeAccessToken]
-
-	// 4. 拼接 sandboxID = namespace + "--" + sandboxName
-	sandboxID := namespace + "--" + sandboxName
-
-	// 5. 构建 runtime client
-	c := runtime.New(sandboxID,
-		runtime.WithDomain(runtimeUrl),
-		runtime.WithRuntimeToken(runtimeToken),
-	)
 
 	fmt.Printf("Runtime URL: %s\n", c.RuntimeURL())
 
 	res, _ := c.Commands.Run(ctx, "uname -a")
 	fmt.Println(res.Stdout)
 }
-
-func GetK8sClient() (*kruiseclient.Clientset, error) {
-	// 1. 优先使用 KUBECONFIG 环境变量
-	kubeconfigPath := os.Getenv("KUBECONFIG")
-
-	// 2. 尝试命令行参数
-	if kubeconfigPath == "" {
-		kubeconfig := flag.String("kubeconfig", "", "kubeconfig 文件的绝对路径")
-		flag.Parse()
-		kubeconfigPath = *kubeconfig
-	}
-
-	// 3. 兜底使用默认路径 ~/.kube/config
-	if kubeconfigPath == "" {
-		if home := homedir.HomeDir(); home != "" {
-			kubeconfigPath = filepath.Join(home, ".kube", "config")
-		}
-	}
-
-	// 4. 构建 K8s 配置
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("构建 kubeconfig 失败: %w", err)
-	}
-
-	return kruiseclient.NewForConfig(config)
-}
 ```
 
 **关键说明：**
-
-- **runtimeToken**：从 Sandbox CR 的 `.metadata.annotations["agents.kruise.io/runtime-access-token"]` 获取
-- **sandboxID**：格式为 `namespace--sandboxName`（双横线连接）
+- `NewFromK8s` 查询 Sandbox CR 并从 annotation `agents.kruise.io/runtime-access-token` 提取 `runtimeToken`
+- `sandboxID` 格式为 `namespace--name`（双横线连接）
+- kubeconfig 解析顺序：`KUBECONFIG` 环境变量 → `~/.kube/config` → in-cluster config
 
 [完整示例](https://github.com/openkruise/agents-api/blob/master/sdk/example/runtime_client/main.go)
 

@@ -4,7 +4,9 @@ package runtime
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -43,9 +45,14 @@ type Config struct {
 
 	// RequestTimeout is the timeout applied to the underlying HTTP client.
 	RequestTimeout time.Duration
+
+	// httpClient is a lazily-initialized shared HTTP client.
+	// All sandbox clients created from this Config share the same Transport/connection pool.
+	httpClient *http.Client
+	httpOnce   sync.Once
 }
 
-// Option configures a Config via the functional-options pattern.
+// Option configures a Config.
 type Option func(*Config)
 
 // NewConfig builds a Config with defaults, environment-variable fallback and
@@ -186,6 +193,14 @@ func (c *Config) SandboxHeaders(sandboxID string) map[string]string {
 		headers[k] = v
 	}
 	return headers
+}
+
+// HTTPClient returns the lazily-initialized shared http.Client.
+func (c *Config) HTTPClient() *http.Client {
+	c.httpOnce.Do(func() {
+		c.httpClient = &http.Client{Timeout: c.RequestTimeout}
+	})
+	return c.httpClient
 }
 
 func (c *Config) scheme() string {

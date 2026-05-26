@@ -29,6 +29,7 @@ sdk/
 │
 ├── runtime/                          #   Runtime Client (package runtime)
 │   ├── client.go                     #   Client struct: New / NewWithConfig
+│   ├── k8s.go                        #   NewFromK8s: auto-resolve sandboxID & runtimeToken from K8s
 │   ├── config.go                     #   Config & Options: Domain / Scheme / RuntimeToken / ...
 │   ├── commands.go                   #   Commands: Run / Start / Kill / SendStdin / List / ConnectToProcess
 │   ├── command_handle.go             #   CommandHandle: Wait / Disconnect / Kill
@@ -116,100 +117,43 @@ func main() {
 }
 ```
 
-### Retrieving RuntimeToken via K8s Client
+### Creating a Client from Kubernetes (NewFromK8s)
 
-When running inside a cluster or with kubeconfig access, you can query the Sandbox CR via K8s API to automatically obtain `runtimeToken` and `sandboxID`:
+When running inside a cluster or with kubeconfig access, use `NewFromK8s` to automatically resolve `sandboxID` and `runtimeToken` from the Sandbox CR:
 
 ```go
 package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"path/filepath"
 
-	"github.com/openkruise/agents-api/agents/v1alpha1"
-	kruiseclient "github.com/openkruise/agents-api/client/clientset/versioned"
 	"github.com/openkruise/agents-api/sdk/runtime"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
-)
-
-const (
-	sandboxName = "your-sandbox-name"
-	namespace   = "default"
-	runtimeUrl  = "127.0.0.1:7788"
 )
 
 func main() {
 	ctx := context.Background()
 
-	// 1. Build K8s Client
-	k8sClient, err := GetK8sClient()
+	c, err := runtime.NewFromK8s(ctx, "default", "your-sandbox-name",
+		runtime.WithDomain("127.0.0.1:7788"),
+	)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
-
-	// 2. Query Sandbox CR
-	sandbox, err := k8sClient.AgentsV1alpha1().Sandboxes(namespace).Get(ctx, sandboxName, metav1.GetOptions{})
-	if err != nil {
-		fmt.Printf("Error getting sandbox: %v\n", err)
-		return
-	}
-
-	// 3. Parse runtimeToken from annotation
-	//    annotation key: agents.kruise.io/runtime-access-token
-	runtimeToken := sandbox.Annotations[v1alpha1.AnnotationRuntimeAccessToken]
-
-	// 4. Compose sandboxID = namespace + "--" + sandboxName
-	sandboxID := namespace + "--" + sandboxName
-
-	// 5. Build runtime client
-	c := runtime.New(sandboxID,
-		runtime.WithDomain(runtimeUrl),
-		runtime.WithRuntimeToken(runtimeToken),
-	)
 
 	fmt.Printf("Runtime URL: %s\n", c.RuntimeURL())
 
 	res, _ := c.Commands.Run(ctx, "uname -a")
 	fmt.Println(res.Stdout)
 }
-
-func GetK8sClient() (*kruiseclient.Clientset, error) {
-  // 1. Try KUBECONFIG env var
-  kubeconfigPath := os.Getenv("KUBECONFIG")
-
-  // 2. Try command-line flag
-  if kubeconfigPath == "" {
-    kubeconfig := flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-    flag.Parse()
-    kubeconfigPath = *kubeconfig
-  }
-
-  // 3. Fallback to default ~/.kube/config
-  if kubeconfigPath == "" {
-    if home := homedir.HomeDir(); home != "" {
-      kubeconfigPath = filepath.Join(home, ".kube", "config")
-    }
-  }
-
-  // 4. Build config: try kubeconfig file first, fallback to in-cluster
-  config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-  if err != nil {
-    return nil, fmt.Errorf("failed to build kubeconfig: %w", err)
-  }
-
-  return kruiseclient.NewForConfig(config)
-}
 ```
 
 **Key Notes:**
-- **runtimeToken**: Retrieved from the Sandbox CR annotation `.metadata.annotations["agents.kruise.io/runtime-access-token"]`
-- **sandboxID**: Format is `namespace--sandboxName` (double-dash separator)
+- `NewFromK8s` queries the Sandbox CR and extracts `runtimeToken` from annotation `agents.kruise.io/runtime-access-token`
+- `sandboxID` is composed as `namespace--name` (double-dash separator)
+- Kubeconfig resolution order: `KUBECONFIG` env → `~/.kube/config` → in-cluster config
+- The underlying K8s client is created once and shared across calls (via `sync.Once`)
 
 [Full example](https://github.com/openkruise/agents-api/blob/master/sdk/example/runtime_client/main.go)
 

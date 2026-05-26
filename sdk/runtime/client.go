@@ -32,7 +32,7 @@ func NewWithConfig(sandboxID string, cfg *Config) *Client {
 	if cfg == nil {
 		cfg = NewConfig()
 	}
-	httpClient := &http.Client{Timeout: cfg.RequestTimeout}
+	httpClient := cfg.HTTPClient()
 	runtimeURL := cfg.SandboxURL(sandboxID)
 	headers := cfg.SandboxHeaders(sandboxID)
 

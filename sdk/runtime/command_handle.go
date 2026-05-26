@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/openkruise/agents-api/sdk/proto/envd/process"
@@ -39,8 +40,8 @@ func (e *CommandExitError) Error() string {
 type CommandHandle struct {
 	pid        uint32
 	handleKill func() bool
-	stdout     string
-	stderr     string
+	stdout     strings.Builder
+	stderr     strings.Builder
 	result     *CommandResult
 
 	startStream   *connect.ServerStreamForClient[process.StartResponse]
@@ -103,14 +104,14 @@ func (h *CommandHandle) waitStartStream(onStdout, onStderr func(string)) (*Comma
 		if data := event.GetData(); data != nil {
 			if len(data.GetStdout()) > 0 {
 				out := string(data.GetStdout())
-				h.stdout += out
+				h.stdout.WriteString(out)
 				if onStdout != nil {
 					onStdout(out)
 				}
 			}
 			if len(data.GetStderr()) > 0 {
 				out := string(data.GetStderr())
-				h.stderr += out
+				h.stderr.WriteString(out)
 				if onStderr != nil {
 					onStderr(out)
 				}
@@ -119,8 +120,8 @@ func (h *CommandHandle) waitStartStream(onStdout, onStderr func(string)) (*Comma
 
 		if end := event.GetEnd(); end != nil {
 			h.result = &CommandResult{
-				Stdout:   h.stdout,
-				Stderr:   h.stderr,
+				Stdout:   h.stdout.String(),
+				Stderr:   h.stderr.String(),
 				ExitCode: end.GetExitCode(),
 				Error:    end.GetError(),
 			}
@@ -160,14 +161,14 @@ func (h *CommandHandle) waitConnectStream(onStdout, onStderr func(string)) (*Com
 		if data := event.GetData(); data != nil {
 			if len(data.GetStdout()) > 0 {
 				out := string(data.GetStdout())
-				h.stdout += out
+				h.stdout.WriteString(out)
 				if onStdout != nil {
 					onStdout(out)
 				}
 			}
 			if len(data.GetStderr()) > 0 {
 				out := string(data.GetStderr())
-				h.stderr += out
+				h.stderr.WriteString(out)
 				if onStderr != nil {
 					onStderr(out)
 				}
@@ -176,8 +177,8 @@ func (h *CommandHandle) waitConnectStream(onStdout, onStderr func(string)) (*Com
 
 		if end := event.GetEnd(); end != nil {
 			h.result = &CommandResult{
-				Stdout:   h.stdout,
-				Stderr:   h.stderr,
+				Stdout:   h.stdout.String(),
+				Stderr:   h.stderr.String(),
 				ExitCode: end.GetExitCode(),
 				Error:    end.GetError(),
 			}
