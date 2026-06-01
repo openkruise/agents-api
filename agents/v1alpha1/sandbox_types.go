@@ -47,6 +47,9 @@ const (
 	// RuntimeConfigForInjectAgentRuntime is a valid value for RuntimeConfig.Name.
 	// When set, enables agent runtime sidecar injection for the sandbox.
 	RuntimeConfigForInjectAgentRuntime = "agent-runtime"
+	// RuntimeConfigForInjectTrafficProxy is a valid value for RuntimeConfig.Name.
+	// When set, enables traffic proxy sidecar injection for the sandbox.
+	RuntimeConfigForInjectTrafficProxy = "traffic-proxy"
 )
 
 type RuntimeConfig struct {
@@ -296,9 +299,10 @@ const (
 	// SandboxConditionUpgrading means upgrade state.
 	SandboxConditionUpgrading SandboxConditionType = "Upgrading"
 
-	// SandboxConditionPostResumeInit indicates the result of post-resume initialization
-	// which includes runtime re-initialization and CSI storage re-mount.
-	SandboxConditionPostResumeInit SandboxConditionType = "PostResumeInit"
+	// RuntimeInitialized means the agent-runtime inside
+	// the sandbox pod has completed initialization (first-time init or re-init
+	// after resume/recreate/upgrade).
+	RuntimeInitialized SandboxConditionType = "RuntimeInitialized"
 )
 
 const (
@@ -330,9 +334,9 @@ const (
 	SandboxResumeReasonCreatePod = "CreatePod"
 	SandboxResumeReasonResumePod = "ResumePod"
 
-	// SandboxConditionPostResumeInit Reason
-	SandboxPostResumeInitReasonSucceeded = "Succeeded"
-	SandboxPostResumeInitReasonFailed    = "Failed"
+	// SandboxConditionRuntimeInit Reason
+	SandboxConditionRuntimeInitReasonSucceeded = "Succeeded"
+	SandboxConditionRuntimeInitReasonFailed    = "Failed"
 )
 
 // +genclient

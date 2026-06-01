@@ -41,3 +41,11 @@ from .sandboxupdateops import (
     Selector as SandboxUpdateOpsSelector,
     Lifecycle as SandboxUpdateOpsLifecycle,
 )
+from .securityprofile import (
+    SecurityProfile,
+    Spec as SecurityProfileSpec,
+    Status as SecurityProfileStatus,
+    Rule as SecurityProfileRule,
+    Actions as SecurityProfileActions,
+    Selector as SecurityProfileSelector,
+)

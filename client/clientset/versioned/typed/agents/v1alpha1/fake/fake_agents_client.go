@@ -52,6 +52,10 @@ func (c *FakeAgentsV1alpha1) SandboxUpdateOps(namespace string) v1alpha1.Sandbox
 	return newFakeSandboxUpdateOps(c, namespace)
 }
 
+func (c *FakeAgentsV1alpha1) SecurityProfiles(namespace string) v1alpha1.SecurityProfileInterface {
+	return newFakeSecurityProfiles(c, namespace)
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeAgentsV1alpha1) RESTClient() rest.Interface {

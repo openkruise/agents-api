@@ -65,6 +65,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().SandboxTemplates().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("sandboxupdateops"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().SandboxUpdateOps().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("securityprofiles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().SecurityProfiles().Informer()}, nil
 
 	}
 
