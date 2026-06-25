@@ -26,6 +26,7 @@ try (sandbox) {
 ```
 
 **Environment Variables Setup**:
+
 ```bash
 export E2B_API_KEY="your-api-key"
 export E2B_DOMAIN="your.domain.com"
@@ -473,6 +474,89 @@ Builder methods:
 |---------------|-----------------|
 | `E2B_API_KEY` | Default API Key |
 | `E2B_DOMAIN`  | Default domain  |
+
+### Proxy Configuration (ProxyConfig)
+
+Supports accessing E2B services through an HTTP proxy, suitable for internal network environments or scenarios requiring
+traffic forwarding. Also supports custom SSL/TLS configuration.
+
+#### Builder Methods
+
+| Method                                | Description                              |
+|---------------------------------------|------------------------------------------|
+| `.proxy(Proxy)`                       | Set Java `Proxy` object                  |
+| `.proxy(String host, int port)`       | Shortcut: create HTTP proxy by host/port |
+| `.sslContext(SSLContext)`             | Custom SSL context                       |
+| `.trustManager(X509TrustManager)`     | Custom certificate trust manager         |
+| `.hostnameVerifier(HostnameVerifier)` | Custom hostname verifier                 |
+
+#### Basic Usage
+
+```java
+// 1. Build ProxyConfig
+ProxyConfig proxyConfig = new ProxyConfig.Builder()
+    .proxy("proxy.example.com", 8080)
+    .build();
+
+// 2. Set proxy in ConnectionConfig
+ConnectionConfig config = new ConnectionConfig.Builder()
+    .apiKey("your-api-key")
+    .domain("your.domain.com")
+    .proxyConfig(proxyConfig)
+    .build();
+
+SandboxApi api = new SandboxApi(config);
+Sandbox sandbox = api.create("code-interpreter");
+```
+
+#### Proxy Configuration with SSL/TLS
+
+For development/testing environments that need to trust self-signed certificates or skip certificate verification:
+
+```java
+import javax.net.ssl.*;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+
+// 1. Create a TrustManager that trusts all certificates (for dev/test only)
+TrustManager[] trustAll = new TrustManager[]{
+    new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] c, String a) {}
+        @Override
+        public void checkServerTrusted(X509Certificate[] c, String a) {}
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    }
+};
+
+// 2. Initialize SSLContext
+SSLContext sslCtx = SSLContext.getInstance("TLS");
+sslCtx.init(null, trustAll, new SecureRandom());
+
+// 3. Build ProxyConfig
+ProxyConfig proxyConfig = new ProxyConfig.Builder()
+    .proxy(new Proxy(Proxy.Type.HTTP,
+        new InetSocketAddress("proxy.example.com", 8080)))
+    .sslContext(sslCtx)
+    .trustManager((X509TrustManager) trustAll[0])
+    .hostnameVerifier((hostname, session) -> true)
+    .build();
+
+// 4. Set in ConnectionConfig
+ConnectionConfig config = new ConnectionConfig.Builder()
+    .apiKey("your-api-key")
+    .domain("your.domain.com")
+    .proxyConfig(proxyConfig)
+    .build();
+```
+
+> **Note**: Setting `proxyConfig(...)` automatically enables proxy. Proxy configuration applies to both control plane (
+> API calls) and data plane (Runtime connections).
 
 ---
 

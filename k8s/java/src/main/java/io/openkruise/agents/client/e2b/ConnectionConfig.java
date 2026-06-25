@@ -46,6 +46,7 @@ public class ConnectionConfig {
     private int port;
     private int codeInterpreterPort;
     private Map<String, String> headers;
+    private ProxyConfig proxyConfig;
 
     private volatile ApiClient apiClient;
     private volatile SandboxesApi sandboxesApi;
@@ -77,6 +78,7 @@ public class ConnectionConfig {
         this.port = config.port;
         this.codeInterpreterPort = config.codeInterpreterPort;
         this.headers = new HashMap<>(config.headers);
+        this.proxyConfig = config.proxyConfig;
         this.urlBuilder = buildURLBuilder();
     }
     
@@ -134,6 +136,9 @@ public class ConnectionConfig {
             .build();
 
         builder.urlBuilder(urlBuilder);
+        
+        // Pass proxy configuration
+        builder.proxyConfig(connectionConfig.getProxyConfig());
 
         return builder.build();
     }
@@ -159,6 +164,10 @@ public class ConnectionConfig {
             synchronized (lock) {
                 if (apiClient == null) {
                     ApiClient client = new ApiClient();
+                    // Apply proxy configuration if enabled
+                    if (proxyConfig != null) {
+                        client.setHttpClient(proxyConfig.createHttpClient());
+                    }
                     client.setBasePath(getAPIURL());
                     client.setConnectTimeout((int)requestTimeoutMs);
                     client.setReadTimeout((int)requestTimeoutMs);
@@ -213,6 +222,8 @@ public class ConnectionConfig {
     public int getCodeInterpreterPort() {return codeInterpreterPort;}
 
     public Map<String, String> getHeaders() {return headers;}
+
+    public ProxyConfig getProxyConfig() {return proxyConfig;}
 
     public static class Builder {
         private final ConnectionConfig config = new ConnectionConfig();
@@ -291,6 +302,11 @@ public class ConnectionConfig {
 
         public Builder addHeader(String key, String value) {
             config.headers.put(key, value);
+            return this;
+        }
+
+        public Builder proxyConfig(ProxyConfig proxyConfig) {
+            config.proxyConfig = proxyConfig;
             return this;
         }
 

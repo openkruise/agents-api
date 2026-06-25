@@ -25,6 +25,7 @@ try (sandbox) {
 ```
 
 **环境变量设置**：
+
 ```bash
 export E2B_API_KEY="your-api-key"
 export E2B_DOMAIN="your.domain.com"
@@ -464,6 +465,87 @@ Builder 构造时自动读取以下环境变量作为默认值，之后可通过
 |---------------|------------|
 | `E2B_API_KEY` | 默认 API Key |
 | `E2B_DOMAIN`  | 默认域名       |
+
+### 代理配置（ProxyConfig）
+
+支持通过 HTTP 代理访问 E2B 服务，适用于内网环境或需要流量转发的场景。同时支持自定义 SSL/TLS 配置。
+
+#### Builder 方法
+
+| 方法                                    | 说明                     |
+|---------------------------------------|------------------------|
+| `.proxy(Proxy)`                       | 设置 Java `Proxy` 对象     |
+| `.proxy(String host, int port)`       | 快捷方式：通过主机和端口创建 HTTP 代理 |
+| `.sslContext(SSLContext)`             | 自定义 SSL 上下文            |
+| `.trustManager(X509TrustManager)`     | 自定义证书信任管理器             |
+| `.hostnameVerifier(HostnameVerifier)` | 自定义主机名验证器              |
+
+#### 基本用法
+
+```java
+// 1. 构建 ProxyConfig
+ProxyConfig proxyConfig = new ProxyConfig.Builder()
+    .proxy("proxy.example.com", 8080)
+    .build();
+
+// 2. 在 ConnectionConfig 中设置代理
+ConnectionConfig config = new ConnectionConfig.Builder()
+    .apiKey("your-api-key")
+    .domain("your.domain.com")
+    .proxyConfig(proxyConfig)
+    .build();
+
+SandboxApi api = new SandboxApi(config);
+Sandbox sandbox = api.create("code-interpreter");
+```
+
+#### 带 SSL/TLS 的代理配置
+
+适用于需要信任自签名证书或跳过证书验证的开发/测试环境：
+
+```java
+import javax.net.ssl.*;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+
+// 1. 创建信任所有证书的 TrustManager（仅用于开发/测试环境）
+TrustManager[] trustAll = new TrustManager[]{
+    new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] c, String a) {}
+        @Override
+        public void checkServerTrusted(X509Certificate[] c, String a) {}
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    }
+};
+
+// 2. 初始化 SSLContext
+SSLContext sslCtx = SSLContext.getInstance("TLS");
+sslCtx.init(null, trustAll, new SecureRandom());
+
+// 3. 构建 ProxyConfig
+ProxyConfig proxyConfig = new ProxyConfig.Builder()
+    .proxy(new Proxy(Proxy.Type.HTTP,
+        new InetSocketAddress("proxy.example.com", 8080)))
+    .sslContext(sslCtx)
+    .trustManager((X509TrustManager) trustAll[0])
+    .hostnameVerifier((hostname, session) -> true)
+    .build();
+
+// 4. 在 ConnectionConfig 中设置
+ConnectionConfig config = new ConnectionConfig.Builder()
+    .apiKey("your-api-key")
+    .domain("your.domain.com")
+    .proxyConfig(proxyConfig)
+    .build();
+```
+
+> **注意**：设置 `proxyConfig(...)` 即自动启用代理。代理配置会同时应用于控制面（API 调用）和数据面（Runtime 连接）。
 
 ---
 

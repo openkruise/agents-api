@@ -3,6 +3,7 @@ package io.openkruise.agents.client.runtime;
 import com.google.protobuf.Message;
 import com.google.protobuf.MessageOrBuilder;
 import com.google.protobuf.util.JsonFormat;
+import io.openkruise.agents.client.e2b.ProxyConfig;
 import io.openkruise.agents.client.url.URLBuilder;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -38,6 +39,7 @@ public class RuntimeConfig {
     private final URLBuilder urlBuilder;
     private final int sandboxPort;
     private final int codeInterpreterPort;
+    private final ProxyConfig proxyConfig;
 
     protected RuntimeConfig(Builder builder) {
         this.domain = builder.domain;
@@ -51,6 +53,7 @@ public class RuntimeConfig {
         this.urlBuilder = builder.urlBuilder;
         this.sandboxPort = builder.sandboxPort;
         this.codeInterpreterPort = builder.codeInterpreterPort;
+        this.proxyConfig = builder.proxyConfig;
     }
 
     /**
@@ -138,11 +141,17 @@ public class RuntimeConfig {
                     throw new IllegalStateException("RuntimeConfig has been shut down");
                 }
                 if (sharedHttpClient == null) {
-                    sharedHttpClient = new OkHttpClient.Builder()
+                    OkHttpClient.Builder builder = new OkHttpClient.Builder()
                         .connectTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
                         .readTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
-                        .writeTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
-                        .build();
+                        .writeTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS);
+                    
+                    // Apply proxy configuration if enabled
+                    if (proxyConfig != null) {
+                        proxyConfig.applyTo(builder);
+                    }
+                    
+                    sharedHttpClient = builder.build();
                 }
             }
         }
@@ -159,11 +168,17 @@ public class RuntimeConfig {
                     throw new IllegalStateException("RuntimeConfig has been shut down");
                 }
                 if (sharedStreamingClient == null) {
-                    sharedStreamingClient = new OkHttpClient.Builder()
+                    OkHttpClient.Builder builder = new OkHttpClient.Builder()
                         .connectTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
                         .readTimeout(0, TimeUnit.MILLISECONDS)
-                        .writeTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
-                        .build();
+                        .writeTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS);
+                    
+                    // Apply proxy configuration if enabled
+                    if (proxyConfig != null) {
+                        proxyConfig.applyTo(builder);
+                    }
+                    
+                    sharedStreamingClient = builder.build();
                 }
             }
         }
@@ -289,6 +304,10 @@ public class RuntimeConfig {
         return urlBuilder;
     }
 
+    public ProxyConfig getProxyConfig() {
+        return proxyConfig;
+    }
+
     /**
      * Builder pattern, extensible by subclasses.
      */
@@ -304,6 +323,7 @@ public class RuntimeConfig {
         protected URLBuilder urlBuilder;
         protected int sandboxPort = DEFAULT_RUNTIME_PORT;
         protected int codeInterpreterPort = DEFAULT_CODE_INTERPRETER_PORT;
+        protected ProxyConfig proxyConfig;
 
         public Builder() {}
 
@@ -367,6 +387,11 @@ public class RuntimeConfig {
 
         public Builder codeInterpreterPort(int codeInterpreterPort) {
             this.codeInterpreterPort = codeInterpreterPort;
+            return this;
+        }
+
+        public Builder proxyConfig(ProxyConfig proxyConfig) {
+            this.proxyConfig = proxyConfig;
             return this;
         }
 
