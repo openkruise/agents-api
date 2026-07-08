@@ -65,3 +65,22 @@ def cleanup(k8s_api):
             )
         except Exception:
             pass
+
+
+@pytest.fixture
+def cleanup_cluster(k8s_api):
+    """Fixture that collects cleanup actions for cluster-scoped resources and runs them after test."""
+    actions = []
+
+    def _register(group, version, plural, name):
+        actions.append((group, version, plural, name))
+
+    yield _register
+
+    for group, version, plural, name in reversed(actions):
+        try:
+            k8s_api.delete_cluster_custom_object(
+                group=group, version=version, plural=plural, name=name
+            )
+        except Exception:
+            pass
