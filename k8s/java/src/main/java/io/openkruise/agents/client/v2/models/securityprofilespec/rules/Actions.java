@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models.securityprofilespec.rules;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","block","bypass"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","block","bypass","mcpToolPolicy","tokenTransformation"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -61,6 +61,41 @@ public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResour
 
     public void setBypass(Boolean bypass) {
         this.bypass = bypass;
+    }
+
+    /**
+     * MCPToolPolicy defines inline MCP tool access control rules.
+     * Non-terminal when the policy allows; terminal (like Block) when denied.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("mcpToolPolicy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("MCPToolPolicy defines inline MCP tool access control rules.\nNon-terminal when the policy allows; terminal (like Block) when denied.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.McpToolPolicy mcpToolPolicy;
+
+    public io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.McpToolPolicy getMcpToolPolicy() {
+        return mcpToolPolicy;
+    }
+
+    public void setMcpToolPolicy(io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.McpToolPolicy mcpToolPolicy) {
+        this.mcpToolPolicy = mcpToolPolicy;
+    }
+
+    /**
+     * TokenTransformation rewrites credential headers (e.g. replacing a
+     * placeholder Bearer token with a real one from a token service).
+     * Non-terminal.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("tokenTransformation")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("TokenTransformation rewrites credential headers (e.g. replacing a\nplaceholder Bearer token with a real one from a token service).\nNon-terminal.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.TokenTransformation tokenTransformation;
+
+    public io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.TokenTransformation getTokenTransformation() {
+        return tokenTransformation;
+    }
+
+    public void setTokenTransformation(io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.TokenTransformation tokenTransformation) {
+        this.tokenTransformation = tokenTransformation;
     }
 }
 

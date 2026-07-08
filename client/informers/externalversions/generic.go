@@ -55,6 +55,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=agents, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("checkpoints"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().Checkpoints().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("commits"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().Commits().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("globaltrafficpolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().GlobalTrafficPolicies().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("sandboxes"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().Sandboxes().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("sandboxclaims"):
@@ -67,6 +71,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().SandboxUpdateOps().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("securityprofiles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().SecurityProfiles().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("trafficpolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Agents().V1alpha1().TrafficPolicies().Informer()}, nil
 
 	}
 

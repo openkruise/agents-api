@@ -29,12 +29,15 @@ import (
 type AgentsV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	CheckpointsGetter
+	CommitsGetter
+	GlobalTrafficPoliciesGetter
 	SandboxesGetter
 	SandboxClaimsGetter
 	SandboxSetsGetter
 	SandboxTemplatesGetter
 	SandboxUpdateOpsGetter
 	SecurityProfilesGetter
+	TrafficPoliciesGetter
 }
 
 // AgentsV1alpha1Client is used to interact with features provided by the agents group.
@@ -44,6 +47,14 @@ type AgentsV1alpha1Client struct {
 
 func (c *AgentsV1alpha1Client) Checkpoints(namespace string) CheckpointInterface {
 	return newCheckpoints(c, namespace)
+}
+
+func (c *AgentsV1alpha1Client) Commits(namespace string) CommitInterface {
+	return newCommits(c, namespace)
+}
+
+func (c *AgentsV1alpha1Client) GlobalTrafficPolicies() GlobalTrafficPolicyInterface {
+	return newGlobalTrafficPolicies(c)
 }
 
 func (c *AgentsV1alpha1Client) Sandboxes(namespace string) SandboxInterface {
@@ -68,6 +79,10 @@ func (c *AgentsV1alpha1Client) SandboxUpdateOps(namespace string) SandboxUpdateO
 
 func (c *AgentsV1alpha1Client) SecurityProfiles(namespace string) SecurityProfileInterface {
 	return newSecurityProfiles(c, namespace)
+}
+
+func (c *AgentsV1alpha1Client) TrafficPolicies(namespace string) TrafficPolicyInterface {
+	return newTrafficPolicies(c, namespace)
 }
 
 // NewForConfig creates a new AgentsV1alpha1Client for the given config.

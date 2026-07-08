@@ -3,6 +3,29 @@ from .checkpoint import (
     Spec as CheckpointSpec,
     Status as CheckpointStatus,
 )
+from .commit import (
+    Commit,
+    Condition as CommitCondition,
+    Phase as CommitPhase,
+    RegistryAuth as CommitRegistryAuth,
+    Spec as CommitSpec,
+    Status as CommitStatus,
+)
+from .globaltrafficpolicy import (
+    GlobalTrafficPolicy,
+    Action as GlobalTrafficPolicyAction,
+    Condition as GlobalTrafficPolicyCondition,
+    Egress as GlobalTrafficPolicyEgress,
+    Ingress as GlobalTrafficPolicyIngress,
+    MatchExpression as GlobalTrafficPolicyMatchExpression,
+    Protocol as GlobalTrafficPolicyProtocol,
+    Rule as GlobalTrafficPolicyRule,
+    Selector as GlobalTrafficPolicySelector,
+    Service as GlobalTrafficPolicyService,
+    Spec as GlobalTrafficPolicySpec,
+    Status as GlobalTrafficPolicyStatus,
+    Workload as GlobalTrafficPolicyWorkload,
+)
 from .sandbox import (
     Sandbox,
     Spec as SandboxSpec,
@@ -48,4 +71,19 @@ from .securityprofile import (
     Rule as SecurityProfileRule,
     Actions as SecurityProfileActions,
     Selector as SecurityProfileSelector,
+)
+from .trafficpolicy import (
+    TrafficPolicy,
+    Action as TrafficPolicyAction,
+    Condition as TrafficPolicyCondition,
+    Egress as TrafficPolicyEgress,
+    Ingress as TrafficPolicyIngress,
+    MatchExpression as TrafficPolicyMatchExpression,
+    Protocol as TrafficPolicyProtocol,
+    Rule as TrafficPolicyRule,
+    Selector as TrafficPolicySelector,
+    Service as TrafficPolicyService,
+    Spec as TrafficPolicySpec,
+    Status as TrafficPolicyStatus,
+    Workload as TrafficPolicyWorkload,
 )

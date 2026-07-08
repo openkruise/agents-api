@@ -32,6 +32,14 @@ func (c *FakeAgentsV1alpha1) Checkpoints(namespace string) v1alpha1.CheckpointIn
 	return newFakeCheckpoints(c, namespace)
 }
 
+func (c *FakeAgentsV1alpha1) Commits(namespace string) v1alpha1.CommitInterface {
+	return newFakeCommits(c, namespace)
+}
+
+func (c *FakeAgentsV1alpha1) GlobalTrafficPolicies() v1alpha1.GlobalTrafficPolicyInterface {
+	return newFakeGlobalTrafficPolicies(c)
+}
+
 func (c *FakeAgentsV1alpha1) Sandboxes(namespace string) v1alpha1.SandboxInterface {
 	return newFakeSandboxes(c, namespace)
 }
@@ -54,6 +62,10 @@ func (c *FakeAgentsV1alpha1) SandboxUpdateOps(namespace string) v1alpha1.Sandbox
 
 func (c *FakeAgentsV1alpha1) SecurityProfiles(namespace string) v1alpha1.SecurityProfileInterface {
 	return newFakeSecurityProfiles(c, namespace)
+}
+
+func (c *FakeAgentsV1alpha1) TrafficPolicies(namespace string) v1alpha1.TrafficPolicyInterface {
+	return newFakeTrafficPolicies(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate

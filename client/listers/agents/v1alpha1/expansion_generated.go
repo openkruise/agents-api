@@ -26,6 +26,18 @@ type CheckpointListerExpansion interface{}
 // CheckpointNamespaceLister.
 type CheckpointNamespaceListerExpansion interface{}
 
+// CommitListerExpansion allows custom methods to be added to
+// CommitLister.
+type CommitListerExpansion interface{}
+
+// CommitNamespaceListerExpansion allows custom methods to be added to
+// CommitNamespaceLister.
+type CommitNamespaceListerExpansion interface{}
+
+// GlobalTrafficPolicyListerExpansion allows custom methods to be added to
+// GlobalTrafficPolicyLister.
+type GlobalTrafficPolicyListerExpansion interface{}
+
 // SandboxListerExpansion allows custom methods to be added to
 // SandboxLister.
 type SandboxListerExpansion interface{}
@@ -73,3 +85,11 @@ type SecurityProfileListerExpansion interface{}
 // SecurityProfileNamespaceListerExpansion allows custom methods to be added to
 // SecurityProfileNamespaceLister.
 type SecurityProfileNamespaceListerExpansion interface{}
+
+// TrafficPolicyListerExpansion allows custom methods to be added to
+// TrafficPolicyLister.
+type TrafficPolicyListerExpansion interface{}
+
+// TrafficPolicyNamespaceListerExpansion allows custom methods to be added to
+// TrafficPolicyNamespaceLister.
+type TrafficPolicyNamespaceListerExpansion interface{}
