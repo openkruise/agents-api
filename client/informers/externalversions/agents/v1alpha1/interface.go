@@ -26,6 +26,10 @@ import (
 type Interface interface {
 	// Checkpoints returns a CheckpointInformer.
 	Checkpoints() CheckpointInformer
+	// Commits returns a CommitInformer.
+	Commits() CommitInformer
+	// GlobalTrafficPolicies returns a GlobalTrafficPolicyInformer.
+	GlobalTrafficPolicies() GlobalTrafficPolicyInformer
 	// Sandboxes returns a SandboxInformer.
 	Sandboxes() SandboxInformer
 	// SandboxClaims returns a SandboxClaimInformer.
@@ -38,6 +42,8 @@ type Interface interface {
 	SandboxUpdateOps() SandboxUpdateOpsInformer
 	// SecurityProfiles returns a SecurityProfileInformer.
 	SecurityProfiles() SecurityProfileInformer
+	// TrafficPolicies returns a TrafficPolicyInformer.
+	TrafficPolicies() TrafficPolicyInformer
 }
 
 type version struct {
@@ -54,6 +60,16 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // Checkpoints returns a CheckpointInformer.
 func (v *version) Checkpoints() CheckpointInformer {
 	return &checkpointInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Commits returns a CommitInformer.
+func (v *version) Commits() CommitInformer {
+	return &commitInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// GlobalTrafficPolicies returns a GlobalTrafficPolicyInformer.
+func (v *version) GlobalTrafficPolicies() GlobalTrafficPolicyInformer {
+	return &globalTrafficPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Sandboxes returns a SandboxInformer.
@@ -84,4 +100,9 @@ func (v *version) SandboxUpdateOps() SandboxUpdateOpsInformer {
 // SecurityProfiles returns a SecurityProfileInformer.
 func (v *version) SecurityProfiles() SecurityProfileInformer {
 	return &securityProfileInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// TrafficPolicies returns a TrafficPolicyInformer.
+func (v *version) TrafficPolicies() TrafficPolicyInformer {
+	return &trafficPolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

@@ -20,6 +20,10 @@ package v1alpha1
 
 type CheckpointExpansion interface{}
 
+type CommitExpansion interface{}
+
+type GlobalTrafficPolicyExpansion interface{}
+
 type SandboxExpansion interface{}
 
 type SandboxClaimExpansion interface{}
@@ -31,3 +35,5 @@ type SandboxTemplateExpansion interface{}
 type SandboxUpdateOpsExpansion interface{}
 
 type SecurityProfileExpansion interface{}
+
+type TrafficPolicyExpansion interface{}

@@ -11,11 +11,11 @@ public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource
      *
      * CAUTION: wildcard and specific domains can both match the same request
      * under Default Continue semantics, so rule ordering matters. See
-     * docs/components/traffix-extension.md.
+     * docs/components/traffic-extension.md.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("domains")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Domains lists target host names. Supports \"*\" (any domain) and\n\"*.example.com\" wildcard prefixes.\n\nCAUTION: wildcard and specific domains can both match the same request\nunder Default Continue semantics, so rule ordering matters. See\ndocs/components/traffix-extension.md.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Domains lists target host names. Supports \"*\" (any domain) and\n\"*.example.com\" wildcard prefixes.\n\nCAUTION: wildcard and specific domains can both match the same request\nunder Default Continue semantics, so rule ordering matters. See\ndocs/components/traffic-extension.md.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<String> domains;
 

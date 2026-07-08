@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"availableReplicas","conditions","observedGeneration","replicas","selector","updateRevision","updatedAvailableReplicas","updatedReplicas"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"availableReplicas","conditions","currentRevision","observedGeneration","replicas","selector","updateRevision","updatedAvailableReplicas","updatedReplicas"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxSetStatus implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -38,6 +38,23 @@ public class SandboxSetStatus implements io.fabric8.kubernetes.api.model.Kuberne
 
     public void setConditions(java.util.List<io.openkruise.agents.client.v2.models.sandboxsetstatus.Conditions> conditions) {
         this.conditions = conditions;
+    }
+
+    /**
+     * CurrentRevision is the SandboxTemplate name corresponding to the currently
+     * materialised revision, or spec.templateRef.Name when templateRef is used.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("currentRevision")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("CurrentRevision is the SandboxTemplate name corresponding to the currently\nmaterialised revision, or spec.templateRef.Name when templateRef is used.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private String currentRevision;
+
+    public String getCurrentRevision() {
+        return currentRevision;
+    }
+
+    public void setCurrentRevision(String currentRevision) {
+        this.currentRevision = currentRevision;
     }
 
     /**
@@ -93,11 +110,12 @@ public class SandboxSetStatus implements io.fabric8.kubernetes.api.model.Kuberne
     }
 
     /**
-     * UpdateRevision is the hash label of the ControllerRevision created from `spec.template`.
+     * UpdateRevision is the FNV-32 hash computed from spec.template,
+     * spec.persistentContents, and spec.runtimes.
      * It represents the latest desired template version.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("updateRevision")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("UpdateRevision is the hash label of the ControllerRevision created from `spec.template`.\nIt represents the latest desired template version.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("UpdateRevision is the FNV-32 hash computed from spec.template,\nspec.persistentContents, and spec.runtimes.\nIt represents the latest desired template version.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String updateRevision;
 

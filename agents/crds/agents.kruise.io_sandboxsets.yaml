@@ -219,6 +219,11 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              currentRevision:
+                description: |-
+                  CurrentRevision is the SandboxTemplate name corresponding to the currently
+                  materialised revision, or spec.templateRef.Name when templateRef is used.
+                type: string
               observedGeneration:
                 description: |-
                   observedGeneration is the most recent generation observed for this SandboxSet. It corresponds to the
@@ -238,7 +243,8 @@ spec:
                 type: string
               updateRevision:
                 description: |-
-                  UpdateRevision is the hash label of the ControllerRevision created from `spec.template`.
+                  UpdateRevision is the FNV-32 hash computed from spec.template,
+                  spec.persistentContents, and spec.runtimes.
                   It represents the latest desired template version.
                 type: string
               updatedAvailableReplicas:

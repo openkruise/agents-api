@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"conditions","message","nodeName","observedGeneration","phase","podInfo","sandboxIp","updateRevision"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"conditions","message","nodeName","observedGeneration","phase","podInfo","recycledCount","sandboxIp","updateRevision"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxStatus implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -102,6 +102,22 @@ public class SandboxStatus implements io.fabric8.kubernetes.api.model.Kubernetes
 
     public void setPodInfo(io.openkruise.agents.client.v2.models.sandboxstatus.PodInfo podInfo) {
         this.podInfo = podInfo;
+    }
+
+    /**
+     * RecycledCount records the number of times this sandbox has been recycled.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("recycledCount")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("RecycledCount records the number of times this sandbox has been recycled.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private Integer recycledCount;
+
+    public Integer getRecycledCount() {
+        return recycledCount;
+    }
+
+    public void setRecycledCount(Integer recycledCount) {
+        this.recycledCount = recycledCount;
     }
 
     /**

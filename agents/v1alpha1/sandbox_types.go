@@ -231,6 +231,10 @@ type SandboxStatus struct {
 	// UpdateRevision is the template-hash calculated from `spec.template`.
 	// +optional
 	UpdateRevision string `json:"updateRevision,omitempty"`
+
+	// RecycledCount records the number of times this sandbox has been recycled.
+	// +optional
+	RecycledCount int32 `json:"recycledCount,omitempty"`
 }
 
 // SandboxPhase is a label for the condition of a pod at the current time.
@@ -258,6 +262,8 @@ const (
 	// SandboxFailed means that all containers in the pod have terminated, and at least one container has
 	// terminated in a failure (exited with a non-zero exit code or was stopped by the system).
 	SandboxFailed SandboxPhase = "Failed"
+	// SandboxRecycling means the sandbox is being recycled and preparing to return to pool.
+	SandboxRecycling SandboxPhase = "Recycling"
 	// SandboxTerminating means sandbox will perform cleanup after deletion.
 	SandboxTerminating SandboxPhase = "Terminating"
 )
@@ -303,6 +309,9 @@ const (
 	// the sandbox pod has completed initialization (first-time init or re-init
 	// after resume/recreate/upgrade).
 	RuntimeInitialized SandboxConditionType = "RuntimeInitialized"
+
+	// SandboxConditionRecycling tracks recycling progress.
+	SandboxConditionRecycling SandboxConditionType = "Recycling"
 )
 
 const (
@@ -327,16 +336,31 @@ const (
 	SandboxUpgradingReasonUpgradePodFailed  = "UpgradePodFailed"
 
 	// SandboxConditionPaused Reason
-	SandboxPausedReasonSetPause  = "SetPause"
-	SandboxPausedReasonDeletePod = "DeletePod"
+	SandboxPausedReasonPausing             = "Pausing"
+	SandboxPausedReasonImageChanged        = "ImageChanged"
+	SandboxPausedReasonCheckpointCreating  = "CheckpointCreating"
+	SandboxPausedReasonCheckpointSucceeded = "CheckpointSucceeded"
+	SandboxPausedReasonCheckpointFailed    = "CheckpointFailed"
+	SandboxPausedReasonSetPause            = "SetPause"
+	SandboxPausedReasonPausedSucceed       = "PauseSucceed"
+	SandboxPausedReasonDeletePod           = "DeletePod"
 
 	// SandboxConditionResume Reason
 	SandboxResumeReasonCreatePod = "CreatePod"
 	SandboxResumeReasonResumePod = "ResumePod"
 
 	// SandboxConditionRuntimeInit Reason
+	SandboxConditionRuntimeInitReasonPending   = "Pending"
 	SandboxConditionRuntimeInitReasonSucceeded = "Succeeded"
 	SandboxConditionRuntimeInitReasonFailed    = "Failed"
+
+	// SandboxConditionRecycling Reason
+	SandboxRecyclingReasonStarted   = "RecyclingStarted"
+	SandboxRecyclingReasonCompleted = "RecyclingCompleted"
+	SandboxRecyclingReasonSucceeded = "RecyclingSucceeded"
+	SandboxRecyclingReasonFailed    = "RecyclingFailed"
+	SandboxRecyclingReasonTimeout   = "RecyclingTimeout"
+	SandboxRecyclingReasonRejected  = "RecyclingRejected"
 )
 
 // +genclient
@@ -349,6 +373,7 @@ const (
 // +kubebuilder:printcolumn:name="Claimed",type="string",JSONPath=".metadata.labels.agents\\.kruise\\.io/sandbox-claimed"
 // +kubebuilder:printcolumn:name="shutdown_time",type="string",JSONPath=".spec.shutdownTime"
 // +kubebuilder:printcolumn:name="pause_time",type="string",JSONPath=".spec.pauseTime"
+// +kubebuilder:printcolumn:name="RecycledCount",type="integer",JSONPath=".status.recycledCount"
 // +kubebuilder:printcolumn:name="Message",type="string",JSONPath=".status.message"
 
 // Sandbox is the Schema for the sandboxes API

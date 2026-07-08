@@ -20,10 +20,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// NOTE: only Block, Bypass and Audit are currently part of this CRD.
-// Additional action types (TokenTransformation / IdentityInjection /
-// SecurityCheck / Mirroring / RateLimit / Forwarding) will be added when
-// their plugin implementations land in traffix-extension.
+// FailStrategy controls behaviour when an external service call fails or
+// when the action encounters an error.
+// +kubebuilder:validation:Enum=Allow;Block;Ignore
+type FailStrategy string
+
+const (
+	// FailStrategyAllow lets the request proceed when the external call fails.
+	FailStrategyAllow FailStrategy = "Allow"
+	// FailStrategyBlock aborts the request when the external call fails.
+	FailStrategyBlock FailStrategy = "Block"
+	// FailStrategyIgnore silently ignores the failure and continues the
+	// action chain as if the action was never configured. Unlike Allow,
+	// Ignore also suppresses any warning headers or error metrics.
+	FailStrategyIgnore FailStrategy = "Ignore"
+)
 
 // PathMatchType enumerates URL path matching strategies.
 // +kubebuilder:validation:Enum=Prefix;Exact;Regex
@@ -124,7 +135,7 @@ type RuleMatch struct {
 	//
 	// CAUTION: wildcard and specific domains can both match the same request
 	// under Default Continue semantics, so rule ordering matters. See
-	// docs/components/traffix-extension.md.
+	// docs/components/traffic-extension.md.
 	// +kubebuilder:validation:MinItems=1
 	Domains []string `json:"domains"`
 	// Paths lists URL path matches; multiple entries are ORed. The path
@@ -154,6 +165,9 @@ type RuleMatch struct {
 	// "https", or custom schemes used by gRPC/other protocols). Multiple
 	// entries are ORed. Matching is case-insensitive.
 	// +optional
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=32
+	// +kubebuilder:validation:items:Pattern=`^[a-zA-Z][a-zA-Z0-9+\-.]*$`
 	Schemes []string `json:"schemes,omitempty"`
 	// Headers lists header matches; multiple entries are ANDed.
 	// +optional
@@ -176,6 +190,162 @@ type BlockAction struct {
 	// Body is an optional response body sent verbatim to the client.
 	// +optional
 	Body *string `json:"body,omitempty"`
+}
+
+// ActionCondition is an optional pre-condition that gates action execution.
+// The action only fires when the specified header matches the pattern.
+type ActionCondition struct {
+	// Header is the request header name to inspect.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9!#$%&'*+\-.^_|~]+$`
+	Header string `json:"header"`
+	// Pattern is an RE2 regex evaluated against the header value.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Pattern string `json:"pattern"`
+}
+
+// TokenTransformationType discriminates the credential-transformation
+// strategy used by a TokenTransformationAction.
+// +kubebuilder:validation:Enum=ApiKey;AliyunSTS
+type TokenTransformationType string
+
+const (
+	// TokenTransformationTypeApiKey rewrites a single header with a token
+	// fetched from the credential provider. Backwards-compatible default.
+	TokenTransformationTypeApiKey TokenTransformationType = "ApiKey"
+	// TokenTransformationTypeAliyunSTS swaps the AK/SK/STS triplet inside
+	// an intercepted Aliyun-SDK request and recomputes the signature.
+	TokenTransformationTypeAliyunSTS TokenTransformationType = "AliyunSTS"
+)
+
+// CredentialRefKind discriminates the credential source type.
+// +kubebuilder:validation:Enum=Secret;CredentialProvider
+type CredentialRefKind string
+
+const (
+	// CredentialRefKindSecret reads credential material from a Kubernetes
+	// Secret. The expected data keys follow well-known conventions per
+	// transformation type:
+	//   ApiKey mode:    "apiKey"
+	//   AliyunSTS mode: "accessKeyId", "accessKeySecret", "securityToken"
+	CredentialRefKindSecret CredentialRefKind = "Secret"
+	// CredentialRefKindCredentialProvider fetches credentials at runtime
+	// from an external credential provider (e.g. agent-identity service).
+	CredentialRefKindCredentialProvider CredentialRefKind = "CredentialProvider" // #nosec G101 -- not a credential
+)
+
+// CredentialRef identifies the credential source for a TokenTransformation.
+// The Kind field selects between built-in Secret and extensible
+// CredentialProvider; Name identifies the specific resource.
+//
+// For Kind=Secret the Secret must reside in the same namespace as the
+// SecurityProfile. Cross-namespace references are intentionally disallowed
+// to enforce namespace isolation; a future version may support them via a
+// ReferenceGrant-style mechanism.
+type CredentialRef struct {
+	// Kind selects the credential source type.
+	Kind CredentialRefKind `json:"kind"`
+	// Name is the resource name — Secret name for Kind=Secret, or
+	// provider name for Kind=CredentialProvider.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name"`
+}
+
+// MCPToolPolicyRule is a single allow/deny rule within an MCPToolPolicy.
+type MCPToolPolicyRule struct {
+	// Method is the JSON-RPC method (e.g. "tools/call", "tools/list").
+	// +kubebuilder:validation:MinLength=1
+	Method string `json:"method"`
+	// ToolNames matches params.name for tools/call. Empty = any tool for this method.
+	// +optional
+	ToolNames []string `json:"toolNames,omitempty"`
+	// Action: "allow" or "deny".
+	// +kubebuilder:validation:Enum=allow;deny
+	Action string `json:"action"`
+}
+
+// MCPDenyResponse configures the response returned when MCP ACL denies a request.
+type MCPDenyResponse struct {
+	// +kubebuilder:default:=403
+	// +kubebuilder:validation:Minimum=100
+	// +kubebuilder:validation:Maximum=599
+	StatusCode int32 `json:"statusCode,omitempty"`
+	// +optional
+	Body string `json:"body,omitempty"`
+}
+
+// MCPToolPolicySpec defines MCP tool access control rules.
+type MCPToolPolicySpec struct {
+	// DefaultAction when no rule matches: "deny" (whitelist) or "allow" (blacklist).
+	// +kubebuilder:validation:Enum=allow;deny
+	// +kubebuilder:default:=deny
+	DefaultAction string `json:"defaultAction"`
+	// UnsupportedVersionAction controls how tools/call requests with an
+	// unsupported or missing MCP-Protocol-Version header are handled.
+	// "deny" (default): reject the request.
+	// "passthrough": skip ACL evaluation and allow the request through.
+	// +kubebuilder:validation:Enum=deny;passthrough
+	// +kubebuilder:default:=deny
+	// +optional
+	UnsupportedVersionAction string `json:"unsupportedVersionAction,omitempty"`
+	// DenyResponse configures the HTTP response when a tool is denied.
+	// +optional
+	DenyResponse *MCPDenyResponse `json:"denyResponse,omitempty"`
+	// Rules are evaluated in order. First match wins.
+	// +kubebuilder:validation:MinItems=1
+	Rules []MCPToolPolicyRule `json:"rules"`
+}
+
+// ApiKeyConfig holds ApiKey-mode specific configuration.
+type ApiKeyConfig struct {
+	// When is an optional condition; the transformation is skipped if
+	// the header does not match.
+	// +optional
+	When *ActionCondition `json:"when,omitempty"`
+	// TargetHeader is the request header to overwrite with the new token.
+	// +kubebuilder:default:="Authorization"
+	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9!#$%&'*+\-.^_|~]+$`
+	TargetHeader string `json:"targetHeader,omitempty"`
+	// ValueTemplate is a Go text/template for the header value.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	ValueTemplate string `json:"valueTemplate"`
+}
+
+// TokenTransformationAction rewrites credential/authorization material on
+// outgoing requests. The Type field selects between two implementations:
+// ApiKey (default, header rewrite) and AliyunSTS (Aliyun-SDK triplet
+// swap + signature recompute). The CredentialRef field selects the
+// credential source (Secret or CredentialProvider) independently.
+//
+// +kubebuilder:validation:XValidation:rule="(!has(self.type) || self.type == 'ApiKey') ? has(self.apiKey) : true",message="apiKey config is required when type is ApiKey"
+// +kubebuilder:validation:XValidation:rule="self.type == 'AliyunSTS' ? !has(self.apiKey) : true",message="apiKey must be unset when type is AliyunSTS"
+type TokenTransformationAction struct {
+	// Disabled temporarily disables this action without removing its
+	// configuration. When true the action is skipped during evaluation.
+	// +optional
+	// +kubebuilder:default:=false
+	Disabled bool `json:"disabled,omitempty"`
+	// FailStrategy controls behaviour when the transformation fails.
+	// +optional
+	// +kubebuilder:default:=Block
+	FailStrategy FailStrategy `json:"failStrategy,omitempty"`
+	// Type discriminates the transformation strategy. Defaults to ApiKey.
+	// +optional
+	// +kubebuilder:default:=ApiKey
+	Type TokenTransformationType `json:"type,omitempty"`
+	// CredentialRef identifies the credential source for this
+	// transformation. Required.
+	CredentialRef CredentialRef `json:"credentialRef"`
+
+	// ApiKey holds ApiKey-mode specific configuration.
+	// Required when Type == ApiKey, must be unset when Type == AliyunSTS.
+	// +optional
+	ApiKey *ApiKeyConfig `json:"apiKey,omitempty"`
 }
 
 // AuditBody is the request body sent to the webhook. Exactly one of JSON or
@@ -241,7 +411,7 @@ type AuditWebhook struct {
 	//
 	// Rendering failures (template error or non-HTTP scheme) cause the
 	// event to be dropped and counted under
-	// traffix_extension_audit_webhook_dropped_total{reason="render_url"}.
+	// traffic_extension_audit_webhook_dropped_total{reason="render_url"}.
 	//
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
@@ -253,6 +423,7 @@ type AuditWebhook struct {
 	// Timeout caps each HTTP attempt. Defaults to 2s, max 30s.
 	// +optional
 	// +kubebuilder:default:="2s"
+	// +kubebuilder:validation:XValidation:rule="duration(self) >= duration('500ms') && duration(self) <= duration('30s')",message="timeout must be between 500ms and 30s"
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
@@ -302,7 +473,7 @@ type AuditAction struct {
 	// Compilation failures (parse, type-check) cause the enclosing
 	// SecurityProfile to be rejected at load time. Runtime evaluation
 	// errors are counted under
-	// traffix_extension_audit_webhook_dropped_total{reason="when_eval"}
+	// traffic_extension_audit_webhook_dropped_total{reason="when_eval"}
 	// and the event is dropped.
 	//
 	// +optional
@@ -331,6 +502,15 @@ type SecurityRuleActions struct {
 	// internal domains.
 	// +optional
 	Bypass bool `json:"bypass,omitempty"`
+	// TokenTransformation rewrites credential headers (e.g. replacing a
+	// placeholder Bearer token with a real one from a token service).
+	// Non-terminal.
+	// +optional
+	TokenTransformation *TokenTransformationAction `json:"tokenTransformation,omitempty"`
+	// MCPToolPolicy defines inline MCP tool access control rules.
+	// Non-terminal when the policy allows; terminal (like Block) when denied.
+	// +optional
+	MCPToolPolicy *MCPToolPolicySpec `json:"mcpToolPolicy,omitempty"`
 	// Audit lists per-rule audit entries. When non-empty, this list
 	// REPLACES the profile-level SecurityProfileSpec.Audit list for this
 	// rule's matches (override semantics). When empty or omitted, the

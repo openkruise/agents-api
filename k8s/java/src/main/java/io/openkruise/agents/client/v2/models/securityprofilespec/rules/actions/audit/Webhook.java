@@ -45,11 +45,11 @@ public class Webhook implements io.fabric8.kubernetes.api.model.KubernetesResour
      *
      * Rendering failures (template error or non-HTTP scheme) cause the
      * event to be dropped and counted under
-     * traffix_extension_audit_webhook_dropped_total{reason="render_url"}.
+     * traffic_extension_audit_webhook_dropped_total{reason="render_url"}.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("url")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("URL is the absolute HTTP(S) URL of the webhook. Supports Go\ntext/template expressions over AuditContext, allowing per-Pod\naddressing such as: http://{{ .Pod.IP }}:8080/audit\n\nRendering failures (template error or non-HTTP scheme) cause the\nevent to be dropped and counted under\ntraffix_extension_audit_webhook_dropped_total{reason=\"render_url\"}.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("URL is the absolute HTTP(S) URL of the webhook. Supports Go\ntext/template expressions over AuditContext, allowing per-Pod\naddressing such as: http://{{ .Pod.IP }}:8080/audit\n\nRendering failures (template error or non-HTTP scheme) cause the\nevent to be dropped and counted under\ntraffic_extension_audit_webhook_dropped_total{reason=\"render_url\"}.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String url;
 

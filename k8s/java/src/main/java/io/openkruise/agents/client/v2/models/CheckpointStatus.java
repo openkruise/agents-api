@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"checkpointId","completionTime","message","observedGeneration","phase"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"checkpointId","completionTime","message","observedGeneration","phase","podTemplateDelta"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class CheckpointStatus implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -86,6 +86,23 @@ public class CheckpointStatus implements io.fabric8.kubernetes.api.model.Kuberne
 
     public void setPhase(String phase) {
         this.phase = phase;
+    }
+
+    /**
+     * PodTemplateDelta stores a Strategic Merge Patch that captures the delta between
+     * the running Pod at pause time and the base Pod generated from sandbox.spec.template
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("podTemplateDelta")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PodTemplateDelta stores a Strategic Merge Patch that captures the delta between\nthe running Pod at pause time and the base Pod generated from sandbox.spec.template")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.fabric8.kubernetes.api.model.AnyType podTemplateDelta;
+
+    public io.fabric8.kubernetes.api.model.AnyType getPodTemplateDelta() {
+        return podTemplateDelta;
+    }
+
+    public void setPodTemplateDelta(io.fabric8.kubernetes.api.model.AnyType podTemplateDelta) {
+        this.podTemplateDelta = podTemplateDelta;
     }
 }
 
