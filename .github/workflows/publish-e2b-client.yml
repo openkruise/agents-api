@@ -1,4 +1,4 @@
-name: Publish to Maven Central
+name: Publish E2B Client to Maven Central
 
 on:
   workflow_dispatch:
@@ -64,14 +64,14 @@ jobs:
       
       - name: Update version in pom.xml
         run: |
-          cd k8s/java
+          cd e2b/java
           mvn versions:set -DnewVersion=${{ github.event.inputs.version }}
           mvn versions:commit
       
       - name: Build and publish to Maven Central
         run: |
-          cd k8s/java
-          mvn clean deploy -Psign-artifacts -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}" --batch-mode
+          cd e2b/java
+          mvn clean deploy -Psign-artifacts -DskipTests -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}" --batch-mode
         env:
           GPG_TTY: ''
           GPG_AGENT_INFO: /dev/null
@@ -81,9 +81,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: maven-artifacts
+          name: e2b-client-artifacts
           path: |
-            k8s/java/target/*.jar
-            k8s/java/target/*.pom
-            k8s/java/target/*.asc
+            e2b/java/target/*.jar
+            e2b/java/target/*.pom
+            e2b/java/target/*.asc
           retention-days: 1

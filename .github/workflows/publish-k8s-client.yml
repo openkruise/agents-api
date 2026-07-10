@@ -1,0 +1,89 @@
+name: Publish K8s Client to Maven Central
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        default: '0.1.0'
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+          cache: 'maven'
+      
+      - name: Install GPG
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnupg
+      
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d > private.key
+          gpg --batch --import private.key
+          rm private.key
+          echo "GPG key imported successfully"
+          gpg --list-keys
+      
+      - name: Configure Maven settings
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${{ secrets.CENTRAL_USERNAME }}</username>
+                <password>${{ secrets.CENTRAL_PASSWORD }}</password>
+              </server>
+            </servers>
+            <profiles>
+              <profile>
+                <id>sign-artifacts</id>
+                <properties>
+                  <gpg.passphrase>${{ secrets.GPG_PASSPHRASE }}</gpg.passphrase>
+                </properties>
+              </profile>
+            </profiles>
+          </settings>
+          EOF
+      
+      - name: Update version in pom.xml
+        run: |
+          cd k8s/java
+          mvn versions:set -DnewVersion=${{ github.event.inputs.version }}
+          mvn versions:commit
+      
+      - name: Build and publish to Maven Central
+        run: |
+          cd k8s/java
+          mvn clean deploy -Psign-artifacts -DskipTests -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}" --batch-mode
+        env:
+          GPG_TTY: ''
+          GPG_AGENT_INFO: /dev/null
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k8s-client-artifacts
+          path: |
+            k8s/java/target/*.jar
+            k8s/java/target/*.pom
+            k8s/java/target/*.asc
+          retention-days: 1
