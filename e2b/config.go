@@ -54,6 +54,9 @@ type ConnectionConfig struct {
 	RuntimePort int
 	// Headers contains additional headers to send with sandbox requests.
 	Headers map[string]string
+	// HTTPClient is a custom HTTP client to use for API requests.
+	// If nil, a default client with RequestTimeout will be created.
+	HTTPClient *http.Client
 
 	// apiClient is a lazily-initialized shared API client.
 	apiClient     *api.APIClient
@@ -159,6 +162,13 @@ func WithSandboxBaseURL(sandboxBaseURL string) ConnectionConfigOption {
 	}
 }
 
+// WithHTTPClient sets a custom HTTP client for API requests.
+func WithHTTPClient(httpClient *http.Client) ConnectionConfigOption {
+	return func(c *ConnectionConfig) {
+		c.HTTPClient = httpClient
+	}
+}
+
 // GetAPIURL returns the base API URL.
 func (c *ConnectionConfig) GetAPIURL() string {
 	if c.APIURL != "" {
@@ -194,12 +204,13 @@ func (c *ConnectionConfig) getScheme() string {
 // toEnvdConfig converts this ConnectionConfig into a runtime.Config for the envd client.
 func (c *ConnectionConfig) toEnvdConfig(sandboxID string) *runtime.Config {
 	cfg := &runtime.Config{
-		Domain:         c.Domain,
-		Scheme:         c.Scheme,
-		RuntimePort:    c.RuntimePort,
-		APIKey:         c.APIKey,
-		RequestTimeout: c.RequestTimeout,
-		RuntimeToken:   c.AccessToken,
+		Domain:           c.Domain,
+		Scheme:           c.Scheme,
+		RuntimePort:      c.RuntimePort,
+		APIKey:           c.APIKey,
+		RequestTimeout:   c.RequestTimeout,
+		RuntimeToken:     c.AccessToken,
+		CustomHTTPClient: c.HTTPClient,
 	}
 
 	// Pre-compute the full sandbox URL using the Protocol-aware logic so
@@ -224,8 +235,12 @@ func (c *ConnectionConfig) NewAPIClient() *api.APIClient {
 		cfg.Servers = api.ServerConfigurations{
 			{URL: c.GetAPIURL()},
 		}
-		cfg.HTTPClient = &http.Client{
-			Timeout: c.RequestTimeout,
+		if c.HTTPClient != nil {
+			cfg.HTTPClient = c.HTTPClient
+		} else {
+			cfg.HTTPClient = &http.Client{
+				Timeout: c.RequestTimeout,
+			}
 		}
 		if c.APIKey != "" {
 			cfg.DefaultHeader["X-API-Key"] = c.APIKey

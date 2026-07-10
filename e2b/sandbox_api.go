@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/openkruise/agents-api/e2b/api"
@@ -11,18 +13,25 @@ import (
 
 // SandboxInfo represents information about a sandbox.
 type SandboxInfo struct {
-	SandboxID   string
-	TemplateID  string
-	Alias       string
-	ClientID    string
-	StartedAt   time.Time
-	EndAt       time.Time
-	CpuCount    int32
-	MemoryMB    int32
-	DiskSizeMB  int32
-	EnvdVersion string
-	Metadata    map[string]string
-	State       string
+	SandboxID    string
+	TemplateID   string
+	Alias        string
+	ClientID     string
+	StartedAt    time.Time
+	EndAt        time.Time
+	CpuCount     int32
+	MemoryMB     int32
+	DiskSizeMB   int32
+	EnvdVersion  string
+	Metadata     map[string]string
+	State        string
+	VolumeMounts []api.SandboxVolumeMount
+}
+
+// ListResult represents the result of a list operation with pagination support.
+type ListResult struct {
+	Sandboxes []SandboxInfo
+	NextToken string
 }
 
 // SandboxMetrics represents sandbox resource metrics.
@@ -65,9 +74,46 @@ func NewSandboxApi(config *ConnectionConfig) *SandboxApi {
 	}
 }
 
-// List lists all running sandboxes.
-func (s *SandboxApi) List(ctx context.Context) ([]SandboxInfo, error) {
-	resp, httpResp, err := s.apiClient.SandboxesApi.V2SandboxesGet(ctx).Execute()
+// ListSandboxOpts contains options for listing sandboxes.
+type ListSandboxOpts struct {
+	// Metadata filters sandboxes by metadata key-value pairs.
+	// Keys and values will be URL encoded automatically.
+	Metadata map[string]string
+	// State filters sandboxes by one or more states (e.g., "running", "paused").
+	State []api.SandboxState
+	// NextToken is the cursor to start the list from (for pagination).
+	NextToken string
+	// Limit is the maximum number of items to return per page.
+	Limit int32
+}
+
+// List lists all sandboxes with pagination support.
+// Returns a ListResult containing the sandboxes and a NextToken for fetching the next page.
+func (s *SandboxApi) List(ctx context.Context, opts ...ListSandboxOpts) (*ListResult, error) {
+	req := s.apiClient.SandboxesApi.V2SandboxesGet(ctx)
+
+	if len(opts) > 0 {
+		o := opts[0]
+		if len(o.Metadata) > 0 {
+			// Build metadata query string: key1=value1&key2=value2
+			var pairs []string
+			for k, v := range o.Metadata {
+				pairs = append(pairs, url.QueryEscape(k)+"="+url.QueryEscape(v))
+			}
+			req = req.Metadata(strings.Join(pairs, "&"))
+		}
+		if len(o.State) > 0 {
+			req = req.State(o.State)
+		}
+		if o.NextToken != "" {
+			req = req.NextToken(o.NextToken)
+		}
+		if o.Limit > 0 {
+			req = req.Limit(o.Limit)
+		}
+	}
+
+	resp, httpResp, err := req.Execute()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sandboxes: %w", err)
 	}
@@ -77,24 +123,36 @@ func (s *SandboxApi) List(ctx context.Context) ([]SandboxInfo, error) {
 
 	sandboxes := make([]SandboxInfo, len(resp))
 	for i, sb := range resp {
-		sandboxes[i] = SandboxInfo{
-			SandboxID:   sb.GetSandboxID(),
-			TemplateID:  sb.GetTemplateID(),
-			ClientID:    sb.GetClientID(),
-			StartedAt:   sb.GetStartedAt(),
-			EndAt:       sb.GetEndAt(),
-			CpuCount:    sb.GetCpuCount(),
-			MemoryMB:    sb.GetMemoryMB(),
-			DiskSizeMB:  sb.GetDiskSizeMB(),
-			EnvdVersion: sb.GetEnvdVersion(),
-			State:       string(sb.GetState()),
-		}
-		if meta, ok := sb.GetMetadataOk(); ok && meta != nil {
-			sandboxes[i].Metadata = *meta
-		}
+		sandboxes[i] = convertToSandboxInfo(sb)
 	}
 
-	return sandboxes, nil
+	// Extract nextToken from response header for pagination
+	nextToken := httpResp.Header.Get("x-next-token")
+
+	return &ListResult{
+		Sandboxes: sandboxes,
+		NextToken: nextToken,
+	}, nil
+}
+
+// convertToSandboxInfo converts an API response item to SandboxInfo.
+func convertToSandboxInfo(sb api.SandboxesGet200ResponseInner) SandboxInfo {
+	info := SandboxInfo{
+		SandboxID:   sb.GetSandboxID(),
+		TemplateID:  sb.GetTemplateID(),
+		ClientID:    sb.GetClientID(),
+		StartedAt:   sb.GetStartedAt(),
+		EndAt:       sb.GetEndAt(),
+		CpuCount:    sb.GetCpuCount(),
+		MemoryMB:    sb.GetMemoryMB(),
+		DiskSizeMB:  sb.GetDiskSizeMB(),
+		EnvdVersion: sb.GetEnvdVersion(),
+		State:       string(sb.GetState()),
+	}
+	if meta, ok := sb.GetMetadataOk(); ok && meta != nil {
+		info.Metadata = *meta
+	}
+	return info
 }
 
 // GetInfo retrieves information about a specific sandbox.
@@ -178,6 +236,24 @@ func (s *SandboxApi) CreateSandbox(ctx context.Context, opts CreateSandboxOpts) 
 	if opts.AutoPause != nil {
 		body.SetAutoPause(*opts.AutoPause)
 	}
+	if opts.Secure {
+		body.SetSecure(opts.Secure)
+	}
+	if opts.AutoResume != nil {
+		body.SetAutoResume(*opts.AutoResume)
+	}
+	if opts.AllowInternetAccess != nil {
+		body.SetAllowInternetAccess(*opts.AllowInternetAccess)
+	}
+	if opts.Network != nil {
+		body.SetNetwork(*opts.Network)
+	}
+	if opts.Mcp != nil {
+		body.SetMcp(opts.Mcp)
+	}
+	if opts.VolumeMounts != nil {
+		body.SetVolumeMounts(opts.VolumeMounts)
+	}
 
 	resp, httpResp, err := s.apiClient.SandboxesApi.SandboxesPost(ctx).
 		CreateSandboxRequest(*body).Execute()
@@ -250,10 +326,15 @@ func (s *SandboxApi) Pause(ctx context.Context, sandboxID string) (string, error
 
 // CreateSandboxOpts contains options for creating a sandbox.
 type CreateSandboxOpts struct {
-	Template  string
-	Timeout   int32
-	AutoPause *bool
-	Metadata  map[string]string
-	EnvVars   map[string]string
-	Secure    bool
+	Template            string
+	Timeout             int32
+	AutoPause           *bool
+	AutoResume          *api.SandboxAutoResumeConfig
+	Secure              bool
+	AllowInternetAccess *bool
+	Network             *api.SandboxNetworkConfig
+	Metadata            map[string]string
+	EnvVars             map[string]string
+	Mcp                 map[string]interface{}
+	VolumeMounts        []api.SandboxVolumeMount
 }

@@ -46,6 +46,10 @@ type Config struct {
 	// RequestTimeout is the timeout applied to the underlying HTTP client.
 	RequestTimeout time.Duration
 
+	// CustomHTTPClient is a custom HTTP client to use for runtime requests.
+	// If nil, a default client with RequestTimeout will be created.
+	CustomHTTPClient *http.Client
+
 	// httpClient is a lazily-initialized shared HTTP client.
 	// All sandbox clients created from this Config share the same Transport/connection pool.
 	httpClient *http.Client
@@ -143,6 +147,12 @@ func WithRequestTimeout(d time.Duration) Option {
 	return func(c *Config) { c.RequestTimeout = d }
 }
 
+// WithHTTPClient sets a custom HTTP client for runtime requests.
+// This allows users to configure TLS certificates, proxies, etc.
+func WithHTTPClient(httpClient *http.Client) Option {
+	return func(c *Config) { c.CustomHTTPClient = httpClient }
+}
+
 // WithConfig replaces the working Config with a pre-built one.
 func WithConfig(cfg *Config) Option {
 	return func(c *Config) {
@@ -196,9 +206,15 @@ func (c *Config) SandboxHeaders(sandboxID string) map[string]string {
 }
 
 // HTTPClient returns the lazily-initialized shared http.Client.
+// If a custom HTTPClient was provided via WithHTTPClient, it will be used.
+// Otherwise, a default client with RequestTimeout will be created.
 func (c *Config) HTTPClient() *http.Client {
 	c.httpOnce.Do(func() {
-		c.httpClient = &http.Client{Timeout: c.RequestTimeout}
+		if c.CustomHTTPClient != nil {
+			c.httpClient = c.CustomHTTPClient
+		} else {
+			c.httpClient = &http.Client{Timeout: c.RequestTimeout}
+		}
 	})
 	return c.httpClient
 }

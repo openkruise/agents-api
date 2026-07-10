@@ -40,6 +40,10 @@ func main() {
 	fmt.Println("\n--- Listing existing sandboxes ---")
 	listSandboxes(ctx, api)
 
+	// ========== 2.1. List with Pagination ==========
+	fmt.Println("\n--- Listing sandboxes with pagination (2 per page) ---")
+	listSandboxesWithPagination(ctx, api)
+
 	// ========== 3. Create Sandbox ==========
 	fmt.Println("\n--- Creating sandbox ---")
 	sb, err := sandbox.Create(ctx, template,
@@ -71,14 +75,57 @@ func main() {
 
 // listSandboxes lists all running sandboxes.
 func listSandboxes(ctx context.Context, api *sandbox.SandboxApi) {
-	sandboxes, err := api.List(ctx)
+	result, err := api.List(ctx)
 	if err != nil {
 		fmt.Printf("Error listing sandboxes: %v\n", err)
 		return
 	}
-	fmt.Printf("Total sandboxes: %d\n", len(sandboxes))
-	for _, s := range sandboxes {
+	fmt.Printf("Total sandboxes: %d\n", len(result.Sandboxes))
+	for _, s := range result.Sandboxes {
 		fmt.Printf("  - ID: %s, Template: %s, State: %s\n", s.SandboxID, s.TemplateID, s.State)
+	}
+	if result.NextToken != "" {
+		fmt.Printf("  Next page token: %s\n", result.NextToken)
+	}
+}
+
+// listSandboxesWithPagination demonstrates paginated listing of all sandboxes.
+// Example: List all 6 sandboxes with 2 per page.
+func listSandboxesWithPagination(ctx context.Context, api *sandbox.SandboxApi) {
+	var allSandboxes []sandbox.SandboxInfo
+	pageSize := int32(2)
+	nextToken := ""
+	page := 1
+
+	fmt.Println("\n--- Listing all sandboxes with pagination ---")
+	for {
+		opts := sandbox.ListSandboxOpts{
+			Limit: pageSize,
+		}
+		if nextToken != "" {
+			opts.NextToken = nextToken
+		}
+
+		result, err := api.List(ctx, opts)
+		if err != nil {
+			fmt.Printf("Error listing sandboxes on page %d: %v\n", page, err)
+			return
+		}
+
+		fmt.Printf("Page %d: fetched %d sandboxes\n", page, len(result.Sandboxes))
+		allSandboxes = append(allSandboxes, result.Sandboxes...)
+
+		// Check if there are more pages
+		if result.NextToken == "" {
+			break
+		}
+		nextToken = result.NextToken
+		page++
+	}
+
+	fmt.Printf("\nTotal sandboxes fetched: %d\n", len(allSandboxes))
+	for i, s := range allSandboxes {
+		fmt.Printf("  %d. ID: %s, Template: %s, State: %s\n", i+1, s.SandboxID, s.TemplateID, s.State)
 	}
 }
 

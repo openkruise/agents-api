@@ -99,6 +99,7 @@ func main() {
 | `WithAPIURL(url string)`              | **最高优先级**：直接覆盖 API base URL，绕过 Protocol/Domain 拼装 |
 | `WithSandboxBaseURL(url string)`      | **最高优先级**：直接覆盖 sandbox envd base URL              |
 | `WithRequestTimeout(d time.Duration)` | HTTP 请求超时，默认 60s                                  |
+| `WithHTTPClient(client *http.Client)` | 自定义 HTTP 客户端用于 API 请求                            |
 
 #### 优先级
 
@@ -188,13 +189,71 @@ e2b.WithDomain("example.com"),
 
 | 方法                                                                           | 说明                                  |
 |------------------------------------------------------------------------------|-------------------------------------|
-| `List(ctx) ([]SandboxInfo, error)`                                           | 列出所有运行中的 sandbox                    |
+| `List(ctx, opts ...ListSandboxOpts) (*ListResult, error)`                    | 列出 sandbox，支持分页查询                  |
 | `GetInfo(ctx, sandboxID) (*SandboxInfo, error)`                              | 获取 sandbox 详情，404 返回 `not found` 错误 |
 | `Kill(ctx, sandboxID) (bool, error)`                                         | 销毁 sandbox；`Debug` 模式下直接返回 `true`   |
 | `SetTimeout(ctx, sandboxID, timeout int32) error`                            | 修改超时时间                              |
 | `CreateSandbox(ctx, opts CreateSandboxOpts) (*SandboxCreateResponse, error)` | 底层创建接口                              |
 | `ConnectSandbox(ctx, sandboxID, timeout int32) (*client.Sandbox, error)`     | 底层连接接口                              |
 | `Pause(ctx, sandboxID) (string, error)`                                      | 暂停 sandbox                          |
+
+### ListSandboxOpts
+
+分页查询选项：
+
+```go
+type ListSandboxOpts struct {
+    // Metadata 通过元数据键值对过滤 sandbox。
+    // 键和值会自动进行 URL 编码。
+    Metadata map[string]string
+    // State 按一个或多个状态过滤 sandbox（如 "running", "paused"）。
+    State []api.SandboxState
+    // NextToken 分页游标，用于从指定位置开始查询。
+    NextToken string
+    // Limit 每页返回的最大数量。
+    Limit int32
+}
+```
+
+### ListResult
+
+分页查询结果：
+
+```go
+type ListResult struct {
+    Sandboxes []SandboxInfo  // 当前页的 sandbox 列表
+    NextToken string         // 下一页的游标（为空表示没有更多页）
+}
+```
+
+### 分页查询示例
+
+```go
+// 分页获取所有 sandbox
+var allSandboxes []e2b.SandboxInfo
+nextToken := ""
+pageSize := int32(10)
+
+for {
+    result, err := api.List(ctx, e2b.ListSandboxOpts{
+        Limit:     pageSize,
+        NextToken: nextToken,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    allSandboxes = append(allSandboxes, result.Sandboxes...)
+    
+    // 检查是否还有更多页
+    if result.NextToken == "" {
+        break
+    }
+    nextToken = result.NextToken
+}
+
+fmt.Printf("总计: %d 个 sandbox\n", len(allSandboxes))
+```
 
 ---
 

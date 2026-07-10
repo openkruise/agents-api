@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openkruise/agents-api/e2b/api"
 	"github.com/openkruise/agents-api/runtime"
 )
 
@@ -16,11 +17,16 @@ type sandboxOptions struct {
 	configOpts []ConnectionConfigOption
 
 	// Create-specific options
-	timeout   int32
-	autoPause *bool
-	metadata  map[string]string
-	envVars   map[string]string
-	secure    bool
+	timeout             int32
+	autoPause           *bool
+	autoResume          *api.SandboxAutoResumeConfig
+	secure              bool
+	allowInternetAccess *bool
+	network             *api.SandboxNetworkConfig
+	metadata            map[string]string
+	envVars             map[string]string
+	mcp                 map[string]interface{}
+	volumeMounts        []api.SandboxVolumeMount
 }
 
 // WithTimeout sets the sandbox timeout in seconds.
@@ -58,6 +64,41 @@ func WithSecure(secure bool) SandboxOption {
 	}
 }
 
+// WithAutoResume sets the auto-resume configuration for the sandbox.
+func WithAutoResume(autoResume *api.SandboxAutoResumeConfig) SandboxOption {
+	return func(o *sandboxOptions) {
+		o.autoResume = autoResume
+	}
+}
+
+// WithAllowInternetAccess controls whether the sandbox can access the internet.
+func WithAllowInternetAccess(allow bool) SandboxOption {
+	return func(o *sandboxOptions) {
+		o.allowInternetAccess = &allow
+	}
+}
+
+// WithNetwork sets the network configuration for the sandbox.
+func WithNetwork(network *api.SandboxNetworkConfig) SandboxOption {
+	return func(o *sandboxOptions) {
+		o.network = network
+	}
+}
+
+// WithMcp sets the MCP configuration for the sandbox.
+func WithMcp(mcp map[string]interface{}) SandboxOption {
+	return func(o *sandboxOptions) {
+		o.mcp = mcp
+	}
+}
+
+// WithVolumeMounts sets the volume mounts for the sandbox.
+func WithVolumeMounts(volumeMounts []api.SandboxVolumeMount) SandboxOption {
+	return func(o *sandboxOptions) {
+		o.volumeMounts = volumeMounts
+	}
+}
+
 // WithConfig applies one or more ConnectionConfigOption to the sandbox.
 func WithConfig(configOpts ...ConnectionConfigOption) SandboxOption {
 	return func(o *sandboxOptions) {
@@ -86,12 +127,17 @@ func Create(ctx context.Context, template string, opts ...SandboxOption) (*Sandb
 	}
 
 	createOpts := CreateSandboxOpts{
-		Template:  template,
-		Timeout:   options.timeout,
-		AutoPause: options.autoPause,
-		Metadata:  options.metadata,
-		EnvVars:   options.envVars,
-		Secure:    options.secure,
+		Template:            template,
+		Timeout:             options.timeout,
+		AutoPause:           options.autoPause,
+		AutoResume:          options.autoResume,
+		Secure:              options.secure,
+		AllowInternetAccess: options.allowInternetAccess,
+		Network:             options.network,
+		Metadata:            options.metadata,
+		EnvVars:             options.envVars,
+		Mcp:                 options.mcp,
+		VolumeMounts:        options.volumeMounts,
 	}
 	if createOpts.Timeout <= 0 {
 		createOpts.Timeout = int32(defaultSandboxTimeout)
