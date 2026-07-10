@@ -48,3 +48,12 @@ fields:
     python:
       # RawExtension maps to dict/Any in Python, keep as-is
       skip: true
+
+  - name: podTemplateDelta
+    go_type: "runtime.RawExtension"
+    java:
+      old_type: "io.fabric8.kubernetes.api.model.AnyType"
+      new_type: "io.fabric8.kubernetes.api.model.runtime.RawExtension"
+    python:
+      # RawExtension maps to dict/Any in Python, keep as-is
+      skip: true

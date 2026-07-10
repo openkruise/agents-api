@@ -95,13 +95,13 @@ public class CheckpointStatus implements io.fabric8.kubernetes.api.model.Kuberne
     @com.fasterxml.jackson.annotation.JsonProperty("podTemplateDelta")
     @com.fasterxml.jackson.annotation.JsonPropertyDescription("PodTemplateDelta stores a Strategic Merge Patch that captures the delta between\nthe running Pod at pause time and the base Pod generated from sandbox.spec.template")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
-    private io.fabric8.kubernetes.api.model.AnyType podTemplateDelta;
+    private io.fabric8.kubernetes.api.model.runtime.RawExtension podTemplateDelta;
 
-    public io.fabric8.kubernetes.api.model.AnyType getPodTemplateDelta() {
+    public io.fabric8.kubernetes.api.model.runtime.RawExtension getPodTemplateDelta() {
         return podTemplateDelta;
     }
 
-    public void setPodTemplateDelta(io.fabric8.kubernetes.api.model.AnyType podTemplateDelta) {
+    public void setPodTemplateDelta(io.fabric8.kubernetes.api.model.runtime.RawExtension podTemplateDelta) {
         this.podTemplateDelta = podTemplateDelta;
     }
 }

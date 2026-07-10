@@ -140,6 +140,7 @@ generation:
 | `volumeClaimTemplates` | `[]corev1.PersistentVolumeClaim` | `AnyType` ❌    | `Any` ❌            |
 | `metadata`             | `metav1.ObjectMeta`              | ✅ Correct      | `dict[str, Any]` ❌ |
 | `patch`                | `runtime.RawExtension`           | `AnyType` ❌    | ✅ Kept as Any      |
+| `podTemplateDelta`     | `runtime.RawExtension`           | `AnyType` ❌    | ✅ Kept as Any      |
 
 The type patching scripts automatically replace these placeholder types with the correct Kubernetes types.
 
