@@ -1,152 +1,242 @@
-# client-java
+# K8s Java Client
 
-## Generate
-[Guide to generate Java codes from CustomResourceDefinition](/k8s/java/docs/generate-model-from-crd.md)
+Kubernetes CRD Java models for Kruise Agents API, generated from CRD YAML definitions using Fabric8 Kubernetes Client.
 
-## Usage
+## Installation
 
 Add this dependency to your project's POM:
 
 ```xml
+
 <dependency>
-    <groupId>io.openkruise</groupId>
-    <artifactId>agents-client-java</artifactId>
+    <groupId>io.github.openkruise</groupId>
+    <artifactId>agents-client-k8s</artifactId>
     <version>0.1.0</version>
-    <scope>compile</scope>
 </dependency>
 ```
 
-**Note that this package has not been uploaded to the maven official repository. Currently, you should manually download this repo and package it to use.**
+## Available CRD Models
 
-You should also add the dependency of Kubernetes official java SDK:
+All models are in package `io.openkruise.agents.client.v2.models`:
 
-```xml
-<dependency>
-    <groupId>io.kubernetes</groupId>
-    <artifactId>client-java</artifactId>
-    <version>19.0.0</version>
-</dependency>
-```
-
-### Manually package
-
-At first generate the JAR by executing:
-
-    mvn package
-
-Then manually install the following JARs:
-
-* target/client-java-0.1.0.jar
-* target/lib/*.jar
+| CRD                 | Java Class            | Description                   |
+|---------------------|-----------------------|-------------------------------|
+| Sandbox             | `Sandbox`             | Individual sandbox instance   |
+| SandboxSet          | `SandboxSet`          | Set of sandboxes with scaling |
+| SandboxClaim        | `SandboxClaim`        | Claim for sandbox resources   |
+| SandboxTemplate     | `SandboxTemplate`     | Reusable sandbox template     |
+| SandboxUpdateOps    | `SandboxUpdateOps`    | Sandbox update operations     |
+| Checkpoint          | `Checkpoint`          | Sandbox checkpoint/snapshot   |
+| TrafficPolicy       | `TrafficPolicy`       | Traffic routing policy        |
+| GlobalTrafficPolicy | `GlobalTrafficPolicy` | Cluster-wide traffic policy   |
+| SecurityProfile     | `SecurityProfile`     | Security profile definition   |
 
 ## Getting Started
 
-You have to use `ApiClient` and `CustomObjectsApi` in `io.kubernetes:client-java` package.
-The only thing you should import from `io.openkruise:client-java` is `io.openkruise.agents.client.models.*`.
+### Create a Sandbox
 
 ```java
-import io.kubernetes.client.openapi.ApiClient;
-import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.CustomObjectsApi;
-import io.kubernetes.client.openapi.models.*;
-import io.kubernetes.client.util.Config;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.api.model.*;
+import io.openkruise.agents.client.v2.models.Sandbox;
+import io.openkruise.agents.client.v2.models.SandboxSpec;
 
-public class MyExample {
+public class SandboxExample {
 
-    // generate this client from a kubeconfig file or something else
-    private CustomObjectsApi api;
-    
-    private static final String GROUP = "agents.kruise.io";
-    private static final String VERSION = "v1alpha1";
-    private static final String PLURAL = "sandboxes";
+    public static void main(String[] args) {
+        try (KubernetesClient client = new KubernetesClientBuilder().build()) {
+            String namespace = "default";
 
-    public MyExample() throws Exception {
-        ApiClient client = Config.defaultClient();
-        Configuration.setDefaultApiClient(client);
-        this.api = new CustomObjectsApi();
-    }
+            // Build Sandbox
+            Sandbox sandbox = new Sandbox();
+            sandbox.setMetadata(new ObjectMetaBuilder()
+                .withName("my-sandbox")
+                .withNamespace(namespace)
+                .addToLabels("app", "sandbox-example")
+                .build());
 
-    public String createSandbox(String namespace, String name, String image) throws ApiException {
-        try {
-            V1alpha1Sandbox sandbox = createSandboxObject(name, image);
+            // Build Spec
+            SandboxSpec spec = new SandboxSpec();
 
-            Object result = api.createNamespacedCustomObject(
-                GROUP, VERSION, namespace, PLURAL, sandbox, null, null, null
-            );
-            return name;
-        } catch (ApiException e) {
-            e.printStackTrace();
-            return null;
+            // Option 1: Use inline template
+            PodTemplateSpec template = new PodTemplateSpecBuilder()
+                .withNewMetadata()
+                    .addToLabels("app", "sandbox-container")
+                .endMetadata()
+                .withNewSpec()
+                    .withRestartPolicy("Never")
+                    .addNewContainer()
+                        .withName("sandbox")
+                        .withImage("nginx:latest")
+                        .addNewPort()
+                            .withName("http")
+                            .withContainerPort(80)
+                        .endPort()
+                    .endContainer()
+                .endSpec()
+                .build();
+            spec.setTemplate(template);
+
+            // Option 2: Use templateRef (mutually exclusive with template)
+            // TemplateRef ref = new TemplateRef();
+            // ref.setName("my-template");
+            // spec.setTemplateRef(ref);
+
+            sandbox.setSpec(spec);
+
+            // Create the Sandbox
+            Sandbox created = client.resources(Sandbox.class)
+                .inNamespace(namespace)
+                .resource(sandbox)
+                .create();
+
+            System.out.println("Created sandbox: " + created.getMetadata().getName());
         }
-    }
-
-    public void getSandbox(String name, String namespace) {
-        try {
-            Object result = api.getNamespacedCustomObject(
-                GROUP, VERSION, namespace, PLURAL, name
-            );
-        } catch (ApiException e) {
-
-        }
-    }
-
-    public void deleteSandbox(String name, String namespace) {
-        try {
-            api.deleteNamespacedCustomObject(
-                GROUP, VERSION, namespace, PLURAL, name, null, null, null, null, null
-            );
-        } catch (ApiException e) {
-            
-        }
-    }
-    private V1alpha1Sandbox createSandboxObject(String name, String image) {
-        V1alpha1Sandbox sandbox = new V1alpha1Sandbox();
-        sandbox.setApiVersion(GROUP + "/" + VERSION);
-        sandbox.setKind("Sandbox");
-
-        // build metadata
-        V1ObjectMeta metadata = new V1ObjectMeta();
-        metadata.setName(name);
-        metadata.setNamespace(NAMESPACE);
-        Map<String, String> labels = new HashMap<>();
-        labels.put("app", "sandbox-example");
-        labels.put("managed-by", "java-client");
-        metadata.setLabels(labels);
-        sandbox.setMetadata(metadata);
-
-        // build spec
-        V1alpha1SandboxSpec spec = new V1alpha1SandboxSpec();
-
-        // build PodTemplateSpec
-        V1PodTemplateSpec templateSpec = new V1PodTemplateSpec();
-        V1ObjectMeta templateMetadata = new V1ObjectMeta();
-        templateMetadata.setLabels(Collections.singletonMap("app", "sandbox-container"));
-        templateSpec.setMetadata(templateMetadata);
-
-        // build PodSpec
-        V1PodSpec podSpec = new V1PodSpec();
-        podSpec.setRestartPolicy("Never");
-
-        // container
-        V1Container container = new V1Container();
-        container.setName("sandbox-container");
-        container.setImage(image);
-
-        // port
-        V1ContainerPort port = new V1ContainerPort();
-        port.setName("http");
-        port.setContainerPort(80);
-        container.addPortsItem(port);
-
-        podSpec.addContainersItem(container);
-        templateSpec.setSpec(podSpec);
-
-        spec.setTemplate(templateSpec);
-        sandbox.setSpec(spec);
-
-        return sandbox;
     }
 }
-
 ```
+
+
+### Create Sandboxes via SandboxClaim
+
+SandboxClaim allows you to claim multiple sandboxes from a template in batch.
+
+```java
+import io.openkruise.agents.client.v2.models.SandboxClaim;
+import io.openkruise.agents.client.v2.models.SandboxClaimSpec;
+import io.openkruise.agents.client.v2.models.SandboxClaimStatus;
+import io.fabric8.kubernetes.api.model.KubernetesResourceList;
+
+try (KubernetesClient client = new KubernetesClientBuilder().build()) {
+    String namespace = "default";
+    String claimName = "demo-claim";
+    
+    // Build SandboxClaim
+    SandboxClaim claim = new SandboxClaim();
+    claim.setMetadata(new ObjectMetaBuilder()
+        .withName(claimName)
+        .withNamespace(namespace)
+        .build());
+    
+    SandboxClaimSpec spec = new SandboxClaimSpec();
+    spec.setReplicas(2);
+    spec.setTemplateName("demo-template");
+    claim.setSpec(spec);
+    
+    // Create the SandboxClaim
+    SandboxClaim created = client.resources(SandboxClaim.class)
+        .inNamespace(namespace)
+        .resource(claim)
+        .create();
+    
+    System.out.println("Created sandboxclaim: " + created.getMetadata().getName());
+    
+    // Wait for claim to complete (polling)
+    long startTime = System.currentTimeMillis();
+    long timeout = 60000; // 1 minute
+    boolean completed = false;
+    
+    while (System.currentTimeMillis() - startTime < timeout) {
+        SandboxClaim updated = client.resources(SandboxClaim.class)
+            .inNamespace(namespace)
+            .withName(claimName)
+            .get();
+        
+        if (updated != null && updated.getStatus() != null) {
+            String phase = updated.getStatus().getPhase();
+            if ("Completed".equals(phase)) {
+                Integer claimedReplicas = updated.getStatus().getClaimedReplicas();
+                if (claimedReplicas != null && claimedReplicas.equals(spec.getReplicas())) {
+                    completed = true;
+                    System.out.println("Claim completed successfully with " + claimedReplicas + " sandboxes");
+                    break;
+                } else if (claimedReplicas != null && claimedReplicas > 0) {
+                    System.out.println("Claim partially completed: " + claimedReplicas + "/" + spec.getReplicas());
+                    break;
+                } else {
+                    System.err.println("Claim failed: no sandboxes claimed");
+                    break;
+                }
+            }
+        }
+        
+        Thread.sleep(1000); // Wait 1 second before next check
+    }
+    
+    if (!completed) {
+        System.err.println("Claim did not complete within timeout");
+    }
+    
+    // List claimed sandboxes
+    System.out.println("Listing claimed sandboxes:");
+    KubernetesResourceList<Sandbox> sandboxList = client.resources(Sandbox.class)
+        .inNamespace(namespace)
+        .withLabel("agents.kruise.io/claim-name", claimName)
+        .list();
+    
+    for (Sandbox sb : sandboxList.getItems()) {
+        System.out.printf("  %s/%s%n", sb.getMetadata().getNamespace(), sb.getMetadata().getName());
+    }
+}
+```
+
+### List Sandboxes
+
+```java
+import io.fabric8.kubernetes.api.model.KubernetesResourceList;
+
+try (KubernetesClient client = new KubernetesClientBuilder().build()) {
+    KubernetesResourceList<Sandbox> sandboxList = client.resources(Sandbox.class)
+        .inNamespace("default")
+        .list();
+
+    for (Sandbox sb : sandboxList.getItems()) {
+        System.out.printf("Sandbox: %s, State: %s%n",
+            sb.getMetadata().getName(),
+            sb.getStatus() != null ? sb.getStatus().getPhase() : "Unknown");
+    }
+}
+```
+
+### Delete a Sandbox
+
+```java
+try (KubernetesClient client = new KubernetesClientBuilder().build()) {
+    client.resources(Sandbox.class)
+        .inNamespace("default")
+        .withName("my-sandbox")
+        .delete();
+
+    System.out.println("Sandbox deleted");
+}
+```
+
+### Watch Sandbox Changes
+
+```java
+try (KubernetesClient client = new KubernetesClientBuilder().build()) {
+    client.resources(Sandbox.class)
+        .inNamespace("default")
+        .watch(new Watcher<Sandbox>() {
+            @Override
+            public void eventReceived(Action action, Sandbox sandbox) {
+                System.out.printf("Event: %s, Sandbox: %s%n",
+                    action, sandbox.getMetadata().getName());
+            }
+
+            @Override
+            public void onClose(WatcherException cause) {
+                if (cause != null) {
+                    System.err.println("Watch closed: " + cause.getMessage());
+                }
+            }
+        });
+}
+```
+
+## Legacy Models (Deprecated)
+
+The old models in `io.openkruise.agents.client.models` are **deprecated** and no longer maintained. Please migrate to
+`io.openkruise.agents.client.v2.models` which uses Fabric8 Kubernetes Client annotations and provides better type
+safety.
