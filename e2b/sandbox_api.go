@@ -149,8 +149,14 @@ func convertToSandboxInfo(sb api.SandboxesGet200ResponseInner) SandboxInfo {
 		EnvdVersion: sb.GetEnvdVersion(),
 		State:       string(sb.GetState()),
 	}
+	if alias, ok := sb.GetAliasOk(); ok && alias != nil {
+		info.Alias = *alias
+	}
 	if meta, ok := sb.GetMetadataOk(); ok && meta != nil {
 		info.Metadata = *meta
+	}
+	if mounts, ok := sb.GetVolumeMountsOk(); ok && mounts != nil {
+		info.VolumeMounts = mounts
 	}
 	return info
 }
@@ -177,8 +183,14 @@ func (s *SandboxApi) GetInfo(ctx context.Context, sandboxID string) (*SandboxInf
 		EnvdVersion: resp.GetEnvdVersion(),
 		State:       string(resp.GetState()),
 	}
+	if alias, ok := resp.GetAliasOk(); ok && alias != nil {
+		info.Alias = *alias
+	}
 	if meta, ok := resp.GetMetadataOk(); ok && meta != nil {
 		info.Metadata = *meta
+	}
+	if mounts, ok := resp.GetVolumeMountsOk(); ok && mounts != nil {
+		info.VolumeMounts = mounts
 	}
 
 	return info, nil
