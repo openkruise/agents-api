@@ -102,6 +102,7 @@ Applied via `e2b.NewConnectionConfig(opts...)` or embedded in `Create/Connect` w
 | `WithAPIURL(url string)`              | **Highest priority**: directly overrides API base URL          |
 | `WithSandboxBaseURL(url string)`      | **Highest priority**: directly overrides sandbox envd base URL |
 | `WithRequestTimeout(d time.Duration)` | HTTP request timeout, defaults to 60s                          |
+| `WithHTTPClient(client *http.Client)` | Custom HTTP client for API requests                            |
 
 #### Priority
 
@@ -193,13 +194,71 @@ e2b.WithDomain("example.com"),
 
 | Method                                                                       | Description                                   |
 |------------------------------------------------------------------------------|-----------------------------------------------|
-| `List(ctx) ([]SandboxInfo, error)`                                           | List all running sandboxes                    |
+| `List(ctx, opts ...ListSandboxOpts) (*ListResult, error)`                    | List sandboxes with pagination support        |
 | `GetInfo(ctx, sandboxID) (*SandboxInfo, error)`                              | Get sandbox details; 404 returns `not found`  |
 | `Kill(ctx, sandboxID) (bool, error)`                                         | Destroy sandbox; returns `true` in Debug mode |
 | `SetTimeout(ctx, sandboxID, timeout int32) error`                            | Update timeout                                |
 | `CreateSandbox(ctx, opts CreateSandboxOpts) (*SandboxCreateResponse, error)` | Low-level create API                          |
 | `ConnectSandbox(ctx, sandboxID, timeout int32) (*client.Sandbox, error)`     | Low-level connect API                         |
 | `Pause(ctx, sandboxID) (string, error)`                                      | Pause sandbox                                 |
+
+### ListSandboxOpts
+
+Options for paginated listing:
+
+```go
+type ListSandboxOpts struct {
+    // Metadata filters sandboxes by metadata key-value pairs.
+    // Keys and values will be URL encoded automatically.
+    Metadata map[string]string
+    // State filters sandboxes by one or more states (e.g., "running", "paused").
+    State []api.SandboxState
+    // NextToken is the cursor to start the list from (for pagination).
+    NextToken string
+    // Limit is the maximum number of items to return per page.
+    Limit int32
+}
+```
+
+### ListResult
+
+Result of a list operation with pagination support:
+
+```go
+type ListResult struct {
+    Sandboxes []SandboxInfo  // List of sandboxes in this page
+    NextToken string         // Token for fetching the next page (empty if no more pages)
+}
+```
+
+### Pagination Example
+
+```go
+// Fetch all sandboxes with pagination
+var allSandboxes []e2b.SandboxInfo
+nextToken := ""
+pageSize := int32(10)
+
+for {
+    result, err := api.List(ctx, e2b.ListSandboxOpts{
+        Limit:     pageSize,
+        NextToken: nextToken,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    allSandboxes = append(allSandboxes, result.Sandboxes...)
+    
+    // Check if there are more pages
+    if result.NextToken == "" {
+        break
+    }
+    nextToken = result.NextToken
+}
+
+fmt.Printf("Total: %d sandboxes\n", len(allSandboxes))
+```
 
 ---
 
