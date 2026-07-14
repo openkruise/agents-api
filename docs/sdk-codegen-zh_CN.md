@@ -137,6 +137,7 @@ CRD 中标记了 `x-kubernetes-preserve-unknown-fields: true` 的字段，在代
 | `volumeClaimTemplates` | `[]corev1.PersistentVolumeClaim` | `AnyType` ❌ | `Any` ❌            |
 | `metadata`             | `metav1.ObjectMeta`              | ✅ 正常        | `dict[str, Any]` ❌ |
 | `patch`                | `runtime.RawExtension`           | `AnyType` ❌ | ✅ 保留 Any           |
+| `podTemplateDelta`     | `runtime.RawExtension`           | `AnyType` ❌ | ✅ 保留 Any           |
 
 类型修补脚本会自动将这些占位符类型替换为正确的 Kubernetes 类型。
 
