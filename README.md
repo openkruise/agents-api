@@ -18,7 +18,7 @@ We recommend using the go types in this repo. You may serialize them directly to
 
 ## Documentation
 
-| Document                  | English                                         | 中文                                                          |
+| Document                  | English                                         | Chinese                                                     |
 |---------------------------|-------------------------------------------------|-------------------------------------------------------------|
 | K8s SDK Code Generation   | [k8s-sdk-codegen.md](docs/k8s-sdk-codegen.md)   | [k8s-sdk-codegen-zh_CN.md](docs/k8s-sdk-codegen-zh_CN.md)   |
 | E2B SDK Code Generation   | [e2b-sdk-codegen.md](docs/e2b-sdk-codegen.md)   | [e2b-sdk-codegen-zh_CN.md](docs/e2b-sdk-codegen-zh_CN.md)   |
