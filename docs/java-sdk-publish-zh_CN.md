@@ -45,13 +45,13 @@ gpg --full-generate-key
 
 > ⚠️ **注意**：这个 Passphrase 密码需要设置到 `GPG_PASSPHRASE` 变量中，请妥善保管。
 
-生成成功后会输出类似以下内容，保存其中的 **Key ID**（如 `8A037CE34D4819C3`）：
+生成成功后会输出类似以下内容，保存其中的 **Key ID**（如 `***`）：
 
 ```
-gpg: zq01297892
+gpg:  ***
 pub   rsa4096 2026-04-07 [SC]
-      EBB5E9730DC9D293447B42E88A037CE34D4819C3
-uid                      agents-client-java (Maven Central Signing) <zq01297892@alibaba-inc.com>
+      ***
+uid                      agents-client-java (Maven Central Signing) <***@alibaba-inc.com>
 sub   rsa4096 2026-04-07 [E]
 ```
 
@@ -62,7 +62,7 @@ sub   rsa4096 2026-04-07 [E]
 ```bash
 gpg --armor --export-secret-key <KEY-ID>
 # 示例：
-# gpg --armor --export-secret-key 8A037CE34D4819C3
+# gpg --armor --export-secret-key ***
 ```
 
 输出以 `-----BEGIN PGP PRIVATE KEY BLOCK-----` 开头，以 `-----END PGP PRIVATE KEY BLOCK-----` 结尾，需完整复制。
@@ -74,7 +74,7 @@ gpg --armor --export-secret-key <KEY-ID>
 ```bash
 gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY-ID>
 # 示例：
-# gpg --keyserver hkps://keyserver.ubuntu.com --send-keys 8A037CE34D4819C3
+# gpg --keyserver hkps://keyserver.ubuntu.com --send-keys ***
 ```
 
 > ⚠️ **注意**：公钥上传后可能需要几分钟到几小时才能在密钥服务器上生效，如签名验证失败请稍后重试。
@@ -115,18 +115,9 @@ gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY-ID>
 - **Token 有效期**：Sonatype Token 长期有效，但如果泄露应立即在 [central.sonatype.com](https://central.sonatype.com)
   重新生成并更新 GitHub Secrets
 
-## 客户使用情况
+## 版本演进
 
-### 背景
-
-当前使用 Java SDK 的只有荣耀，客户开发环境使用的是 Java 21，直接从代码仓库下载 SDK 源码存在兼容性问题。为解决此问题，将 SDK
-发布到 Maven Central 仓库。
-
-由于官方 namespace `io.openkruise` 尚未申请完成，当前使用个人 namespace `io.github.zhaoqing7892` 发布。
-
-### 版本演进
-
-#### 使用版本（单一包依赖）
+### 使用版本（单一包依赖）
 
 ```xml
 
@@ -140,7 +131,7 @@ gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY-ID>
 **Maven Central
 **: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-java](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-java)
 
-#### 最新版本
+### 最新版本
 
 **配置优化**：
 

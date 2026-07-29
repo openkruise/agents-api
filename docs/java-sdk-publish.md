@@ -48,13 +48,13 @@ Follow the prompts:
 > ⚠️ **Note**: This Passphrase must be set in the `GPG_PASSPHRASE` variable. Please keep it safe.
 
 After successful generation, output similar to the following will be displayed. Save the **Key ID** (e.g.,
-`8A037CE34D4819C3`):
+`***`):
 
 ```
-gpg: zq01297892
+gpg:  ***
 pub   rsa4096 2026-04-07 [SC]
-      EBB5E9730DC9D293447B42E88A037CE34D4819C3
-uid                      agents-client-java (Maven Central Signing) <zq01297892@alibaba-inc.com>
+      ***
+uid                      agents-client-java (Maven Central Signing) <***@alibaba-inc.com>
 sub   rsa4096 2026-04-07 [E]
 ```
 
@@ -65,7 +65,7 @@ Use the Key ID from the previous step to export the private key. Save the comple
 ```bash
 gpg --armor --export-secret-key <KEY-ID>
 # Example:
-# gpg --armor --export-secret-key 8A037CE34D4819C3
+# gpg --armor --export-secret-key ***
 ```
 
 The output starts with `-----BEGIN PGP PRIVATE KEY BLOCK-----` and ends with `-----END PGP PRIVATE KEY BLOCK-----`. Copy
@@ -78,7 +78,7 @@ Upload the public key to a public key server so Maven Central can verify signatu
 ```bash
 gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY-ID>
 # Example:
-# gpg --keyserver hkps://keyserver.ubuntu.com --send-keys 8A037CE34D4819C3
+# gpg --keyserver hkps://keyserver.ubuntu.com --send-keys ***
 ```
 
 > ⚠️ **Note**: It may take a few minutes to several hours for the public key to propagate on the key server. If
@@ -124,20 +124,9 @@ status (may take a few minutes to several hours to sync).
 - **Token Validity**: Sonatype Tokens are valid indefinitely, but if compromised, regenerate immediately
   at [central.sonatype.com](https://central.sonatype.com) and update GitHub Secrets
 
-## Client Usage
+## Version History
 
-### Background
-
-Currently, the only consumer of the Java SDK is Honor (荣耀). Their development environment uses Java 21, and
-downloading SDK source code directly from the repository has compatibility issues. To resolve this, the SDK is published
-to Maven Central.
-
-Since the official namespace `io.openkruise` has not yet been approved, the personal namespace `io.github.zhaoqing7892`
-is currently used for publishing.
-
-### Version History
-
-#### Legacy Version (Single Package)
+### Legacy Version (Single Package)
 
 ```xml
 
@@ -151,7 +140,7 @@ is currently used for publishing.
 **Maven Central
 **: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-java](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-java)
 
-#### Latest Version
+### Latest Version
 
 **Configuration Improvements**:
 
