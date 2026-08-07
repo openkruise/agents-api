@@ -5,7 +5,11 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class DenyResponse implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
+    /**
+     * Body is the optional response body sent to the client.
+     */
     @com.fasterxml.jackson.annotation.JsonProperty("body")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Body is the optional response body sent to the client.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String body;
 
@@ -17,9 +21,13 @@ public class DenyResponse implements io.fabric8.kubernetes.api.model.KubernetesR
         this.body = body;
     }
 
+    /**
+     * StatusCode is the HTTP status returned to the client. Defaults to 403.
+     */
     @com.fasterxml.jackson.annotation.JsonProperty("statusCode")
     @io.fabric8.generator.annotation.Max(599.0)
     @io.fabric8.generator.annotation.Min(100.0)
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("StatusCode is the HTTP status returned to the client. Defaults to 403.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Integer statusCode = 403;
 

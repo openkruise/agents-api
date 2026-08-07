@@ -6,15 +6,12 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.rules.match;
 public class QueryParams implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Name is the query parameter key. Comparison is case-sensitive per
-     * RFC 3986. Restricted to a safe subset of RFC 3986 unreserved /
-     * sub-delims characters; brackets are permitted to support PHP-style
-     * array keys (e.g. "filter[type]").
+     * Name is the case-sensitive query parameter name.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("name")
     @io.fabric8.generator.annotation.Required()
     @io.fabric8.generator.annotation.Pattern("^[A-Za-z0-9!$&'()*+,\\-./:;=?@_~\\[\\]]+$")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Name is the query parameter key. Comparison is case-sensitive per\nRFC 3986. Restricted to a safe subset of RFC 3986 unreserved /\nsub-delims characters; brackets are permitted to support PHP-style\narray keys (e.g. \"filter[type]\").")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Name is the case-sensitive query parameter name.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String name;
 

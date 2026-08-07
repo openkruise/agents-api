@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"lifecycle","patch","paused","selector","updateStrategy"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"lifecycle","patch","paused","selector","stateFilter","updateStrategy"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxUpdateOpsSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -69,6 +69,25 @@ public class SandboxUpdateOpsSpec implements io.fabric8.kubernetes.api.model.Kub
 
     public void setSelector(io.openkruise.agents.client.v2.models.sandboxupdateopsspec.Selector selector) {
         this.selector = selector;
+    }
+
+    /**
+     * StateFilter specifies which sandbox states are eligible as upgrade
+     * candidates. When empty, defaults to [Running].
+     * Upgrading sandboxes are always tracked regardless of this field, as they
+     * represent in-progress upgrades owned by this ops.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("stateFilter")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("StateFilter specifies which sandbox states are eligible as upgrade\ncandidates. When empty, defaults to [Running].\nUpgrading sandboxes are always tracked regardless of this field, as they\nrepresent in-progress upgrades owned by this ops.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxupdateopsspec.StateFilter stateFilter;
+
+    public io.openkruise.agents.client.v2.models.sandboxupdateopsspec.StateFilter getStateFilter() {
+        return stateFilter;
+    }
+
+    public void setStateFilter(io.openkruise.agents.client.v2.models.sandboxupdateopsspec.StateFilter stateFilter) {
+        this.stateFilter = stateFilter;
     }
 
     /**

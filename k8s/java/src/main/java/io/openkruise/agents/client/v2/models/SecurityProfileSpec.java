@@ -1,19 +1,16 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","rules","selector"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","inputs","priority","rules","selector"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SecurityProfileSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Audit declares profile-wide audit entries. They fire for every
-     * matched rule (subject to each entry's `When` CEL expression),
-     * providing a default audit configuration for all rules in this
-     * profile. A SecurityRule may override this list via
-     * SecurityRuleActions.Audit.
+     * Audit defines the audit actions inherited by rules that do not configure
+     * their own Audit list.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("audit")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Audit declares profile-wide audit entries. They fire for every\nmatched rule (subject to each entry's `When` CEL expression),\nproviding a default audit configuration for all rules in this\nprofile. A SecurityRule may override this list via\nSecurityRuleActions.Audit.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Audit defines the audit actions inherited by rules that do not configure\ntheir own Audit list.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.Audit> audit;
 
@@ -26,13 +23,48 @@ public class SecurityProfileSpec implements io.fabric8.kubernetes.api.model.Kube
     }
 
     /**
-     * Rules is the ordered rule chain. Semantics are Default Continue:
-     * all matching rules' actions run in order until a terminal action
-     * (Block / Bypass) short-circuits the chain. An empty rule chain is
-     * equivalent to "forward everything to the original destination".
+     * Inputs defines named values available to CEL expressions and Go
+     * templates in this profile.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("inputs")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Inputs defines named values available to CEL expressions and Go\ntemplates in this profile.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.Inputs> inputs;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.Inputs> getInputs() {
+        return inputs;
+    }
+
+    public void setInputs(java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.Inputs> inputs) {
+        this.inputs = inputs;
+    }
+
+    /**
+     * Priority determines evaluation order when multiple profiles match a Pod.
+     * Lower values run first. Ties are resolved by creation time, name, and
+     * namespace. Defaults to DefaultSecurityProfilePriority.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("priority")
+    @io.fabric8.generator.annotation.Min(0.0)
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Priority determines evaluation order when multiple profiles match a Pod.\nLower values run first. Ties are resolved by creation time, name, and\nnamespace. Defaults to DefaultSecurityProfilePriority.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private Integer priority = 1000;
+
+    public Integer getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Integer priority) {
+        this.priority = priority;
+    }
+
+    /**
+     * Rules is the ordered rule chain. Every matching rule executes until an
+     * action terminates the request. Rules from matching profiles are combined
+     * in profile evaluation order. An empty list forwards all traffic.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("rules")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Rules is the ordered rule chain. Semantics are Default Continue:\nall matching rules' actions run in order until a terminal action\n(Block / Bypass) short-circuits the chain. An empty rule chain is\nequivalent to \"forward everything to the original destination\".")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Rules is the ordered rule chain. Every matching rule executes until an\naction terminates the request. Rules from matching profiles are combined\nin profile evaluation order. An empty list forwards all traffic.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.Rules> rules;
 
@@ -45,16 +77,12 @@ public class SecurityProfileSpec implements io.fabric8.kubernetes.api.model.Kube
     }
 
     /**
-     * Selector chooses the Pods this profile applies to. Standard
-     * LabelSelector semantics: an EMPTY selector (no matchLabels and no
-     * matchExpressions) matches EVERY pod in the same namespace, in line
-     * with NetworkPolicy / Istio AuthorizationPolicy. Use a deliberate
-     * matchExpression (e.g. `key: __none__, operator: DoesNotExist`) to
-     * express "match nothing".
+     * Selector chooses the Pods to which this profile applies. An empty
+     * selector matches every Pod in scope.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("selector")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Selector chooses the Pods this profile applies to. Standard\nLabelSelector semantics: an EMPTY selector (no matchLabels and no\nmatchExpressions) matches EVERY pod in the same namespace, in line\nwith NetworkPolicy / Istio AuthorizationPolicy. Use a deliberate\nmatchExpression (e.g. `key: __none__, operator: DoesNotExist`) to\nexpress \"match nothing\".")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Selector chooses the Pods to which this profile applies. An empty\nselector matches every Pod in scope.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.Selector selector;
 

@@ -23,11 +23,11 @@ public class ApiKey implements io.fabric8.kubernetes.api.model.KubernetesResourc
     }
 
     /**
-     * ValueTemplate is a Go text/template for the header value.
+     * ValueTemplate is a Go template that renders the header value.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("valueTemplate")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ValueTemplate is a Go text/template for the header value.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ValueTemplate is a Go template that renders the header value.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String valueTemplate;
 
@@ -40,11 +40,10 @@ public class ApiKey implements io.fabric8.kubernetes.api.model.KubernetesResourc
     }
 
     /**
-     * When is an optional condition; the transformation is skipped if
-     * the header does not match.
+     * When limits the transformation to requests with a matching header.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("when")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("When is an optional condition; the transformation is skipped if\nthe header does not match.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("When limits the transformation to requests with a matching header.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.apikey.When when;
 

@@ -57,3 +57,4 @@ fields:
     python:
       # RawExtension maps to dict/Any in Python, keep as-is
       skip: true
+

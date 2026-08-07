@@ -25,11 +25,11 @@ public class Headers implements io.fabric8.kubernetes.api.model.KubernetesResour
     }
 
     /**
-     * Value is the header value template.
+     * Value is a Go template that renders the header value.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("value")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Value is the header value template.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Value is a Go template that renders the header value.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String value;
 

@@ -6,14 +6,11 @@ package io.openkruise.agents.client.v2.models.securityprofilespec;
 public class Rules implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Actions is a map of action types to their configurations. The Envoy
-     * data plane executes populated actions in a deterministic order; each
-     * action runs at most once. Terminal actions (Block, Bypass)
-     * short-circuit the rule chain.
+     * Actions configures the actions executed when this rule matches.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("actions")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Actions is a map of action types to their configurations. The Envoy\ndata plane executes populated actions in a deterministic order; each\naction runs at most once. Terminal actions (Block, Bypass)\nshort-circuit the rule chain.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Actions configures the actions executed when this rule matches.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.rules.Actions actions;
 
@@ -44,11 +41,11 @@ public class Rules implements io.fabric8.kubernetes.api.model.KubernetesResource
 
     /**
      * Name uniquely identifies the rule within the profile. Used in
-     * metrics, events, and generated xDS resource names.
+     * metrics and events.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("name")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Name uniquely identifies the rule within the profile. Used in\nmetrics, events, and generated xDS resource names.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Name uniquely identifies the rule within the profile. Used in\nmetrics and events.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String name;
 
