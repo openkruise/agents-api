@@ -6,11 +6,10 @@ package io.openkruise.agents.client.v2.models;
 public class SecurityProfileStatus implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Conditions summarizes the profile's current state. Standard types are
-     * Accepted and Programmed (see SecurityProfileCondition* constants).
+     * Conditions summarizes the profile's current state.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("conditions")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Conditions summarizes the profile's current state. Standard types are\nAccepted and Programmed (see SecurityProfileCondition* constants).")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Conditions summarizes the profile's current state.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.securityprofilestatus.Conditions> conditions;
 

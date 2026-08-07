@@ -25,11 +25,11 @@ public class Paths implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * PathMatchType enumerates URL path matching strategies.
+     * Type selects the path matching strategy. Defaults to Prefix.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("type")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PathMatchType enumerates URL path matching strategies.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Type selects the path matching strategy. Defaults to Prefix.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Type type = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"Prefix\"", Type.class);
 
@@ -42,12 +42,11 @@ public class Paths implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * Value is the match pattern. For Regex, it is an RE2 expression and
-     * must be <= 256 characters.
+     * Value is the match value. For Regex, it is an RE2 expression.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("value")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Value is the match pattern. For Regex, it is an RE2 expression and\nmust be <= 256 characters.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Value is the match value. For Regex, it is an RE2 expression.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String value;
 

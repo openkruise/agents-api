@@ -1,9 +1,25 @@
 package io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"kind","name"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"credentialProvider","kind","name","namespace","secret"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class CredentialRef implements io.fabric8.kubernetes.api.model.KubernetesResource {
+
+    /**
+     * CredentialProvider fetches credentials from an external provider.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("credentialProvider")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("CredentialProvider fetches credentials from an external provider.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.credentialref.CredentialProvider credentialProvider;
+
+    public io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.credentialref.CredentialProvider getCredentialProvider() {
+        return credentialProvider;
+    }
+
+    public void setCredentialProvider(io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.credentialref.CredentialProvider credentialProvider) {
+        this.credentialProvider = credentialProvider;
+    }
 
     public enum Kind {
 
@@ -24,11 +40,11 @@ public class CredentialRef implements io.fabric8.kubernetes.api.model.Kubernetes
     }
 
     /**
-     * Kind selects the credential source type.
+     * Kind identifies the deprecated credential source type.
+     * Deprecated: use Secret or CredentialProvider.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("kind")
-    @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Kind selects the credential source type.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Kind identifies the deprecated credential source type.\nDeprecated: use Secret or CredentialProvider.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Kind kind;
 
@@ -41,12 +57,11 @@ public class CredentialRef implements io.fabric8.kubernetes.api.model.Kubernetes
     }
 
     /**
-     * Name is the resource name — Secret name for Kind=Secret, or
-     * provider name for Kind=CredentialProvider.
+     * Name identifies the deprecated credential source.
+     * Deprecated: use Secret or CredentialProvider.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("name")
-    @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Name is the resource name — Secret name for Kind=Secret, or\nprovider name for Kind=CredentialProvider.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Name identifies the deprecated credential source.\nDeprecated: use Secret or CredentialProvider.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String name;
 
@@ -56,6 +71,40 @@ public class CredentialRef implements io.fabric8.kubernetes.api.model.Kubernetes
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * Namespace is used by deprecated Secret references. It is ignored by
+     * deprecated CredentialProvider references.
+     * Deprecated: use Secret.Namespace instead.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("namespace")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Namespace is used by deprecated Secret references. It is ignored by\ndeprecated CredentialProvider references.\nDeprecated: use Secret.Namespace instead.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private String namespace;
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    /**
+     * Secret references credentials stored in a Kubernetes Secret.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("secret")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Secret references credentials stored in a Kubernetes Secret.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.credentialref.Secret secret;
+
+    public io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.credentialref.Secret getSecret() {
+        return secret;
+    }
+
+    public void setSecret(io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.credentialref.Secret secret) {
+        this.secret = secret;
     }
 }
 

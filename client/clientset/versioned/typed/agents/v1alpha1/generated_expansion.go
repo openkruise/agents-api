@@ -22,6 +22,8 @@ type CheckpointExpansion interface{}
 
 type CommitExpansion interface{}
 
+type GlobalSecurityProfileExpansion interface{}
+
 type GlobalTrafficPolicyExpansion interface{}
 
 type SandboxExpansion interface{}

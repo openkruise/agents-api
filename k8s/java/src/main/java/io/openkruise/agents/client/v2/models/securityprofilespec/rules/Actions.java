@@ -6,17 +6,12 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.rules;
 public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Audit lists per-rule audit entries. When non-empty, this list
-     * REPLACES the profile-level SecurityProfileSpec.Audit list for this
-     * rule's matches (override semantics). When empty or omitted, the
-     * spec-level list applies. To suppress audit on a specific rule,
-     * add a single entry with `when: "false"`.
-     *
-     * Audit is non-terminal — it never alters the upstream response and
-     * does not short-circuit the rule chain.
+     * Audit lists rule-specific audit actions. A non-empty list replaces the
+     * profile-level Audit list for this rule. An empty list inherits the
+     * profile-level list.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("audit")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Audit lists per-rule audit entries. When non-empty, this list\nREPLACES the profile-level SecurityProfileSpec.Audit list for this\nrule's matches (override semantics). When empty or omitted, the\nspec-level list applies. To suppress audit on a specific rule,\nadd a single entry with `when: \"false\"`.\n\nAudit is non-terminal — it never alters the upstream response and\ndoes not short-circuit the rule chain.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Audit lists rule-specific audit actions. A non-empty list replaces the\nprofile-level Audit list for this rule. An empty list inherits the\nprofile-level list.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.Audit> audit;
 
@@ -46,12 +41,11 @@ public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResour
     }
 
     /**
-     * Bypass is a terminal action that skips all subsequent rules and
-     * forwards the request without further processing. Useful for trusted
-     * internal domains.
+     * Bypass forwards the request and skips all remaining actions and rules
+     * across matching profiles. False is equivalent to omission.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("bypass")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Bypass is a terminal action that skips all subsequent rules and\nforwards the request without further processing. Useful for trusted\ninternal domains.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Bypass forwards the request and skips all remaining actions and rules\nacross matching profiles. False is equivalent to omission.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Boolean bypass;
 
@@ -65,10 +59,11 @@ public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResour
 
     /**
      * MCPToolPolicy defines inline MCP tool access control rules.
-     * Non-terminal when the policy allows; terminal (like Block) when denied.
+     * Non-terminal when the policy allows; terminal (like Block) when
+     * denied.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("mcpToolPolicy")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("MCPToolPolicy defines inline MCP tool access control rules.\nNon-terminal when the policy allows; terminal (like Block) when denied.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("MCPToolPolicy defines inline MCP tool access control rules.\nNon-terminal when the policy allows; terminal (like Block) when\ndenied.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.McpToolPolicy mcpToolPolicy;
 
@@ -81,12 +76,11 @@ public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResour
     }
 
     /**
-     * TokenTransformation rewrites credential headers (e.g. replacing a
-     * placeholder Bearer token with a real one from a token service).
+     * TokenTransformation rewrites request credentials.
      * Non-terminal.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("tokenTransformation")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("TokenTransformation rewrites credential headers (e.g. replacing a\nplaceholder Bearer token with a real one from a token service).\nNon-terminal.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("TokenTransformation rewrites request credentials.\nNon-terminal.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.TokenTransformation tokenTransformation;
 

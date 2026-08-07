@@ -6,16 +6,12 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.rules;
 public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Domains lists target host names. Supports "*" (any domain) and
-     * "*.example.com" wildcard prefixes.
-     *
-     * CAUTION: wildcard and specific domains can both match the same request
-     * under Default Continue semantics, so rule ordering matters. See
-     * docs/components/traffic-extension.md.
+     * Domains lists target host names. "*" matches any host, and a leading
+     * wildcard such as "*.example.com" matches subdomains.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("domains")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Domains lists target host names. Supports \"*\" (any domain) and\n\"*.example.com\" wildcard prefixes.\n\nCAUTION: wildcard and specific domains can both match the same request\nunder Default Continue semantics, so rule ordering matters. See\ndocs/components/traffic-extension.md.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Domains lists target host names. \"*\" matches any host, and a leading\nwildcard such as \"*.example.com\" matches subdomains.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<String> domains;
 
@@ -77,10 +73,10 @@ public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * Methods filters by HTTP method. Only valid when Paths is also set.
+     * Methods lists HTTP methods. Multiple entries are ORed.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("methods")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Methods filters by HTTP method. Only valid when Paths is also set.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Methods lists HTTP methods. Multiple entries are ORed.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<Methods> methods;
 
@@ -93,12 +89,11 @@ public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * Paths lists URL path matches; multiple entries are ORed. The path
-     * is compared without any "?query" suffix — write QueryParams matches
-     * to constrain query parameters.
+     * Paths lists URL path matches. Multiple entries are ORed. The query
+     * string is excluded from path matching.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("paths")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Paths lists URL path matches; multiple entries are ORed. The path\nis compared without any \"?query\" suffix — write QueryParams matches\nto constrain query parameters.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Paths lists URL path matches. Multiple entries are ORed. The query\nstring is excluded from path matching.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.rules.match.Paths> paths;
 
@@ -111,19 +106,13 @@ public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * Ports filters by the port the client targeted on the upstream
-     * authority. Multiple entries are ORed.
+     * Ports lists destination ports. Multiple entries are ORed.
      *
-     * When the request authority spells out a port (e.g.
-     * "api.example.com:8443"), that port is used directly. When the client
-     * omits the port — relying on the scheme default — the matcher infers
-     * 80 for http and 443 for https from the request's :scheme. Listing
-     * `ports: [80]` therefore matches both "host:80" and a plain "host"
-     * over HTTP. An unrecognized scheme leaves the inferred port at 0,
-     * which never matches a non-empty Ports list.
+     * An explicit authority port is used directly. Otherwise, HTTP defaults
+     * to 80 and HTTPS defaults to 443. Other schemes have no default port.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("ports")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Ports filters by the port the client targeted on the upstream\nauthority. Multiple entries are ORed.\n\nWhen the request authority spells out a port (e.g.\n\"api.example.com:8443\"), that port is used directly. When the client\nomits the port — relying on the scheme default — the matcher infers\n80 for http and 443 for https from the request's :scheme. Listing\n`ports: [80]` therefore matches both \"host:80\" and a plain \"host\"\nover HTTP. An unrecognized scheme leaves the inferred port at 0,\nwhich never matches a non-empty Ports list.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Ports lists destination ports. Multiple entries are ORed.\n\nAn explicit authority port is used directly. Otherwise, HTTP defaults\nto 80 and HTTPS defaults to 443. Other schemes have no default port.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<Integer> ports;
 
@@ -136,12 +125,11 @@ public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * QueryParams lists URL query-parameter matches; multiple entries are
-     * ANDed. Matched against the percent-decoded value of the FIRST
-     * occurrence of each key.
+     * QueryParams lists URL query parameter matches. Multiple entries are
+     * ANDed. Values are percent-decoded before matching.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("queryParams")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("QueryParams lists URL query-parameter matches; multiple entries are\nANDed. Matched against the percent-decoded value of the FIRST\noccurrence of each key.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("QueryParams lists URL query parameter matches. Multiple entries are\nANDed. Values are percent-decoded before matching.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.rules.match.QueryParams> queryParams;
 
@@ -154,12 +142,11 @@ public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * Schemes filters by the request's :scheme pseudo-header (e.g. "http",
-     * "https", or custom schemes used by gRPC/other protocols). Multiple
-     * entries are ORed. Matching is case-insensitive.
+     * Schemes lists request schemes, such as "http" and "https". Multiple
+     * entries are ORed, and matching is case-insensitive.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("schemes")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Schemes filters by the request's :scheme pseudo-header (e.g. \"http\",\n\"https\", or custom schemes used by gRPC/other protocols). Multiple\nentries are ORed. Matching is case-insensitive.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Schemes lists request schemes, such as \"http\" and \"https\". Multiple\nentries are ORed, and matching is case-insensitive.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<String> schemes;
 

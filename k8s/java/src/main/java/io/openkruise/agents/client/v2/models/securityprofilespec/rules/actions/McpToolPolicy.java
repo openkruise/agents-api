@@ -24,11 +24,12 @@ public class McpToolPolicy implements io.fabric8.kubernetes.api.model.Kubernetes
     }
 
     /**
-     * DefaultAction when no rule matches: "deny" (whitelist) or "allow" (blacklist).
+     * DefaultAction is the decision applied when no rule matches.
+     * Defaults to "deny" (whitelist mode); set "allow" for blacklist mode.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("defaultAction")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("DefaultAction when no rule matches: \"deny\" (whitelist) or \"allow\" (blacklist).")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("DefaultAction is the decision applied when no rule matches.\nDefaults to \"deny\" (whitelist mode); set \"allow\" for blacklist mode.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private DefaultAction defaultAction = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"deny\"", DefaultAction.class);
 
@@ -92,13 +93,12 @@ public class McpToolPolicy implements io.fabric8.kubernetes.api.model.Kubernetes
     }
 
     /**
-     * UnsupportedVersionAction controls how tools/call requests with an
-     * unsupported or missing MCP-Protocol-Version header are handled.
-     * "deny" (default): reject the request.
-     * "passthrough": skip ACL evaluation and allow the request through.
+     * UnsupportedVersionAction determines how a tools/call request with a
+     * missing or unsupported MCP-Protocol-Version header is handled. "deny"
+     * rejects the request, while "passthrough" skips policy evaluation.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("unsupportedVersionAction")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("UnsupportedVersionAction controls how tools/call requests with an\nunsupported or missing MCP-Protocol-Version header are handled.\n\"deny\" (default): reject the request.\n\"passthrough\": skip ACL evaluation and allow the request through.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("UnsupportedVersionAction determines how a tools/call request with a\nmissing or unsupported MCP-Protocol-Version header is handled. \"deny\"\nrejects the request, while \"passthrough\" skips policy evaluation.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private UnsupportedVersionAction unsupportedVersionAction = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"deny\"", UnsupportedVersionAction.class);
 

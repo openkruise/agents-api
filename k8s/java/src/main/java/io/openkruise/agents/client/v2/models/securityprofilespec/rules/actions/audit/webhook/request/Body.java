@@ -6,13 +6,11 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.
 public class Body implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * JSON is a structured body. String leaves are rendered through Go
-     * text/template against AuditContext; non-string scalars and nested
-     * objects/arrays are emitted verbatim. Serialised as application/json
-     * by default.
+     * JSON is a structured body. String values are rendered as Go templates;
+     * other values are preserved. The content type is application/json.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("json")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("JSON is a structured body. String leaves are rendered through Go\ntext/template against AuditContext; non-string scalars and nested\nobjects/arrays are emitted verbatim. Serialised as application/json\nby default.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("JSON is a structured body. String values are rendered as Go templates;\nother values are preserved. The content type is application/json.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.audit.webhook.request.body.Json json;
 
@@ -25,11 +23,10 @@ public class Body implements io.fabric8.kubernetes.api.model.KubernetesResource 
     }
 
     /**
-     * Text is a raw text body. The entire string is rendered through Go
-     * text/template against AuditContext. Sent as text/plain by default.
+     * Text is a Go template rendered as a text/plain body.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("text")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Text is a raw text body. The entire string is rendered through Go\ntext/template against AuditContext. Sent as text/plain by default.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Text is a Go template rendered as a text/plain body.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String text;
 

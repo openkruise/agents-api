@@ -6,11 +6,11 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions;
 public class TokenTransformation implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * ApiKey holds ApiKey-mode specific configuration.
-     * Required when Type == ApiKey, must be unset when Type == AliyunSTS.
+     * ApiKey configures an ApiKey transformation. It is required for ApiKey
+     * and ignored for AliyunSTS.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("apiKey")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ApiKey holds ApiKey-mode specific configuration.\nRequired when Type == ApiKey, must be unset when Type == AliyunSTS.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ApiKey configures an ApiKey transformation. It is required for ApiKey\nand ignored for AliyunSTS.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.ApiKey apiKey;
 
@@ -23,12 +23,11 @@ public class TokenTransformation implements io.fabric8.kubernetes.api.model.Kube
     }
 
     /**
-     * CredentialRef identifies the credential source for this
-     * transformation. Required.
+     * CredentialRef identifies the credential source.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("credentialRef")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("CredentialRef identifies the credential source for this\ntransformation. Required.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("CredentialRef identifies the credential source.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.tokentransformation.CredentialRef credentialRef;
 
@@ -41,11 +40,10 @@ public class TokenTransformation implements io.fabric8.kubernetes.api.model.Kube
     }
 
     /**
-     * Disabled temporarily disables this action without removing its
-     * configuration. When true the action is skipped during evaluation.
+     * Disabled skips the action without removing its configuration.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("disabled")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Disabled temporarily disables this action without removing its\nconfiguration. When true the action is skipped during evaluation.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Disabled skips the action without removing its configuration.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Boolean disabled = false;
 
@@ -77,10 +75,11 @@ public class TokenTransformation implements io.fabric8.kubernetes.api.model.Kube
     }
 
     /**
-     * FailStrategy controls behaviour when the transformation fails.
+     * FailStrategy controls behavior when the transformation fails.
+     * Defaults to Block (fail closed).
      */
     @com.fasterxml.jackson.annotation.JsonProperty("failStrategy")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("FailStrategy controls behaviour when the transformation fails.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("FailStrategy controls behavior when the transformation fails.\nDefaults to Block (fail closed).")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private FailStrategy failStrategy = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"Block\"", FailStrategy.class);
 

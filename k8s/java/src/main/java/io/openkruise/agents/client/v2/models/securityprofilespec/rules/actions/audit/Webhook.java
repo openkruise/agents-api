@@ -6,11 +6,11 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.
 public class Webhook implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Request describes the HTTP request shape. Defaults to method=POST
-     * and empty body when omitted.
+     * Request configures the HTTP request. When omitted, a POST request with an
+     * empty body is sent.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("request")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Request describes the HTTP request shape. Defaults to method=POST\nand empty body when omitted.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Request configures the HTTP request. When omitted, a POST request with an\nempty body is sent.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.audit.webhook.Request request;
 
@@ -23,10 +23,11 @@ public class Webhook implements io.fabric8.kubernetes.api.model.KubernetesResour
     }
 
     /**
-     * Timeout caps each HTTP attempt. Defaults to 2s, max 30s.
+     * Timeout limits each HTTP attempt. Defaults to 2s and must be between
+     * 500ms and 30s.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("timeout")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Timeout caps each HTTP attempt. Defaults to 2s, max 30s.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Timeout limits each HTTP attempt. Defaults to 2s and must be between\n500ms and 30s.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String timeout = "2s";
 
@@ -39,17 +40,12 @@ public class Webhook implements io.fabric8.kubernetes.api.model.KubernetesResour
     }
 
     /**
-     * URL is the absolute HTTP(S) URL of the webhook. Supports Go
-     * text/template expressions over AuditContext, allowing per-Pod
-     * addressing such as: http://{{ .Pod.IP }}:8080/audit
-     *
-     * Rendering failures (template error or non-HTTP scheme) cause the
-     * event to be dropped and counted under
-     * traffic_extension_audit_webhook_dropped_total{reason="render_url"}.
+     * URL is an absolute HTTP or HTTPS URL rendered as a Go template. The
+     * event is dropped if rendering fails or the rendered URL is invalid.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("url")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("URL is the absolute HTTP(S) URL of the webhook. Supports Go\ntext/template expressions over AuditContext, allowing per-Pod\naddressing such as: http://{{ .Pod.IP }}:8080/audit\n\nRendering failures (template error or non-HTTP scheme) cause the\nevent to be dropped and counted under\ntraffic_extension_audit_webhook_dropped_total{reason=\"render_url\"}.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("URL is an absolute HTTP or HTTPS URL rendered as a Go template. The\nevent is dropped if rendering fails or the rendered URL is invalid.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String url;
 

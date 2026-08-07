@@ -24,11 +24,11 @@ public class Rules implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * Action: "allow" or "deny".
+     * Action determines whether the matching tool call is allowed or denied.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("action")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Action: \"allow\" or \"deny\".")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Action determines whether the matching tool call is allowed or denied.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Action action;
 
@@ -41,11 +41,12 @@ public class Rules implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * Method is the JSON-RPC method (e.g. "tools/call", "tools/list").
+     * Method is the JSON-RPC method. Only "tools/call" is currently enforced;
+     * other methods pass through without policy evaluation.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("method")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Method is the JSON-RPC method (e.g. \"tools/call\", \"tools/list\").")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Method is the JSON-RPC method. Only \"tools/call\" is currently enforced;\nother methods pass through without policy evaluation.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String method;
 
@@ -58,10 +59,11 @@ public class Rules implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * ToolNames matches params.name for tools/call. Empty = any tool for this method.
+     * ToolNames lists values matched against params.name. Multiple entries are
+     * ORed. An empty list matches any tool name.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("toolNames")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ToolNames matches params.name for tools/call. Empty = any tool for this method.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ToolNames lists values matched against params.name. Multiple entries are\nORed. An empty list matches any tool name.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<String> toolNames;
 

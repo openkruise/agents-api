@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"lifecycle","pauseTime","paused","persistentContents","runtimes","shutdownTime","template","templateRef","upgradePolicy","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"lifecycle","pauseStrategy","pauseTime","paused","persistentContents","runtimes","shutdownTime","template","templateRef","upgradePolicy","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -19,6 +19,22 @@ public class SandboxSpec implements io.fabric8.kubernetes.api.model.KubernetesRe
 
     public void setLifecycle(io.openkruise.agents.client.v2.models.sandboxspec.Lifecycle lifecycle) {
         this.lifecycle = lifecycle;
+    }
+
+    /**
+     * PauseStrategy configures how a sandbox is paused when spec.paused is true.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("pauseStrategy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PauseStrategy configures how a sandbox is paused when spec.paused is true.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxspec.PauseStrategy pauseStrategy;
+
+    public io.openkruise.agents.client.v2.models.sandboxspec.PauseStrategy getPauseStrategy() {
+        return pauseStrategy;
+    }
+
+    public void setPauseStrategy(io.openkruise.agents.client.v2.models.sandboxspec.PauseStrategy pauseStrategy) {
+        this.pauseStrategy = pauseStrategy;
     }
 
     /**

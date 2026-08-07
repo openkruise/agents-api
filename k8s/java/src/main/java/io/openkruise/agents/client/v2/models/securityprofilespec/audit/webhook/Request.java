@@ -6,11 +6,11 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.audit.webhook;
 public class Request implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Body is the request body. Exactly one of Body.JSON or Body.Text must
-     * be set. Omitting Body sends an empty request.
+     * Body configures the request body. When omitted, the request has an empty
+     * body.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("body")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Body is the request body. Exactly one of Body.JSON or Body.Text must\nbe set. Omitting Body sends an empty request.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Body configures the request body. When omitted, the request has an empty\nbody.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.securityprofilespec.audit.webhook.request.Body body;
 
