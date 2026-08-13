@@ -30,3 +30,5 @@ build
 
 .idea/
 *.iml
+
+build-e2b.ps1
