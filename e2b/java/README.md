@@ -8,7 +8,7 @@ operations) APIs.
 ```xml
 
 <dependency>
-    <groupId>io.github.openkruise</groupId>
+    <groupId>io.openkruise</groupId>
     <artifactId>agents-client-e2b</artifactId>
     <version>0.1.0</version>
 </dependency>
