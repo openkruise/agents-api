@@ -19,3 +19,5 @@ vendor/
 
 # Python
 .ruff_cache/
+
+.vscode/

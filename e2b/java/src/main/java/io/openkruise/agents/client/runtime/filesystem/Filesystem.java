@@ -10,8 +10,11 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+import java.io.BufferedReader;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
@@ -293,6 +296,111 @@ public class Filesystem {
      */
     public String readText(String path, String user) {
         return new String(read(path, user), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Opens a streaming InputStream to file content for memory-efficient reading of large files.
+     * The returned InputStream must be closed by the caller after reading to release HTTP resources.
+     * <p>
+     * Unlike {@link #read(String)} which loads the entire file into a {@code byte[]},
+     * this method streams the HTTP response body, keeping memory usage constant
+     * regardless of file size.
+     *
+     * @param path file path
+     * @return InputStream of file content; must be closed by the caller
+     */
+    public InputStream readStream(String path) {
+        return readStream(path, EnvdMethods.DEFAULT_USERNAME);
+    }
+
+    /**
+     * Opens a streaming InputStream to file content for memory-efficient reading of large files.
+     * The returned InputStream must be closed by the caller after reading to release HTTP resources.
+     *
+     * @param path file path
+     * @param user username executing the operation
+     * @return InputStream of file content; must be closed by the caller
+     */
+    public InputStream readStream(String path, String user) {
+        if (path == null || path.trim().isEmpty()) {
+            throw new IllegalArgumentException("Path cannot be null or empty");
+        }
+        if (user == null || user.isEmpty()) {
+            user = EnvdMethods.DEFAULT_USERNAME;
+        }
+
+        String baseUrl = config.getSandboxURL(sandboxID);
+        String fileUrl = String.format("%s%s?path=%s&username=%s", baseUrl, EnvdMethods.FILES_ROUTE,
+            urlEncode(path), urlEncode(user));
+
+        Request request = new Request.Builder()
+            .url(fileUrl)
+            .get()
+            .build();
+        request = addSandboxHeaders(request);
+
+        final Response response;
+        try {
+            response = httpClient.newCall(request).execute();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file: " + path, e);
+        }
+
+        if (response.code() == HttpURLConnection.HTTP_NOT_FOUND) {
+            response.close();
+            throw new RuntimeException("File not found: " + path);
+        }
+        if (!response.isSuccessful()) {
+            String body = "";
+            try {
+                if (response.body() != null) {
+                    body = response.body().string();
+                }
+            } catch (IOException ignored) {
+            } finally {
+                response.close();
+            }
+            throw new RuntimeException("Read file failed (status " + response.code() + "): " + body);
+        }
+
+        final InputStream rawStream = response.body().byteStream();
+        // Wrap so that closing the InputStream also closes the underlying OkHttp Response
+        return new FilterInputStream(rawStream) {
+            @Override
+            public void close() throws IOException {
+                try {
+                    super.close();
+                } finally {
+                    response.close();
+                }
+            }
+        };
+    }
+
+    /**
+     * Opens a BufferedReader for streaming text content of a file (UTF-8),
+     * suitable for reading large text files line by line without loading the
+     * entire content into memory.
+     * The returned Reader must be closed by the caller after reading.
+     *
+     * @param path file path
+     * @return BufferedReader of file content; must be closed by the caller
+     */
+    public BufferedReader readTextStream(String path) {
+        return readTextStream(path, EnvdMethods.DEFAULT_USERNAME);
+    }
+
+    /**
+     * Opens a BufferedReader for streaming text content of a file (UTF-8).
+     * The returned Reader must be closed by the caller after reading.
+     *
+     * @param path file path
+     * @param user username executing the operation
+     * @return BufferedReader of file content; must be closed by the caller
+     */
+    public BufferedReader readTextStream(String path, String user) {
+        return new BufferedReader(
+            new InputStreamReader(readStream(path, user), StandardCharsets.UTF_8));
     }
 
     /**

@@ -119,6 +119,46 @@ func (f *Filesystem) ReadText(ctx context.Context, path string, user ...string) 
 	return string(data), nil
 }
 
+// ReadStream opens a streaming reader for file content, suitable for large files
+// that should not be loaded entirely into memory.
+// The returned io.ReadCloser must be closed by the caller after reading.
+// An optional user can be provided to run the operation as that user.
+func (f *Filesystem) ReadStream(ctx context.Context, path string, user ...string) (io.ReadCloser, error) {
+	u := *f.baseFileURL // shallow copy of pre-parsed URL
+	q := u.Query()
+	q.Set("path", path)
+	username := defaultUsername
+	if len(user) > 0 && user[0] != "" {
+		username = user[0]
+	}
+	q.Set("username", username)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	f.setHTTPHeaders(req)
+
+	resp, err := f.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		resp.Body.Close()
+		return nil, fmt.Errorf("file not found: %s", path)
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, fmt.Errorf("failed to read file (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// resp.Body is already an io.ReadCloser; caller must Close it after reading.
+	return resp.Body, nil
+}
+
 // Write writes content to a file. If the file doesn't exist, it will be created.
 // If the file already exists, it will be overwritten.
 // Writing to a path whose parent directories don't exist will create them automatically.
