@@ -108,7 +108,7 @@ gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY-ID>
 ## 注意事项
 
 - **Namespace 与 GroupId 一致**：Sonatype Central 账号拥有的 Namespace 必须与 `pom.xml` 中的 `groupId` 一致（如
-  `io.github.openkruise`），否则发布会被拒绝
+  `io.openkruise`），否则发布会被拒绝
 - **GPG Email 与 Developer Email 一致**：GPG 密钥的 Email 必须与 `pom.xml` 中 `<developers>` 的 `<email>` 一致，否则签名验证会失败
 - **私钥安全**：`GPG_PRIVATE_KEY` 是敏感信息，务必仅存储在 GitHub Secrets 中，不要提交到代码仓库
 - **Passphrase 保管**：`GPG_PASSPHRASE` 丢失后无法恢复，建议妥善保存
@@ -122,14 +122,14 @@ gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY-ID>
 ```xml
 
 <dependency>
-    <groupId>io.github.zhaoqing7892</groupId>
+    <groupId>io.openkruise</groupId>
     <artifactId>agents-client-java</artifactId>
     <version>最新版本</version>
 </dependency>
 ```
 
 **Maven Central
-**: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-java](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-java)
+**: [https://central.sonatype.com/artifact/io.openkruise/agents-client-java](https://central.sonatype.com/artifact/io.openkruise/agents-client-java)
 
 ### 最新版本
 
@@ -142,8 +142,8 @@ gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY-ID>
 ### Maven Central 链接
 
 - **agents-client-e2b
-  **: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-e2b](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-e2b)
+  **: [https://central.sonatype.com/artifact/io.openkruise/agents-client-e2b](https://central.sonatype.com/artifact/io.openkruise/agents-client-e2b)
 - **agents-client-runtime
-  **: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-runtime](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-runtime)
+  **: [https://central.sonatype.com/artifact/io.openkruise/agents-client-runtime](https://central.sonatype.com/artifact/io.openkruise/agents-client-runtime)
 - **agents-client-k8s
-  **: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-k8s](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-k8s)
+  **: [https://central.sonatype.com/artifact/io.openkruise/agents-client-k8s](https://central.sonatype.com/artifact/io.openkruise/agents-client-k8s)

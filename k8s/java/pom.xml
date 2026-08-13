@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.github.openkruise</groupId>
+    <groupId>io.openkruise</groupId>
     <artifactId>agents-client-k8s</artifactId>
     <packaging>jar</packaging>
     <version>0.1.0</version>
@@ -31,7 +31,7 @@
     <developers>
         <developer>
             <name>zmberg</name>
-            <email>13611129507@163.com</email>
+            <email>furykerry@gmail.com</email>
             <organization>agents-api</organization>
             <organizationUrl>https://github.com/openkruise/agents-api</organizationUrl>
         </developer>

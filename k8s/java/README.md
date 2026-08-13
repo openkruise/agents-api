@@ -9,7 +9,7 @@ Add this dependency to your project's POM:
 ```xml
 
 <dependency>
-    <groupId>io.github.openkruise</groupId>
+    <groupId>io.openkruise</groupId>
     <artifactId>agents-client-k8s</artifactId>
     <version>0.1.0</version>
 </dependency>
