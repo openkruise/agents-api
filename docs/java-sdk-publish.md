@@ -115,7 +115,7 @@ status (may take a few minutes to several hours to sync).
 ## Important Notes
 
 - **Namespace must match GroupId**: The Namespace owned by your Sonatype Central account must match the `groupId` in
-  `pom.xml` (e.g., `io.github.openkruise`), otherwise publishing will be rejected
+  `pom.xml` (e.g., `io.openkruise`), otherwise publishing will be rejected
 - **GPG Email must match Developer Email**: The Email in the GPG key must match the `<email>` in `<developers>` section
   of `pom.xml`, otherwise signature verification will fail
 - **Private Key Security**: `GPG_PRIVATE_KEY` is sensitive information — store it only in GitHub Secrets, never commit
@@ -131,14 +131,14 @@ status (may take a few minutes to several hours to sync).
 ```xml
 
 <dependency>
-    <groupId>io.github.zhaoqing7892</groupId>
+    <groupId>io.openkruise</groupId>
     <artifactId>agents-client-java</artifactId>
     <version>latest-version</version>
 </dependency>
 ```
 
 **Maven Central
-**: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-java](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-java)
+**: [https://central.sonatype.com/artifact/io.openkruise/agents-client-java](https://central.sonatype.com/artifact/io.openkruise/agents-client-java)
 
 ### Latest Version
 
@@ -151,8 +151,8 @@ status (may take a few minutes to several hours to sync).
 ### Maven Central Links
 
 - **agents-client-e2b
-  **: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-e2b](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-e2b)
+  **: [https://central.sonatype.com/artifact/io.openkruise/agents-client-e2b](https://central.sonatype.com/artifact/io.openkruise/agents-client-e2b)
 - **agents-client-runtime
-  **: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-runtime](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-runtime)
+  **: [https://central.sonatype.com/artifact/io.openkruise/agents-client-runtime](https://central.sonatype.com/artifact/io.openkruise/agents-client-runtime)
 - **agents-client-k8s
-  **: [https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-k8s](https://central.sonatype.com/artifact/io.github.zhaoqing7892/agents-client-k8s)
+  **: [https://central.sonatype.com/artifact/io.openkruise/agents-client-k8s](https://central.sonatype.com/artifact/io.openkruise/agents-client-k8s)
