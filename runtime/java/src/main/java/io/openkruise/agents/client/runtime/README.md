@@ -282,6 +282,10 @@ read/write uses the HTTP `/files` endpoint.
 | `read(String path, String user)`                      | Read file content (as specified user)               |
 | `readText(String path)`                               | Read file content (`String`, UTF-8)                 |
 | `readText(String path, String user)`                  | Read file content (as specified user, UTF-8)        |
+| `readStream(String path)`                             | Stream file content (`InputStream`, must close)     |
+| `readStream(String path, String user)`                | Stream file content (as specified user, must close) |
+| `readTextStream(String path)`                         | Stream file text (`BufferedReader`, UTF-8, must close) |
+| `readTextStream(String path, String user)`            | Stream file text (as specified user, must close)    |
 | `write(String path, byte[] data)`                     | Write file (binary), returns `WriteInfo`            |
 | `write(String path, byte[] data, String user)`        | Write file (as specified user), returns `WriteInfo` |
 | `writeText(String path, String content)`              | Write file (text, UTF-8), returns `WriteInfo`       |
@@ -323,6 +327,16 @@ String content = client.files.readText("/tmp/hello.txt");
 // Binary read/write
 WriteInfo info = client.files.write("/tmp/data.bin", new byte[]{0x01, 0x02});
 byte[] data = client.files.read("/tmp/data.bin");
+
+// Stream large files (remember to close)
+try (InputStream in = client.files.readStream("/tmp/large.log")) {
+    byte[] buffer = new byte[4096];
+    while (in.read(buffer) != -1) { /* process */ }
+}
+try (BufferedReader reader = client.files.readTextStream("/tmp/large.log")) {
+    String line;
+    while ((line = reader.readLine()) != null) { /* process */ }
+}
 
 // Directory watch
 WatchHandle wh = client.files.watchDir("/tmp", true, event ->

@@ -280,6 +280,10 @@ for (ProcessInfo p : procs) {
 | `read(String path, String user)`                      | 读取文件内容（指定用户）                  |
 | `readText(String path)`                               | 读取文件内容（`String`，UTF-8）        |
 | `readText(String path, String user)`                  | 读取文件内容（指定用户，UTF-8）            |
+| `readStream(String path)`                             | 流式读取文件（`InputStream`，需关闭）     |
+| `readStream(String path, String user)`                | 流式读取文件（指定用户，需关闭）          |
+| `readTextStream(String path)`                         | 流式读取文本（`BufferedReader`，UTF-8，需关闭） |
+| `readTextStream(String path, String user)`            | 流式读取文本（指定用户，需关闭）          |
 | `write(String path, byte[] data)`                     | 写入文件（二进制），返回 `WriteInfo`      |
 | `write(String path, byte[] data, String user)`        | 写入文件（指定用户），返回 `WriteInfo`     |
 | `writeText(String path, String content)`              | 写入文件（文本，UTF-8），返回 `WriteInfo` |
@@ -321,6 +325,16 @@ String content = client.files.readText("/tmp/hello.txt");
 // 二进制读写
 WriteInfo info = client.files.write("/tmp/data.bin", new byte[]{0x01, 0x02});
 byte[] data = client.files.read("/tmp/data.bin");
+
+// 流式读取大文件（记得关闭）
+try (InputStream in = client.files.readStream("/tmp/large.log")) {
+    byte[] buffer = new byte[4096];
+    while (in.read(buffer) != -1) { /* 处理 */ }
+}
+try (BufferedReader reader = client.files.readTextStream("/tmp/large.log")) {
+    String line;
+    while ((line = reader.readLine()) != null) { /* 处理 */ }
+}
 
 // 目录监听
 WatchHandle wh = client.files.watchDir("/tmp", true, event ->
