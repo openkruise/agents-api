@@ -9,6 +9,7 @@ import io.openkruise.agents.client.runtime.utils.ConnectStreamReader;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 import java.io.BufferedReader;
 import java.io.FilterInputStream;
@@ -339,42 +340,46 @@ public class Filesystem {
             .build();
         request = addSandboxHeaders(request);
 
-        final Response response;
         try {
-            response = httpClient.newCall(request).execute();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read file: " + path, e);
-        }
+            final Response response = streamingClient.newCall(request).execute();
 
-        if (response.code() == HttpURLConnection.HTTP_NOT_FOUND) {
-            response.close();
-            throw new RuntimeException("File not found: " + path);
-        }
-        if (!response.isSuccessful()) {
-            String body = "";
-            try {
-                if (response.body() != null) {
-                    body = response.body().string();
-                }
-            } catch (IOException ignored) {
-            } finally {
+            if (response.code() == HttpURLConnection.HTTP_NOT_FOUND) {
                 response.close();
+                throw new RuntimeException("File not found: " + path);
             }
-            throw new RuntimeException("Read file failed (status " + response.code() + "): " + body);
-        }
-
-        final InputStream rawStream = response.body().byteStream();
-        // Wrap so that closing the InputStream also closes the underlying OkHttp Response
-        return new FilterInputStream(rawStream) {
-            @Override
-            public void close() throws IOException {
+            if (!response.isSuccessful()) {
+                String body = "";
                 try {
-                    super.close();
+                    if (response.body() != null) {
+                        body = response.body().string();
+                    }
+                } catch (IOException ignored) {
                 } finally {
                     response.close();
                 }
+                throw new IOException("Read file failed (status " + response.code() + "): " + body);
             }
-        };
+
+            final ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                response.close();
+                throw new IOException("Read file failed: empty response body for " + path);
+            }
+            final InputStream rawStream = responseBody.byteStream();
+            // Wrap so that closing the InputStream also closes the underlying OkHttp Response
+            return new FilterInputStream(rawStream) {
+                @Override
+                public void close() throws IOException {
+                    try {
+                        super.close();
+                    } finally {
+                        response.close();
+                    }
+                }
+            };
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file: " + path, e);
+        }
     }
 
     /**

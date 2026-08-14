@@ -19,3 +19,8 @@ vendor/
 
 # Python
 .ruff_cache/
+
+.vscode/
+
+# Java build script (environment-specific)
+e2b/java/build-e2b.ps1
