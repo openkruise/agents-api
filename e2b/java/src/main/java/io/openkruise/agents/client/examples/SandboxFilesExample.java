@@ -1,5 +1,9 @@
 package io.openkruise.agents.client.examples;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import io.openkruise.agents.client.e2b.ConnectionConfig;
@@ -148,8 +152,61 @@ public class SandboxFilesExample {
             System.err.println("    Read failed: " + e.getMessage());
         }
 
-        // [10] Overwrite existing file
-        System.out.printf("%n[10] Overwrite: %s%n", testFile);
+        // [10] Write large text file for streaming read test
+        String largeFile = testDir + "/large.log";
+        System.out.printf("%n[10] Write large text file: %s%n", largeFile);
+        int expectedLines = 100;
+        try {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 1; i <= expectedLines; i++) {
+                sb.append(String.format("Line %04d: This is a test line for streaming read verification.%n", i));
+            }
+            WriteInfo writeInfo = files.writeText(largeFile, sb.toString());
+            System.out.printf("    Write succeeded, path: %s, lines: %d, size: %d bytes%n",
+                writeInfo.getPath(), expectedLines, sb.length());
+        } catch (Exception e) {
+            System.err.println("    Write failed: " + e.getMessage());
+        }
+
+        // [11] Read large file via stream, line by line (readTextStream)
+        System.out.printf("%n[11] Read large file via stream: %s%n", largeFile);
+        try (BufferedReader reader = files.readTextStream(largeFile)) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            int lineNum = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNum++;
+                if (sb.length() > 0) {
+                    sb.append("\n");
+                }
+                sb.append(line);
+            }
+            System.out.printf("    Total lines: %d%n", lineNum);
+            System.out.printf("    File content:%n%s%n", sb);
+        } catch (Exception e) {
+            System.err.println("    Text stream read failed: " + e.getMessage());
+        }
+
+        // [12] Read large file via stream, chunk by chunk (readStream)
+        System.out.printf("%n[12] Read large file via stream: %s%n", largeFile);
+        try (InputStream stream = files.readStream(largeFile)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int chunks = 0;
+            int n;
+            while ((n = stream.read(buffer)) != -1) {
+                baos.write(buffer, 0, n);
+                chunks++;
+            }
+            String content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+            System.out.printf("    Streamed %d bytes in %d chunks (buffer=4096)%n", baos.size(), chunks);
+            System.out.printf("    File content:%n%s%n", content);
+        } catch (Exception e) {
+            System.err.println("    Stream read failed: " + e.getMessage());
+        }
+
+        // [13] Overwrite existing file
+        System.out.printf("%n[13] Overwrite: %s%n", testFile);
         try {
             files.writeText(testFile, "Overwritten content\n");
             String newContent = files.readText(testFile);
@@ -158,12 +215,12 @@ public class SandboxFilesExample {
             System.err.println("    Overwrite failed: " + e.getMessage());
         }
 
-        // [11] List directory (verify files created)
-        System.out.printf("%n[11] List directory contents: %s%n", testDir);
+        // [14] List directory (verify files created)
+        System.out.printf("%n[14] List directory contents: %s%n", testDir);
         listEntries(files, testDir);
 
-        // [12] Delete directory
-        System.out.printf("%n[12] Delete directory: %s%n", testDir);
+        // [15] Delete directory
+        System.out.printf("%n[15] Delete directory: %s%n", testDir);
         try {
             files.remove(testDir);
             System.out.println("    Directory deleted");
@@ -171,8 +228,8 @@ public class SandboxFilesExample {
             System.err.println("    Delete failed: " + e.getMessage());
         }
 
-        // [13] Verify deletion
-        System.out.printf("%n[13] Verify deletion: %s%n", testDir);
+        // [16] Verify deletion
+        System.out.printf("%n[16] Verify deletion: %s%n", testDir);
         try {
             boolean exists = files.exists(testDir);
             System.out.printf("    Exists after deletion: %s%n", exists);
