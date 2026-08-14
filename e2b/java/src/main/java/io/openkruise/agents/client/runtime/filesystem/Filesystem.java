@@ -247,32 +247,26 @@ public class Filesystem {
      * @return file content
      */
     public byte[] read(String path, String user) {
-        if (path == null || path.trim().isEmpty()) {
-            throw new IllegalArgumentException("Path cannot be null or empty");
-        }
-        if (user == null || user.isEmpty()) {
-            user = EnvdMethods.DEFAULT_USERNAME;
-        }
-
-        String baseUrl = config.getSandboxURL(sandboxID);
-        String fileUrl = String.format("%s%s?path=%s&username=%s", baseUrl, EnvdMethods.FILES_ROUTE,
-            urlEncode(path), urlEncode(user));
-
-        Request request = new Request.Builder()
-            .url(fileUrl)
-            .get()
-            .build();
-        request = addSandboxHeaders(request);
-
+        Request request = buildFileReadRequest(path, user);
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.code() == HttpURLConnection.HTTP_NOT_FOUND) {
                 throw new RuntimeException("File not found: " + path);
             }
             if (!response.isSuccessful()) {
-                String body = response.body() != null ? response.body().string() : "";
+                String body = "";
+                try {
+                    if (response.body() != null) {
+                        body = response.body().string();
+                    }
+                } catch (IOException ignored) {
+                }
                 throw new IOException("Read file failed (status " + response.code() + "): " + body);
             }
-            return response.body().bytes();
+            final ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                throw new IOException("Read file failed: empty response body for " + path);
+            }
+            return responseBody.bytes();
         } catch (IOException e) {
             throw new RuntimeException("Failed to read file: " + path, e);
         }
@@ -323,22 +317,7 @@ public class Filesystem {
      * @return InputStream of file content; must be closed by the caller
      */
     public InputStream readStream(String path, String user) {
-        if (path == null || path.trim().isEmpty()) {
-            throw new IllegalArgumentException("Path cannot be null or empty");
-        }
-        if (user == null || user.isEmpty()) {
-            user = EnvdMethods.DEFAULT_USERNAME;
-        }
-
-        String baseUrl = config.getSandboxURL(sandboxID);
-        String fileUrl = String.format("%s%s?path=%s&username=%s", baseUrl, EnvdMethods.FILES_ROUTE,
-            urlEncode(path), urlEncode(user));
-
-        Request request = new Request.Builder()
-            .url(fileUrl)
-            .get()
-            .build();
-        request = addSandboxHeaders(request);
+        Request request = buildFileReadRequest(path, user);
 
         try {
             final Response response = streamingClient.newCall(request).execute();
@@ -715,6 +694,25 @@ public class Filesystem {
     }
 
     // ======================== Internal helper methods ========================
+
+    private Request buildFileReadRequest(String path, String user) {
+        if (path == null || path.trim().isEmpty()) {
+            throw new IllegalArgumentException("Path cannot be null or empty");
+        }
+        if (user == null || user.isEmpty()) {
+            user = EnvdMethods.DEFAULT_USERNAME;
+        }
+
+        String baseUrl = config.getSandboxURL(sandboxID);
+        String fileUrl = String.format("%s%s?path=%s&username=%s", baseUrl, EnvdMethods.FILES_ROUTE,
+            urlEncode(path), urlEncode(user));
+
+        Request request = new Request.Builder()
+            .url(fileUrl)
+            .get()
+            .build();
+        return addSandboxHeaders(request);
+    }
 
     private String urlEncode(String value) {
         try {
