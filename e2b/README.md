@@ -356,6 +356,7 @@ the HTTP `/files` endpoint.
 | `Remove(ctx, path) error`                                           | Delete file or directory                                     |
 | `Read(ctx, path, user...) ([]byte, error)`                          | Read file content (binary); `user` defaults to `"node"`      |
 | `ReadText(ctx, path, user...) (string, error)`                      | Read file content (text)                                     |
+| `ReadStream(ctx, path, user...) (io.ReadCloser, error)`             | Stream file content; caller must Close                      |
 | `Write(ctx, path, data []byte, user...) (*WriteInfo, error)`        | Write file content (binary); auto-creates parent dirs        |
 | `WriteText(ctx, path, content string, user...) (*WriteInfo, error)` | Write file content (text)                                    |
 
@@ -377,4 +378,9 @@ sb.Files.Remove(ctx, "/tmp/done")
 sb.Files.WriteText(ctx, "/tmp/hello.txt", "Hello, World!")
 content, _ := sb.Files.ReadText(ctx, "/tmp/hello.txt")
 fmt.Println(content) // Hello, World!
+
+// Stream large files (caller must Close)
+rc, _ := sb.Files.ReadStream(ctx, "/tmp/large.log")
+defer rc.Close()
+io.Copy(os.Stdout, rc)
 ```

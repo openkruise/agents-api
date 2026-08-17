@@ -350,6 +350,7 @@ h.Kill()
 | `Remove(ctx, path) error`                                           | 删除文件或目录                        |
 | `Read(ctx, path, user...) ([]byte, error)`                          | 读取文件内容（二进制）；`user` 默认 `"node"` |
 | `ReadText(ctx, path, user...) (string, error)`                      | 读取文件内容（文本）                     |
+| `ReadStream(ctx, path, user...) (io.ReadCloser, error)`             | 流式读取文件；调用方需关闭            |
 | `Write(ctx, path, data []byte, user...) (*WriteInfo, error)`        | 写入文件内容（二进制）；自动创建父目录            |
 | `WriteText(ctx, path, content string, user...) (*WriteInfo, error)` | 写入文件内容（文本）                     |
 
@@ -371,4 +372,9 @@ sb.Files.Remove(ctx, "/tmp/done")
 sb.Files.WriteText(ctx, "/tmp/hello.txt", "Hello, World!")
 content, _ := sb.Files.ReadText(ctx, "/tmp/hello.txt")
 fmt.Println(content) // Hello, World!
+
+// 流式读取大文件（需关闭）
+rc, _ := sb.Files.ReadStream(ctx, "/tmp/large.log")
+defer rc.Close()
+io.Copy(os.Stdout, rc)
 ```

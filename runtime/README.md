@@ -203,6 +203,7 @@ the HTTP `/files` endpoint.
 | `Remove(ctx, path) error`                                           | Delete file or directory                                     |
 | `Read(ctx, path, user...) ([]byte, error)`                          | Read file content (binary); `user` defaults to `"node"`      |
 | `ReadText(ctx, path, user...) (string, error)`                      | Read file content (text)                                     |
+| `ReadStream(ctx, path, user...) (io.ReadCloser, error)`             | Stream file content; caller must Close                      |
 | `Write(ctx, path, data []byte, user...) (*WriteInfo, error)`        | Write file content (binary); auto-creates parent dirs        |
 | `WriteText(ctx, path, content string, user...) (*WriteInfo, error)` | Write file content (text)                                    |
 
@@ -228,4 +229,9 @@ fmt.Println(content) // Hello, World!
 // Binary read/write
 c.Files.Write(ctx, "/tmp/data.bin", []byte{0x00, 0x01, 0x02})
 data, _ := c.Files.Read(ctx, "/tmp/data.bin")
+
+// Stream large files (caller must Close)
+rc, _ := c.Files.ReadStream(ctx, "/tmp/large.log")
+defer rc.Close()
+io.Copy(os.Stdout, rc)
 ```
