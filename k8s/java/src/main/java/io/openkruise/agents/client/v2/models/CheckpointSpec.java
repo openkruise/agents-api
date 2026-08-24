@@ -23,10 +23,10 @@ public class CheckpointSpec implements io.fabric8.kubernetes.api.model.Kubernete
     }
 
     /**
-     * PersistentContents indicates resume pod with persistent content, Enum: memory, filesystem
+     * PersistentContents indicates resume pod with persistent content, Enum: podInfo, memory, filesystem
      */
     @com.fasterxml.jackson.annotation.JsonProperty("persistentContents")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PersistentContents indicates resume pod with persistent content, Enum: memory, filesystem")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PersistentContents indicates resume pod with persistent content, Enum: podInfo, memory, filesystem")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<String> persistentContents;
 
