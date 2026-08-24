@@ -109,9 +109,15 @@ func writeAndReadFile(ctx context.Context, files *runtime.Filesystem) {
 // testReadStream verifies that ReadStream returns the same content as Read,
 // and demonstrates streaming a large file with constant memory.
 func testReadStream(ctx context.Context, files *runtime.Filesystem) {
+	// ReadStream uses StreamingHTTPClient() which has Timeout=0 (no overall deadline).
+	// A stalled server holds the connection indefinitely unless the caller supplies
+	// a context with a deadline or cancellation — the 60s RequestTimeout no longer applies.
+	streamCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
 	// [1] Write a small test file and verify ReadStream == Read
 	testPath := fmt.Sprintf("/tmp/go_stream_test_%d.txt", time.Now().UnixNano())
-	testContent := "ReadStream test! 流式读取测试! " + time.Now().Format(time.RFC3339)
+	testContent := "ReadStream test! ReadStream test! " + time.Now().Format(time.RFC3339)
 
 	fmt.Printf("\n[1] Write small file: %s\n", testPath)
 	if _, err := files.WriteText(ctx, testPath, testContent); err != nil {
@@ -131,7 +137,7 @@ func testReadStream(ctx context.Context, files *runtime.Filesystem) {
 
 	// Read via ReadStream() — stream chunk by chunk
 	fmt.Println("\n[3] ReadStream() — stream chunk by chunk (8KB buffer)")
-	rc, err := files.ReadStream(ctx, testPath)
+	rc, err := files.ReadStream(streamCtx, testPath)
 	if err != nil {
 		fmt.Printf("    ReadStream failed: %v\n", err)
 		return
@@ -177,7 +183,7 @@ func testReadStream(ctx context.Context, files *runtime.Filesystem) {
 
 	// [6] ReadStream + bufio.NewScanner — line-by-line streaming
 	fmt.Println("\n[6] ReadStream() + bufio.NewScanner — line-by-line (recommended pattern)")
-	rc2, err := files.ReadStream(ctx, largePath)
+	rc2, err := files.ReadStream(streamCtx, largePath)
 	if err != nil {
 		fmt.Printf("    ReadStream failed: %v\n", err)
 		return

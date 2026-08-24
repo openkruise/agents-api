@@ -66,7 +66,10 @@ type Filesystem struct {
 // ReadStream falls back to httpClient.
 func NewFilesystem(rpc filesystemconnect.FilesystemClient, httpClient, streamingClient *http.Client, runtimeURL string, headers map[string]string) *Filesystem {
 	// Pre-parse the base file URL to avoid repeated parsing on every request.
-	baseURL, _ := url.Parse(runtimeURL + runtimeFilesRoute)
+	baseURL, err := url.Parse(runtimeURL + runtimeFilesRoute)
+	if err != nil {
+		baseURL = &url.URL{} // fallback; buildFileReadRequest will surface a clear error
+	}
 	return &Filesystem{
 		Rpc:             rpc,
 		httpClient:      httpClient,
@@ -95,7 +98,7 @@ func (f *Filesystem) Read(ctx context.Context, path string, user ...string) ([]b
 		return nil, fmt.Errorf("file not found: %s", path)
 	}
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		return nil, fmt.Errorf("failed to read file (status %d): %s", resp.StatusCode, string(body))
 	}
 
@@ -128,7 +131,7 @@ func (f *Filesystem) ReadStream(ctx context.Context, path string, user ...string
 		return nil, fmt.Errorf("file not found: %s", path)
 	}
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
 		return nil, fmt.Errorf("failed to read file (status %d): %s", resp.StatusCode, string(body))
 	}

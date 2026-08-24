@@ -165,13 +165,25 @@ func WithConfig(cfg *Config) Option {
 		if cfg == nil {
 			return
 		}
-		*c = *cfg
+		// Copy only exported fields; leave internal sync.Once and lazily-initialized
+		// client fields zero-valued so each Config gets its own independent lifecycle.
+		c.Domain = cfg.Domain
+		c.Scheme = cfg.Scheme
+		c.RuntimePort = cfg.RuntimePort
+		c.RuntimeToken = cfg.RuntimeToken
+		c.SandboxBaseURL = cfg.SandboxBaseURL
+		c.AuthHeader = cfg.AuthHeader
+		c.APIKey = cfg.APIKey
+		c.RequestTimeout = cfg.RequestTimeout
+		c.CustomHTTPClient = cfg.CustomHTTPClient
 		// Defensive copy of the headers map so callers cannot mutate ours.
 		if cfg.Headers != nil {
 			c.Headers = make(map[string]string, len(cfg.Headers))
 			for k, v := range cfg.Headers {
 				c.Headers[k] = v
 			}
+		} else {
+			c.Headers = nil
 		}
 	}
 }
