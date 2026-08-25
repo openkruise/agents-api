@@ -138,6 +138,12 @@ test-e2e-python: setup-test-e2e
 cleanup-test-e2e:
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_NAME)
 
+# ==================== Python E2B Patch Tests ====================
+
+.PHONY: test-e2b-patch
+test-e2b-patch:
+	cd e2b/python && pip install -e ".[dev]" && pytest tests/ -v
+
 # ==================== Schema Generation ====================
 
 .PHONY: gen-schema-only

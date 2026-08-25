@@ -1,0 +1,55 @@
+name: Publish E2B Python Client to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        default: '0.1.0'
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Update version in pyproject.toml
+        run: |
+          cd e2b/python
+          sed -i "s/version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+
+      - name: Build package
+        run: |
+          cd e2b/python
+          python -m build
+
+      - name: Publish to PyPI
+        run: |
+          cd e2b/python
+          twine upload dist/* --username __token__
+        env:
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2b-python-client-artifacts
+          path: e2b/python/dist/*
+          retention-days: 1

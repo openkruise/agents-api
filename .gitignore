@@ -19,5 +19,11 @@ vendor/
 
 # Python
 .ruff_cache/
+__pycache__/
+*.egg-info/
+*.egg-link
+dist/
+build/
 
 .vscode/
+
