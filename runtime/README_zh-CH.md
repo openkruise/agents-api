@@ -198,6 +198,7 @@ h.Kill()
 | `Remove(ctx, path) error`                                           | 删除文件或目录                        |
 | `Read(ctx, path, user...) ([]byte, error)`                          | 读取文件内容（二进制）；`user` 默认 `"node"` |
 | `ReadText(ctx, path, user...) (string, error)`                      | 读取文件内容（文本）                     |
+| `ReadStream(ctx, path, user...) (io.ReadCloser, error)`             | 流式读取文件；调用方需关闭            |
 | `Write(ctx, path, data []byte, user...) (*WriteInfo, error)`        | 写入文件内容（二进制）；自动创建父目录            |
 | `WriteText(ctx, path, content string, user...) (*WriteInfo, error)` | 写入文件内容（文本）                     |
 
@@ -223,4 +224,9 @@ fmt.Println(content) // Hello, World!
 // 二进制读写
 c.Files.Write(ctx, "/tmp/data.bin", []byte{0x00, 0x01, 0x02})
 data, _ := c.Files.Read(ctx, "/tmp/data.bin")
+
+// 流式读取大文件（需关闭）
+rc, _ := c.Files.ReadStream(ctx, "/tmp/large.log")
+defer rc.Close()
+io.Copy(os.Stdout, rc)
 ```

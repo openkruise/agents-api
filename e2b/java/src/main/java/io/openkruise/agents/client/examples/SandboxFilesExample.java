@@ -116,7 +116,7 @@ public class SandboxFilesExample {
         String testFile = testDir + "/hello.txt";
         System.out.printf("%n[6] Write file: %s%n", testFile);
         try {
-            WriteInfo writeInfo = files.writeText(testFile, "Hello from Java SDK!\n你好，世界！\n");
+            WriteInfo writeInfo = files.writeText(testFile, "Hello from Java SDK! Hello World!\n");
             System.out.printf("    Write succeeded, path: %s, type: %s%n", writeInfo.getPath(), writeInfo.getType());
         } catch (Exception e) {
             System.err.println("    Write failed: " + e.getMessage());

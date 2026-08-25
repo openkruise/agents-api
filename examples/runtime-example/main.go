@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/openkruise/agents-api/runtime"
@@ -46,13 +49,17 @@ func main() {
 	fmt.Println("\n--- Filesystem Write And Read File Demo ---")
 	writeAndReadFile(ctx, c.Files)
 
+	// ========== 3. ReadStream Demo ==========
+	fmt.Println("\n--- Filesystem ReadStream Demo ---")
+	testReadStream(ctx, c.Files)
+
 	fmt.Println("\n========== done ==========")
 }
 
 func writeAndReadFile(ctx context.Context, files *runtime.Filesystem) {
 	fmt.Println("\n--- Test: Write File ---")
 	testPath := fmt.Sprintf("/tmp/go_sdk_test_%d.txt", time.Now().UnixNano())
-	testContent := "Hello from Go SDK! 你好世界! " + time.Now().Format(time.RFC3339)
+	testContent := "Hello from Go SDK! Hello World! " + time.Now().Format(time.RFC3339)
 
 	fmt.Printf("[Write] Path: %s\n", testPath)
 	fmt.Printf("[Write] Content: %s\n", testContent)
@@ -97,6 +104,116 @@ func writeAndReadFile(ctx context.Context, files *runtime.Filesystem) {
 	}
 
 	fmt.Println("\n========== Test Complete ==========")
+}
+
+// testReadStream verifies that ReadStream returns the same content as Read,
+// and demonstrates streaming a large file with constant memory.
+func testReadStream(ctx context.Context, files *runtime.Filesystem) {
+	// ReadStream uses StreamingHTTPClient() which has Timeout=0 (no overall deadline).
+	// A stalled server holds the connection indefinitely unless the caller supplies
+	// a context with a deadline or cancellation — the 60s RequestTimeout no longer applies.
+	streamCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	// [1] Write a small test file and verify ReadStream == Read
+	testPath := fmt.Sprintf("/tmp/go_stream_test_%d.txt", time.Now().UnixNano())
+	testContent := "ReadStream test! ReadStream test! " + time.Now().Format(time.RFC3339)
+
+	fmt.Printf("\n[1] Write small file: %s\n", testPath)
+	if _, err := files.WriteText(ctx, testPath, testContent); err != nil {
+		fmt.Printf("    Write failed: %v\n", err)
+		return
+	}
+	fmt.Printf("    Written %d bytes\n", len(testContent))
+
+	// Read via Read() — loads entire file into []byte
+	fmt.Println("\n[2] Read() — load entire file into []byte")
+	expected, err := files.Read(ctx, testPath)
+	if err != nil {
+		fmt.Printf("    Read failed: %v\n", err)
+		return
+	}
+	fmt.Printf("    Got %d bytes\n", len(expected))
+
+	// Read via ReadStream() — stream chunk by chunk
+	fmt.Println("\n[3] ReadStream() — stream chunk by chunk (8KB buffer)")
+	rc, err := files.ReadStream(streamCtx, testPath)
+	if err != nil {
+		fmt.Printf("    ReadStream failed: %v\n", err)
+		return
+	}
+	defer rc.Close() // ensure connection release on any exit path
+
+	streamed, err := io.ReadAll(rc)
+	if err != nil {
+		fmt.Printf("    Stream read failed: %v\n", err)
+		return
+	}
+	fmt.Printf("    Streamed %d bytes\n", len(streamed))
+
+	// [4] Verify content matches
+	fmt.Println("\n[4] Verification")
+	if string(streamed) == testContent {
+		fmt.Println("    PASS: ReadStream content matches written content!")
+	} else {
+		fmt.Printf("    FAIL: Content mismatch!\n      Expected: %s\n      Got:      %s\n", testContent, string(streamed))
+	}
+	if string(expected) == string(streamed) {
+		fmt.Println("    PASS: ReadStream content matches Read content!")
+	} else {
+		fmt.Println("    FAIL: ReadStream != Read")
+	}
+
+	// [5] Write a large text file with lines, then stream line by line
+	largePath := fmt.Sprintf("/tmp/go_stream_large_%d.log", time.Now().UnixNano())
+	lineSize := 64                           // bytes per line (63 chars + newline)
+	lineCount := 10 * 1024 * 1024 / lineSize // ~10MB worth of lines
+	fmt.Printf("\n[5] Write large text file: %s (~%dMB, %d lines)\n", largePath, 10, lineCount)
+
+	var sb strings.Builder
+	for i := 0; i < lineCount; i++ {
+		sb.WriteString(fmt.Sprintf("line-%06d: The quick brown fox jumps over the lazy dog\n", i))
+	}
+	if _, err := files.WriteText(ctx, largePath, sb.String()); err != nil {
+		fmt.Printf("    Write failed: %v\n", err)
+		return
+	}
+	fmt.Printf("    Written %d lines (%d bytes)\n", lineCount, sb.Len())
+	sb.Reset() // free memory before streaming
+
+	// [6] ReadStream + bufio.NewScanner — line-by-line streaming
+	fmt.Println("\n[6] ReadStream() + bufio.NewScanner — line-by-line (recommended pattern)")
+	rc2, err := files.ReadStream(streamCtx, largePath)
+	if err != nil {
+		fmt.Printf("    ReadStream failed: %v\n", err)
+		return
+	}
+	defer rc2.Close() // ensure connection release on any exit path
+
+	sc := bufio.NewScanner(rc2)
+	var streamedLines int
+	for sc.Scan() {
+		streamedLines++
+		// In real usage you would process each line here:
+		// process(sc.Text())
+	}
+	if err := sc.Err(); err != nil {
+		fmt.Printf("    Scanner error: %v\n", err)
+		return
+	}
+	fmt.Printf("    Streamed %d lines (memory = one line at a time)\n", streamedLines)
+
+	// [7] Summary
+	fmt.Println("\n[7] Summary")
+	fmt.Printf("    Read()        → loads entire file into []byte (memory = file size)\n")
+	fmt.Printf("    ReadStream()  → returns io.ReadCloser (memory = buffer size)\n")
+	fmt.Printf("    + NewScanner  → line-by-line text (memory = one line)\n")
+
+	// [8] Cleanup
+	fmt.Printf("\n[8] Cleanup: %s, %s\n", testPath, largePath)
+	files.Remove(ctx, testPath)
+	files.Remove(ctx, largePath)
+	fmt.Println("    Cleaned up")
 }
 
 // demonstrateCommandOperations exercises the Commands API surface.

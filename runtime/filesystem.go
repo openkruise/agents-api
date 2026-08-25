@@ -52,45 +52,41 @@ type WriteInfo struct {
 
 // Filesystem provides filesystem operations in the sandbox over the official
 type Filesystem struct {
-	Rpc         filesystemconnect.FilesystemClient
-	httpClient  *http.Client
-	runtimeURL  string
-	baseFileURL *url.URL // pre-parsed base URL for file operations
-	headers     map[string]string
+	Rpc             filesystemconnect.FilesystemClient
+	httpClient      *http.Client
+	streamingClient *http.Client // no overall timeout; for streaming responses
+	runtimeURL      string
+	baseFileURL     *url.URL // pre-parsed base URL for file operations
+	headers         map[string]string
 }
 
 // NewFilesystem creates a new Filesystem instance backed by the gRPC client
 // and HTTP client for file content read/write.
-func NewFilesystem(rpc filesystemconnect.FilesystemClient, httpClient *http.Client, runtimeURL string, headers map[string]string) *Filesystem {
+// streamingClient is used for streaming operations (Timeout=0); if nil,
+// ReadStream falls back to httpClient.
+func NewFilesystem(rpc filesystemconnect.FilesystemClient, httpClient, streamingClient *http.Client, runtimeURL string, headers map[string]string) *Filesystem {
 	// Pre-parse the base file URL to avoid repeated parsing on every request.
-	baseURL, _ := url.Parse(runtimeURL + runtimeFilesRoute)
+	baseURL, err := url.Parse(runtimeURL + runtimeFilesRoute)
+	if err != nil {
+		baseURL = &url.URL{} // fallback; buildFileReadRequest will surface a clear error
+	}
 	return &Filesystem{
-		Rpc:         rpc,
-		httpClient:  httpClient,
-		runtimeURL:  runtimeURL,
-		baseFileURL: baseURL,
-		headers:     headers,
+		Rpc:             rpc,
+		httpClient:      httpClient,
+		streamingClient: streamingClient,
+		runtimeURL:      runtimeURL,
+		baseFileURL:     baseURL,
+		headers:         headers,
 	}
 }
 
 // Read reads the content of a file and returns it as a byte slice.
 // An optional user can be provided to run the operation as that user.
 func (f *Filesystem) Read(ctx context.Context, path string, user ...string) ([]byte, error) {
-	u := *f.baseFileURL // shallow copy of pre-parsed URL
-	q := u.Query()
-	q.Set("path", path)
-	username := defaultUsername
-	if len(user) > 0 && user[0] != "" {
-		username = user[0]
-	}
-	q.Set("username", username)
-	u.RawQuery = q.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	req, err := f.buildFileReadRequest(ctx, path, user...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, err
 	}
-	f.setHTTPHeaders(req)
 
 	resp, err := f.httpClient.Do(req)
 	if err != nil {
@@ -102,11 +98,47 @@ func (f *Filesystem) Read(ctx context.Context, path string, user ...string) ([]b
 		return nil, fmt.Errorf("file not found: %s", path)
 	}
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		return nil, fmt.Errorf("failed to read file (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	return io.ReadAll(resp.Body)
+}
+
+// ReadStream opens a stream to the file content. The caller must Close the
+// returned ReadCloser. Cancellation and deadlines are controlled via ctx.
+//
+// Unlike Read which loads the entire file into memory, ReadStream returns the
+// raw HTTP response body, keeping memory usage constant regardless of file size.
+func (f *Filesystem) ReadStream(ctx context.Context, path string, user ...string) (io.ReadCloser, error) {
+	req, err := f.buildFileReadRequest(ctx, path, user...)
+	if err != nil {
+		return nil, err
+	}
+
+	client := f.streamingClient
+	if client == nil {
+		client = f.httpClient
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file stream: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		resp.Body.Close()
+		return nil, fmt.Errorf("file not found: %s", path)
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+		return nil, fmt.Errorf("failed to read file (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Caller is responsible for closing the returned ReadCloser to release
+	// the underlying HTTP connection back to the pool.
+	return resp.Body, nil
 }
 
 // ReadText reads the content of a file and returns it as a string.
@@ -324,6 +356,27 @@ func convertEntryInfo(entry *filesystem.EntryInfo) EntryInfo {
 	}
 
 	return info
+}
+
+// buildFileReadRequest constructs an HTTP GET request for reading file content.
+// Shared by Read and ReadStream to avoid URL/header duplication.
+func (f *Filesystem) buildFileReadRequest(ctx context.Context, path string, user ...string) (*http.Request, error) {
+	u := *f.baseFileURL // shallow copy of pre-parsed URL
+	q := u.Query()
+	q.Set("path", path)
+	username := defaultUsername
+	if len(user) > 0 && user[0] != "" {
+		username = user[0]
+	}
+	q.Set("username", username)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	f.setHTTPHeaders(req)
+	return req, nil
 }
 
 func (f *Filesystem) setRPCHeaders(req interface{ Header() http.Header }) {

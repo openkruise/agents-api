@@ -54,6 +54,12 @@ type Config struct {
 	// All sandbox clients created from this Config share the same Transport/connection pool.
 	httpClient *http.Client
 	httpOnce   sync.Once
+
+	// streamingClient is a lazily-initialized HTTP client with no overall timeout,
+	// used for streaming responses (e.g. ReadStream). It reuses the same
+	// Transport/connection pool as httpClient so connections are pooled together.
+	streamingClient *http.Client
+	streamingOnce   sync.Once
 }
 
 // Option configures a Config.
@@ -159,13 +165,25 @@ func WithConfig(cfg *Config) Option {
 		if cfg == nil {
 			return
 		}
-		*c = *cfg
+		// Copy only exported fields; leave internal sync.Once and lazily-initialized
+		// client fields zero-valued so each Config gets its own independent lifecycle.
+		c.Domain = cfg.Domain
+		c.Scheme = cfg.Scheme
+		c.RuntimePort = cfg.RuntimePort
+		c.RuntimeToken = cfg.RuntimeToken
+		c.SandboxBaseURL = cfg.SandboxBaseURL
+		c.AuthHeader = cfg.AuthHeader
+		c.APIKey = cfg.APIKey
+		c.RequestTimeout = cfg.RequestTimeout
+		c.CustomHTTPClient = cfg.CustomHTTPClient
 		// Defensive copy of the headers map so callers cannot mutate ours.
 		if cfg.Headers != nil {
 			c.Headers = make(map[string]string, len(cfg.Headers))
 			for k, v := range cfg.Headers {
 				c.Headers[k] = v
 			}
+		} else {
+			c.Headers = nil
 		}
 	}
 }
@@ -217,6 +235,32 @@ func (c *Config) HTTPClient() *http.Client {
 		}
 	})
 	return c.httpClient
+}
+
+// StreamingHTTPClient returns a lazily-initialized http.Client with no overall
+// timeout, suitable for streaming responses where the caller controls
+// cancellation/deadline via ctx.
+//
+// If a custom HTTPClient was provided via WithHTTPClient, it is shallow-copied
+// with Timeout set to 0, preserving the same Transport and connection pool.
+// Otherwise, a new client sharing the default Transport is created.
+func (c *Config) StreamingHTTPClient() *http.Client {
+	c.streamingOnce.Do(func() {
+		base := c.HTTPClient() // ensure httpClient is initialized first
+		if c.CustomHTTPClient != nil {
+			// Shallow copy the custom client and disable the overall timeout.
+			copied := *c.CustomHTTPClient
+			copied.Timeout = 0
+			c.streamingClient = &copied
+		} else {
+			// Reuse the same Transport (nil → http.DefaultTransport) with no timeout.
+			c.streamingClient = &http.Client{
+				Transport: base.Transport,
+				Timeout:   0,
+			}
+		}
+	})
+	return c.streamingClient
 }
 
 func (c *Config) scheme() string {

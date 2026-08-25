@@ -33,6 +33,7 @@ func NewWithConfig(sandboxID string, cfg *Config) *Client {
 		cfg = NewConfig()
 	}
 	httpClient := cfg.HTTPClient()
+	streamingClient := cfg.StreamingHTTPClient()
 	runtimeURL := cfg.SandboxURL(sandboxID)
 	headers := cfg.SandboxHeaders(sandboxID)
 
@@ -41,7 +42,7 @@ func NewWithConfig(sandboxID string, cfg *Config) *Client {
 
 	return &Client{
 		Commands:   NewCommands(procRPC, headers),
-		Files:      NewFilesystem(fsRPC, httpClient, runtimeURL, headers),
+		Files:      NewFilesystem(fsRPC, httpClient, streamingClient, runtimeURL, headers),
 		sandboxID:  sandboxID,
 		config:     cfg,
 		runtimeURL: runtimeURL,
