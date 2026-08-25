@@ -59,7 +59,7 @@ func main() {
 func writeAndReadFile(ctx context.Context, files *runtime.Filesystem) {
 	fmt.Println("\n--- Test: Write File ---")
 	testPath := fmt.Sprintf("/tmp/go_sdk_test_%d.txt", time.Now().UnixNano())
-	testContent := "Hello from Go SDK! 你好世界! " + time.Now().Format(time.RFC3339)
+	testContent := "Hello from Go SDK! Hello World! " + time.Now().Format(time.RFC3339)
 
 	fmt.Printf("[Write] Path: %s\n", testPath)
 	fmt.Printf("[Write] Content: %s\n", testContent)
