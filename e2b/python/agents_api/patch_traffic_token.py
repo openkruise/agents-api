@@ -75,7 +75,7 @@ def _check_compatibility() -> None:
         )
     if not Version("2.9.0") <= code_interpreter_version < Version("2.10.0"):
         raise RuntimeError(
-            "kruise-agents supports e2b-code-interpreter>=2.9.0,<2.10.0, "
+            "agents-api supports e2b-code-interpreter>=2.9.0,<2.10.0, "
             f"found {code_interpreter_version}"
         )
     parameters = inspect.signature(_original_sandbox_init).parameters

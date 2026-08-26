@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from kruise_agents.traffic_token import (
+from agents_api.traffic_token import (
     AsyncTrafficTokenManager,
     TrafficAccessToken,
     TrafficAccessTokenExpired,

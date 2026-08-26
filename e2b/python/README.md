@@ -50,7 +50,7 @@ Requirements:
 - `e2b-code-interpreter>=2.4.1`
 
 ```python
-from kruise_agents.patch_e2b import patch_e2b
+from agents_api.patch_e2b import patch_e2b
 from e2b_code_interpreter import Sandbox
 
 patch_e2b(https=False)  # patch sdk
@@ -67,8 +67,8 @@ Traffic JWT refresh is an independent, opt-in monkey patch. It requires Python
 `e2b-code-interpreter>=2.9.0,<2.10.0`.
 
 ```python
-from kruise_agents.patch_e2b import patch_e2b
-from kruise_agents.patch_traffic_token import patch_traffic_access_token
+from agents_api.patch_e2b import patch_e2b
+from agents_api.patch_traffic_token import patch_traffic_access_token
 
 patch_e2b(https=False)
 patch_traffic_access_token()

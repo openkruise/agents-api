@@ -11,9 +11,9 @@ from e2b_code_interpreter.code_interpreter_async import AsyncSandbox
 from e2b_code_interpreter.code_interpreter_sync import Sandbox
 from packaging.version import Version
 
-import kruise_agents.patch_traffic_token as patch_module
-from kruise_agents.patch_e2b import patch_e2b
-from kruise_agents.traffic_token import TrafficAccessToken
+import agents_api.patch_traffic_token as patch_module
+from agents_api.patch_e2b import patch_e2b
+from agents_api.traffic_token import TrafficAccessToken
 
 
 def jwt(exp: float, iat: float) -> str:

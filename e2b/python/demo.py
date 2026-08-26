@@ -7,8 +7,8 @@ import os
 # Import and patch the E2B SDK
 import time
 from e2b_code_interpreter import Sandbox
-from kruise_agents.patch_e2b import patch_e2b
-from kruise_agents.patch_traffic_token import patch_traffic_access_token
+from agents_api.patch_e2b import patch_e2b
+from agents_api.patch_traffic_token import patch_traffic_access_token
 
 # Patch 1: protocol conversion (E2B native routing -> OpenKruise private path prefix)
 # https=True when SSL_CERT_FILE is set; validate_key=False bypasses E2B's local key format check
