@@ -111,11 +111,11 @@ public class SandboxSetStatus implements io.fabric8.kubernetes.api.model.Kuberne
 
     /**
      * UpdateRevision is the FNV-32 hash computed from spec.template,
-     * spec.persistentContents, and spec.runtimes.
+     * spec.persistentContents, spec.runtimes, and spec.pauseStrategy.
      * It represents the latest desired template version.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("updateRevision")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("UpdateRevision is the FNV-32 hash computed from spec.template,\nspec.persistentContents, and spec.runtimes.\nIt represents the latest desired template version.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("UpdateRevision is the FNV-32 hash computed from spec.template,\nspec.persistentContents, spec.runtimes, and spec.pauseStrategy.\nIt represents the latest desired template version.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String updateRevision;
 

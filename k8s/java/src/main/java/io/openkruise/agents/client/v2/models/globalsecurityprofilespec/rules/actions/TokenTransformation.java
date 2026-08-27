@@ -6,11 +6,40 @@ package io.openkruise.agents.client.v2.models.globalsecurityprofilespec.rules.ac
 public class TokenTransformation implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * ApiKey configures an ApiKey transformation. It is required for ApiKey
-     * and ignored for AliyunSTS.
+     * ApiKey configures an ApiKey transformation. It is required for ApiKey and
+     * ignored for AliyunSTS. When targetHeaders is set, targetHeaders and value
+     * take precedence and when, targetHeader, and valueTemplate are ignored.
+     * Otherwise, the legacy when, targetHeader, and valueTemplate fields apply
+     * and value is ignored.
+     *
+     * Examples:
+     *
+     * The following example writes the same rendered token value to two fixed
+     * request headers:
+     *
+     *     apiKey:
+     *       targetHeaders:
+     *         names:
+     *         - authorization
+     *         - x-backend-authorization
+     *       value:
+     *         template: "Bearer {{ .Token }}"
+     *
+     * The following example selects every existing request header whose value
+     * is the token placeholder and replaces each matched value with the token:
+     *
+     *     apiKey:
+     *       targetHeaders:
+     *         cel: |
+     *           request.headers.filter(
+     *             name,
+     *             request.headers[name] == "${AGENTIO_TOKEN}"
+     *           )
+     *       value:
+     *         template: "{{ .Token }}"
      */
     @com.fasterxml.jackson.annotation.JsonProperty("apiKey")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ApiKey configures an ApiKey transformation. It is required for ApiKey\nand ignored for AliyunSTS.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ApiKey configures an ApiKey transformation. It is required for ApiKey and\nignored for AliyunSTS. When targetHeaders is set, targetHeaders and value\ntake precedence and when, targetHeader, and valueTemplate are ignored.\nOtherwise, the legacy when, targetHeader, and valueTemplate fields apply\nand value is ignored.\n\nExamples:\n\nThe following example writes the same rendered token value to two fixed\nrequest headers:\n\n    apiKey:\n      targetHeaders:\n        names:\n        - authorization\n        - x-backend-authorization\n      value:\n        template: \"Bearer {{ .Token }}\"\n\nThe following example selects every existing request header whose value\nis the token placeholder and replaces each matched value with the token:\n\n    apiKey:\n      targetHeaders:\n        cel: |\n          request.headers.filter(\n            name,\n            request.headers[name] == \"${AGENTIO_TOKEN}\"\n          )\n      value:\n        template: \"{{ .Token }}\"")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.globalsecurityprofilespec.rules.actions.tokentransformation.ApiKey apiKey;
 
