@@ -59,6 +59,12 @@ const (
 	// deletion.
 	AnnotationCleanupCandidate = InternalPrefix + "cleanup-candidate"
 
+	// AnnotationSecurityRules carries the normalized inline egress security
+	// rules (a JSON array of SecurityRule) for one Sandbox. Only the Sandbox
+	// Manager writes it; the Egress Policy Enforcer evaluates the rules under
+	// the calling workload's verified identity.
+	AnnotationSecurityRules = InternalPrefix + "security-rules"
+
 	// SandboxAnnotationPriority is the annotation key for sandbox priority.
 	// If not set, the default value is 0.
 	// Larger values indicate higher priority.
@@ -73,6 +79,16 @@ const (
 	// SandboxHashImmutablePart represents the key of sandbox hash than exclude immutable part of sandbox
 	// e.g. metadata, image and resources
 	SandboxHashImmutablePart = "sandbox.agents.kruise.io/hash-immutable-part"
+
+	// AnnotationWakeOnTraffic enables wake-on-traffic for a paused sandbox.
+	// When set to "true", the sandbox-gateway will attempt to resume the sandbox
+	// by patching Spec.Paused=false when traffic arrives.
+	AnnotationWakeOnTraffic = InternalPrefix + "wake-on-traffic"
+
+	// AnnotationWakeTimeoutSeconds stores the auto-pause timeout (in seconds) to
+	// apply when the sandbox is woken by traffic. The gateway reads this to set
+	// ResumeOptions.Timeout.PauseTime, re-arming auto-pause after wake.
+	AnnotationWakeTimeoutSeconds = InternalPrefix + "wake-timeout-seconds"
 )
 
 // E2B annotations
@@ -84,6 +100,11 @@ const (
 	AnnotationEnvdURL         = E2BPrefix + "envd-url"
 	// AnnotationCSIVolumeConfig is the annotation key for CSI mount configuration.
 	AnnotationCSIVolumeConfig = E2BPrefix + "csi-volume-config"
+	// MetadataKeySecurityRules is the reserved E2B metadata key whose value is
+	// a JSON array of inline security rules. It is consumed by the Sandbox
+	// Manager and normalized into AnnotationSecurityRules; tenants can never
+	// write AnnotationSecurityRules directly.
+	MetadataKeySecurityRules = E2BPrefix + "security-rules"
 )
 
 // AnnotationUpgradeResumeTrigger is set by SandboxUpdateOps on a paused sandbox

@@ -88,7 +88,7 @@ for crd_file in "${CRD_SOURCE_DIR}"/*.yaml; do
         --keep-model-order \
         --class-name "${kind}"
 
-    sed -i '' 's/regex=/pattern=/g' "${output_model}"
+    sed -i 's/regex=/pattern=/g' "${output_model}"
 
     ruff check --fix --select I -q "${output_model}" 2>/dev/null || true
     ruff format -q "${output_model}"
