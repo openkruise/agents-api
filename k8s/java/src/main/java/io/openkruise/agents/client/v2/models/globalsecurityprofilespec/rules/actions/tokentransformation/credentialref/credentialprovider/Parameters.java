@@ -6,11 +6,11 @@ package io.openkruise.agents.client.v2.models.globalsecurityprofilespec.rules.ac
 public class Parameters implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Cel is a CEL expression evaluated against the request, Pod, profile,
-     * rule, and inputs context.
+     * Cel is a CEL expression evaluated in the context documented by the
+     * containing field.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("cel")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Cel is a CEL expression evaluated against the request, Pod, profile,\nrule, and inputs context.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Cel is a CEL expression evaluated in the context documented by the\ncontaining field.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String cel;
 
@@ -23,10 +23,11 @@ public class Parameters implements io.fabric8.kubernetes.api.model.KubernetesRes
     }
 
     /**
-     * Template is a Go template whose rendered output is the value.
+     * Template is a Go template evaluated in the context documented by the
+     * containing field. Its rendered output is the value.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("template")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Template is a Go template whose rendered output is the value.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Template is a Go template evaluated in the context documented by the\ncontaining field. Its rendered output is the value.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String template;
 

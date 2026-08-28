@@ -554,25 +554,115 @@ spec:
                           properties:
                             apiKey:
                               description: |-
-                                ApiKey configures an ApiKey transformation. It is required for ApiKey
-                                and ignored for AliyunSTS.
+                                ApiKey configures an ApiKey transformation. It is required for ApiKey and
+                                ignored for AliyunSTS. When targetHeaders is set, targetHeaders and value
+                                take precedence and when, targetHeader, and valueTemplate are ignored.
+                                Otherwise, the legacy when, targetHeader, and valueTemplate fields apply
+                                and value is ignored.
+
+                                Examples:
+
+                                The following example writes the same rendered token value to two fixed
+                                request headers:
+
+                                    apiKey:
+                                      targetHeaders:
+                                        names:
+                                        - authorization
+                                        - x-backend-authorization
+                                      value:
+                                        template: "Bearer {{ .Token }}"
+
+                                The following example selects every existing request header whose value
+                                is the token placeholder and replaces each matched value with the token:
+
+                                    apiKey:
+                                      targetHeaders:
+                                        cel: |
+                                          request.headers.filter(
+                                            name,
+                                            request.headers[name] == "${AGENTIO_TOKEN}"
+                                          )
+                                      value:
+                                        template: "{{ .Token }}"
                               properties:
                                 targetHeader:
-                                  default: Authorization
-                                  description: TargetHeader is the request header
-                                    to overwrite with the new token.
+                                  description: |-
+                                    TargetHeader selects the request header replaced by the legacy
+                                    single-header mode. It is used only when TargetHeaders is omitted and is
+                                    otherwise ignored. When omitted in legacy mode, implementations preserve
+                                    the legacy behavior of targeting Authorization.
                                   maxLength: 256
                                   pattern: ^[A-Za-z0-9!#$%&'*+\-.^_|~]+$
                                   type: string
+                                targetHeaders:
+                                  description: |-
+                                    TargetHeaders enables selector mode and selects the request headers to
+                                    replace. When set, Value supplies the value for every selected header and
+                                    When, TargetHeader, and ValueTemplate are ignored.
+                                  properties:
+                                    cel:
+                                      description: |-
+                                        Cel selects request header names dynamically and must return a
+                                        list<string>. The expression may read the request, Pod, profile, rule,
+                                        and inputs context, but not the retrieved token.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                    names:
+                                      description: |-
+                                        Names is a static set of request header names. Every selected header uses
+                                        the same value rule.
+                                      items:
+                                        maxLength: 256
+                                        minLength: 1
+                                        pattern: ^[A-Za-z0-9!#$%&'*+\-.^_|~]+$
+                                        type: string
+                                      maxItems: 64
+                                      minItems: 1
+                                      type: array
+                                      x-kubernetes-list-type: set
+                                  type: object
+                                value:
+                                  description: |-
+                                    Value produces the replacement value for every header selected by
+                                    TargetHeaders. It is used only when TargetHeaders is set and is otherwise
+                                    ignored. Its Cel branch must return a string and may read request, pod,
+                                    profile, rule, inputs, token, header.name, and header.value. Its Template
+                                    branch may read Request, Pod, Profile, Rule, Inputs, Token, and Header.
+                                  properties:
+                                    cel:
+                                      description: |-
+                                        Cel is a CEL expression evaluated in the context documented by the
+                                        containing field.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                    template:
+                                      description: |-
+                                        Template is a Go template evaluated in the context documented by the
+                                        containing field. Its rendered output is the value.
+                                      maxLength: 2048
+                                      minLength: 1
+                                      type: string
+                                    value:
+                                      description: Value is a static string emitted
+                                        verbatim.
+                                      maxLength: 2048
+                                      type: string
+                                  type: object
                                 valueTemplate:
-                                  description: ValueTemplate is a Go template that
-                                    renders the header value.
+                                  description: |-
+                                    ValueTemplate renders the replacement value in the legacy single-header
+                                    mode. It is used only when TargetHeaders is omitted and is otherwise
+                                    ignored.
                                   maxLength: 1024
                                   minLength: 1
                                   type: string
                                 when:
-                                  description: When limits the transformation to requests
-                                    with a matching header.
+                                  description: |-
+                                    When gates the legacy single-header mode on a matching request header.
+                                    It is used only when TargetHeaders is omitted and is otherwise ignored.
                                   properties:
                                     header:
                                       description: Header is the request header name
@@ -591,8 +681,6 @@ spec:
                                   - header
                                   - pattern
                                   type: object
-                              required:
-                              - valueTemplate
                               type: object
                             credentialRef:
                               description: CredentialRef identifies the credential
@@ -617,20 +705,21 @@ spec:
                                     parameters:
                                       additionalProperties:
                                         description: |-
-                                          ValueSource produces one provider metadata value. Exactly one of Value,
-                                          Cel, or Template must be set. Value and Template produce strings; Cel may
-                                          produce any JSON-compatible value.
+                                          ValueSource produces one configuration value. Exactly one of Value, Cel, or
+                                          Template must be set. Value and Template produce strings. The containing
+                                          field documents the evaluation context and required result type for Cel.
                                         properties:
                                           cel:
                                             description: |-
-                                              Cel is a CEL expression evaluated against the request, Pod, profile,
-                                              rule, and inputs context.
+                                              Cel is a CEL expression evaluated in the context documented by the
+                                              containing field.
                                             maxLength: 1024
                                             minLength: 1
                                             type: string
                                           template:
-                                            description: Template is a Go template
-                                              whose rendered output is the value.
+                                            description: |-
+                                              Template is a Go template evaluated in the context documented by the
+                                              containing field. Its rendered output is the value.
                                             maxLength: 2048
                                             minLength: 1
                                             type: string

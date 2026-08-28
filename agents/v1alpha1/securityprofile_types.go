@@ -195,7 +195,8 @@ type ActionCondition struct {
 type TokenTransformationType string
 
 const (
-	// TokenTransformationTypeApiKey writes a credential to one request header.
+	// TokenTransformationTypeApiKey applies an API-key-compatible header
+	// transformation.
 	TokenTransformationTypeApiKey TokenTransformationType = "ApiKey"
 	// TokenTransformationTypeAliyunSTS replaces the credentials in an Aliyun
 	// SDK request and recomputes its signature.
@@ -249,10 +250,10 @@ type CredentialRef struct {
 }
 
 // SecretCredentialRef references credentials stored in a Kubernetes Secret.
-// The expected data keys depend on the transformation type:
+// The expected data keys depend on the transformation:
 //
-//	ApiKey mode:    "apiKey"
-//	AliyunSTS mode: "accessKeyId", "accessKeySecret", "securityToken"
+//	Header transformations and legacy ApiKey mode: "apiKey"
+//	AliyunSTS mode:                              "accessKeyId", "accessKeySecret", "securityToken"
 type SecretCredentialRef struct {
 	// Name is the Secret name.
 	// +kubebuilder:validation:MinLength=1
@@ -335,20 +336,66 @@ type MCPToolPolicySpec struct {
 	Rules []MCPToolPolicyRule `json:"rules"`
 }
 
-// ApiKeyConfig configures an ApiKey transformation.
+// ApiKeyConfig configures an ApiKey transformation in one of two modes.
+// When TargetHeaders is set, selector mode takes precedence: TargetHeaders
+// selects the request headers and Value produces the replacement value for
+// every selected header; When, TargetHeader, and ValueTemplate are ignored.
+// Otherwise, the legacy single-header mode uses When, TargetHeader, and
+// ValueTemplate, and ignores Value.
 type ApiKeyConfig struct {
-	// When limits the transformation to requests with a matching header.
+	// When gates the legacy single-header mode on a matching request header.
+	// It is used only when TargetHeaders is omitted and is otherwise ignored.
 	// +optional
 	When *ActionCondition `json:"when,omitempty"`
-	// TargetHeader is the request header to overwrite with the new token.
-	// +kubebuilder:default:="Authorization"
+	// TargetHeader selects the request header replaced by the legacy
+	// single-header mode. It is used only when TargetHeaders is omitted and is
+	// otherwise ignored. When omitted in legacy mode, implementations preserve
+	// the legacy behavior of targeting Authorization.
+	// +optional
 	// +kubebuilder:validation:MaxLength=256
 	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9!#$%&'*+\-.^_|~]+$`
 	TargetHeader string `json:"targetHeader,omitempty"`
-	// ValueTemplate is a Go template that renders the header value.
+	// ValueTemplate renders the replacement value in the legacy single-header
+	// mode. It is used only when TargetHeaders is omitted and is otherwise
+	// ignored.
+	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	ValueTemplate string `json:"valueTemplate"`
+	ValueTemplate string `json:"valueTemplate,omitempty"`
+	// TargetHeaders enables selector mode and selects the request headers to
+	// replace. When set, Value supplies the value for every selected header and
+	// When, TargetHeader, and ValueTemplate are ignored.
+	// +optional
+	TargetHeaders *TokenTransformationHeaderSelector `json:"targetHeaders,omitempty"`
+	// Value produces the replacement value for every header selected by
+	// TargetHeaders. It is used only when TargetHeaders is set and is otherwise
+	// ignored. Its Cel branch must return a string and may read request, pod,
+	// profile, rule, inputs, token, header.name, and header.value. Its Template
+	// branch may read Request, Pod, Profile, Rule, Inputs, Token, and Header.
+	// +optional
+	Value *ValueSource `json:"value,omitempty"`
+}
+
+// TokenTransformationHeaderSelector selects request headers. Exactly one of
+// Names or Cel must be set.
+type TokenTransformationHeaderSelector struct {
+	// Names is a static set of request header names. Every selected header uses
+	// the same value rule.
+	// +optional
+	// +listType=set
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=256
+	// +kubebuilder:validation:items:Pattern=`^[A-Za-z0-9!#$%&'*+\-.^_|~]+$`
+	Names []string `json:"names,omitempty"`
+	// Cel selects request header names dynamically and must return a
+	// list<string>. The expression may read the request, Pod, profile, rule,
+	// and inputs context, but not the retrieved token.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	Cel *string `json:"cel,omitempty"`
 }
 
 // TokenTransformationAction rewrites credentials on an outgoing request.
@@ -369,8 +416,37 @@ type TokenTransformationAction struct {
 	// CredentialRef identifies the credential source.
 	CredentialRef CredentialRef `json:"credentialRef"`
 
-	// ApiKey configures an ApiKey transformation. It is required for ApiKey
-	// and ignored for AliyunSTS.
+	// ApiKey configures an ApiKey transformation. It is required for ApiKey and
+	// ignored for AliyunSTS. When targetHeaders is set, targetHeaders and value
+	// take precedence and when, targetHeader, and valueTemplate are ignored.
+	// Otherwise, the legacy when, targetHeader, and valueTemplate fields apply
+	// and value is ignored.
+	//
+	// Examples:
+	//
+	// The following example writes the same rendered token value to two fixed
+	// request headers:
+	//
+	//     apiKey:
+	//       targetHeaders:
+	//         names:
+	//         - authorization
+	//         - x-backend-authorization
+	//       value:
+	//         template: "Bearer {{ .Token }}"
+	//
+	// The following example selects every existing request header whose value
+	// is the token placeholder and replaces each matched value with the token:
+	//
+	//     apiKey:
+	//       targetHeaders:
+	//         cel: |
+	//           request.headers.filter(
+	//             name,
+	//             request.headers[name] == "${AGENTIO_TOKEN}"
+	//           )
+	//       value:
+	//         template: "{{ .Token }}"
 	// +optional
 	ApiKey *ApiKeyConfig `json:"apiKey,omitempty"`
 }
@@ -588,21 +664,22 @@ type SecurityRule struct {
 	Actions SecurityRuleActions `json:"actions"`
 }
 
-// ValueSource produces one provider metadata value. Exactly one of Value,
-// Cel, or Template must be set. Value and Template produce strings; Cel may
-// produce any JSON-compatible value.
+// ValueSource produces one configuration value. Exactly one of Value, Cel, or
+// Template must be set. Value and Template produce strings. The containing
+// field documents the evaluation context and required result type for Cel.
 type ValueSource struct {
 	// Value is a static string emitted verbatim.
 	// +optional
 	// +kubebuilder:validation:MaxLength=2048
 	Value *string `json:"value,omitempty"`
-	// Cel is a CEL expression evaluated against the request, Pod, profile,
-	// rule, and inputs context.
+	// Cel is a CEL expression evaluated in the context documented by the
+	// containing field.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Cel *string `json:"cel,omitempty"`
-	// Template is a Go template whose rendered output is the value.
+	// Template is a Go template evaluated in the context documented by the
+	// containing field. Its rendered output is the value.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048

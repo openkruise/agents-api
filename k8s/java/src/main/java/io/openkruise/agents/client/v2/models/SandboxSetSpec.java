@@ -1,9 +1,28 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"persistentContents","replicas","runtimes","scaleStrategy","template","templateRef","updateStrategy","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"pauseStrategy","persistentContents","replicas","runtimes","scaleStrategy","template","templateRef","updateStrategy","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxSetSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
+
+    /**
+     * PauseStrategy configures how sandboxes created from this SandboxSet are
+     * paused when their spec.paused is true. It is copied verbatim onto each
+     * created Sandbox and is part of the update revision hash, so changing it
+     * triggers a rolling update of already-created pool sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("pauseStrategy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PauseStrategy configures how sandboxes created from this SandboxSet are\npaused when their spec.paused is true. It is copied verbatim onto each\ncreated Sandbox and is part of the update revision hash, so changing it\ntriggers a rolling update of already-created pool sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxsetspec.PauseStrategy pauseStrategy;
+
+    public io.openkruise.agents.client.v2.models.sandboxsetspec.PauseStrategy getPauseStrategy() {
+        return pauseStrategy;
+    }
+
+    public void setPauseStrategy(io.openkruise.agents.client.v2.models.sandboxsetspec.PauseStrategy pauseStrategy) {
+        this.pauseStrategy = pauseStrategy;
+    }
 
     /**
      * PersistentContents indicates resume pod with persistent content, Enum: ip, memory, filesystem
