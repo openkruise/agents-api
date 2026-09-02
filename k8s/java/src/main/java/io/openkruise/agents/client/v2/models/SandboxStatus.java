@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"conditions","message","nodeName","observedGeneration","phase","podInfo","recycledCount","sandboxIp","updateRevision"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"conditions","message","nodeName","observedGeneration","phase","podInfo","recycledCount","sandboxIp","schedules","updateRevision"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxStatus implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -134,6 +134,23 @@ public class SandboxStatus implements io.fabric8.kubernetes.api.model.Kubernetes
 
     public void setSandboxIp(String sandboxIp) {
         this.sandboxIp = sandboxIp;
+    }
+
+    /**
+     * Schedules contains upcoming scheduled pause/resume events.
+     * Only populated when Spec.AutoPausePolicy.Pause/Resume is configured.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("schedules")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Schedules contains upcoming scheduled pause/resume events.\nOnly populated when Spec.AutoPausePolicy.Pause/Resume is configured.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.sandboxstatus.Schedules> schedules;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.sandboxstatus.Schedules> getSchedules() {
+        return schedules;
+    }
+
+    public void setSchedules(java.util.List<io.openkruise.agents.client.v2.models.sandboxstatus.Schedules> schedules) {
+        this.schedules = schedules;
     }
 
     /**

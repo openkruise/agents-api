@@ -1,9 +1,31 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"pauseStrategy","persistentContents","replicas","runtimes","scaleStrategy","template","templateRef","updateStrategy","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","pauseStrategy","persistentContents","probes","replicas","runtimes","scaleStrategy","template","templateRef","updateStrategy","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxSetSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
+
+    /**
+     * AutoPausePolicy defines the pause/resume decision rules for sandboxes
+     * created from this SandboxSet. Probe-driven rules reference probes by
+     * name (so they are normally set together with spec.probes); the
+     * OnIngressTraffic resume rule is event-driven and does not require a
+     * probe. The policy is copied verbatim onto each created Sandbox and is
+     * part of the update revision hash, so changing it triggers a rolling
+     * update of already-created pool sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("autoPausePolicy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("AutoPausePolicy defines the pause/resume decision rules for sandboxes\ncreated from this SandboxSet. Probe-driven rules reference probes by\nname (so they are normally set together with spec.probes); the\nOnIngressTraffic resume rule is event-driven and does not require a\nprobe. The policy is copied verbatim onto each created Sandbox and is\npart of the update revision hash, so changing it triggers a rolling\nupdate of already-created pool sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxsetspec.AutoPausePolicy autoPausePolicy;
+
+    public io.openkruise.agents.client.v2.models.sandboxsetspec.AutoPausePolicy getAutoPausePolicy() {
+        return autoPausePolicy;
+    }
+
+    public void setAutoPausePolicy(io.openkruise.agents.client.v2.models.sandboxsetspec.AutoPausePolicy autoPausePolicy) {
+        this.autoPausePolicy = autoPausePolicy;
+    }
 
     /**
      * PauseStrategy configures how sandboxes created from this SandboxSet are
@@ -38,6 +60,25 @@ public class SandboxSetSpec implements io.fabric8.kubernetes.api.model.Kubernete
 
     public void setPersistentContents(java.util.List<String> persistentContents) {
         this.persistentContents = persistentContents;
+    }
+
+    /**
+     * Probes defines the named probes that sandboxes created from this SandboxSet
+     * run while they are Running. It is copied verbatim onto each created Sandbox
+     * and is part of the update revision hash, so changing it triggers a rolling
+     * update of already-created pool sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("probes")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Probes defines the named probes that sandboxes created from this SandboxSet\nrun while they are Running. It is copied verbatim onto each created Sandbox\nand is part of the update revision hash, so changing it triggers a rolling\nupdate of already-created pool sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.sandboxsetspec.Probes> probes;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.sandboxsetspec.Probes> getProbes() {
+        return probes;
+    }
+
+    public void setProbes(java.util.List<io.openkruise.agents.client.v2.models.sandboxsetspec.Probes> probes) {
+        this.probes = probes;
     }
 
     /**
