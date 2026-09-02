@@ -109,7 +109,8 @@ type SandboxSetSpec struct {
 	// and is part of the update revision hash, so changing it triggers a rolling
 	// update of already-created pool sandboxes.
 	// +optional
-	// +listType=atomic
+	// +listType=map
+	// +listMapKey=name
 	Probes []Probe `json:"probes,omitempty"`
 
 	// AutoPausePolicy defines the pause/resume decision rules for sandboxes

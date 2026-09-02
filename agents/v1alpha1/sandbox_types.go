@@ -89,6 +89,8 @@ type SandboxSpec struct {
 	// The controller reads results from Pod.Status.Conditions and mirrors
 	// them to SandboxStatus.Conditions for observability.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	Probes []Probe `json:"probes,omitempty"`
 
 	// AutoPausePolicy defines when the sandbox controller pauses or resumes
@@ -232,6 +234,8 @@ type Probe struct {
 	// Name is the unique identifier for this probe within the sandbox.
 	// Probe results are written to a Condition with type "agents.kruise.io/<Name>".
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MaxLength=299
+	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?$`
 	Name string `json:"name"`
 
 	// ContainerName specifies which container to execute the probe in.

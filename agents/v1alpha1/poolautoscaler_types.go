@@ -59,6 +59,8 @@ type PoolAutoscalerSpec struct {
 	// CronPolicies is a list of potential cron scaling policies which can be used during scaling.
 	// When both CronPolicies and CapacityPolicy are set, CronPolicies takes higher priority.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	CronPolicies []CronScalingPolicy `json:"cronPolicies,omitempty"`
 
 	// CapacityPolicy defines the capacity configuration of the target resource pool.
@@ -161,6 +163,8 @@ type PoolAutoscalerStatus struct {
 
 	// AppliedCronPolicies is the execution status of cron policies.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	AppliedCronPolicies []CronScalingPolicyStatus `json:"appliedCronPolicies,omitempty"`
 
 	// CurrentCapacity is the last read state of the capacity used by this autoscaler.
@@ -224,8 +228,7 @@ type PoolAutoscaler struct {
 	metav1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// Spec defines the desired behavior of the autoscaler.
-	// +optional
-	Spec PoolAutoscalerSpec `json:"spec,omitempty"`
+	Spec PoolAutoscalerSpec `json:"spec"`
 
 	// Status is the current information about the autoscaler.
 	// +optional

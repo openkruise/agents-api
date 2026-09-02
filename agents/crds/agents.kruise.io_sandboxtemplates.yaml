@@ -299,6 +299,8 @@ spec:
                       description: |-
                         Name is the unique identifier for this probe within the sandbox.
                         Probe results are written to a Condition with type "agents.kruise.io/<Name>".
+                      maxLength: 299
+                      pattern: ^[A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?$
                       type: string
                     periodSeconds:
                       description: |-
@@ -356,7 +358,9 @@ spec:
                   - name
                   type: object
                 type: array
-                x-kubernetes-list-type: atomic
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               runtimes:
                 description: Runtimes - Runtime configuration for sandbox object
                 items:

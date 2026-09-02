@@ -57,7 +57,8 @@ type SandboxTemplateSpec struct {
 	// spec.templateRef: SandboxSetSpec.Probes always takes precedence and is what
 	// actually reaches created Sandboxes.
 	// +optional
-	// +listType=atomic
+	// +listType=map
+	// +listMapKey=name
 	Probes []Probe `json:"probes,omitempty"`
 
 	// AutoPausePolicy defines the pause/resume decision rules for sandboxes

@@ -110,6 +110,7 @@ public class Probes implements io.fabric8.kubernetes.api.model.KubernetesResourc
      */
     @com.fasterxml.jackson.annotation.JsonProperty("name")
     @io.fabric8.generator.annotation.Required()
+    @io.fabric8.generator.annotation.Pattern("^[A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?$")
     @com.fasterxml.jackson.annotation.JsonPropertyDescription("Name is the unique identifier for this probe within the sandbox.\nProbe results are written to a Condition with type \"agents.kruise.io/<Name>\".")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String name;
