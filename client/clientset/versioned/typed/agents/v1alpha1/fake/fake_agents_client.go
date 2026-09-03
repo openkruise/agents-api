@@ -44,6 +44,10 @@ func (c *FakeAgentsV1alpha1) GlobalTrafficPolicies() v1alpha1.GlobalTrafficPolic
 	return newFakeGlobalTrafficPolicies(c)
 }
 
+func (c *FakeAgentsV1alpha1) PoolAutoscalers(namespace string) v1alpha1.PoolAutoscalerInterface {
+	return newFakePoolAutoscalers(c, namespace)
+}
+
 func (c *FakeAgentsV1alpha1) Sandboxes(namespace string) v1alpha1.SandboxInterface {
 	return newFakeSandboxes(c, namespace)
 }

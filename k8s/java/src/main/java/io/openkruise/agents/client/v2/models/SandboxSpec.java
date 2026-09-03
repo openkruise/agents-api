@@ -1,15 +1,36 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"lifecycle","pauseStrategy","pauseTime","paused","persistentContents","runtimes","shutdownTime","template","templateRef","upgradePolicy","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","lifecycle","pauseStrategy","pauseTime","paused","persistentContents","probes","runtimes","shutdownTime","template","templateRef","upgradePolicy","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Lifecycle defines lifecycle hooks for sandbox upgrade.
+     * AutoPausePolicy defines when the sandbox controller pauses or resumes
+     * the sandbox. Probe-driven rules reference probes declared in
+     * Spec.Probes and read their results (mirrored from
+     * Pod.Status.Conditions to SandboxStatus.Conditions); the
+     * OnIngressTraffic resume rule is event-driven and does not require a
+     * probe.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("autoPausePolicy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("AutoPausePolicy defines when the sandbox controller pauses or resumes\nthe sandbox. Probe-driven rules reference probes declared in\nSpec.Probes and read their results (mirrored from\nPod.Status.Conditions to SandboxStatus.Conditions); the\nOnIngressTraffic resume rule is event-driven and does not require a\nprobe.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxspec.AutoPausePolicy autoPausePolicy;
+
+    public io.openkruise.agents.client.v2.models.sandboxspec.AutoPausePolicy getAutoPausePolicy() {
+        return autoPausePolicy;
+    }
+
+    public void setAutoPausePolicy(io.openkruise.agents.client.v2.models.sandboxspec.AutoPausePolicy autoPausePolicy) {
+        this.autoPausePolicy = autoPausePolicy;
+    }
+
+    /**
+     * Lifecycle defines lifecycle hooks for sandbox.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("lifecycle")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Lifecycle defines lifecycle hooks for sandbox upgrade.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Lifecycle defines lifecycle hooks for sandbox.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.sandboxspec.Lifecycle lifecycle;
 
@@ -85,6 +106,31 @@ public class SandboxSpec implements io.fabric8.kubernetes.api.model.KubernetesRe
 
     public void setPersistentContents(java.util.List<String> persistentContents) {
         this.persistentContents = persistentContents;
+    }
+
+    /**
+     * Probes defines a list of named probes that run periodically while the sandbox
+     * is Running. Each probe writes its result to a Pod Status Condition with
+     * type "agents.kruise.io/<name>". Probes are generic — their semantics (e.g.,
+     * "activity detection" vs "cron task detection") are defined by
+     * AutoPausePolicy.Pause/Resume, not by the probe itself.
+     *
+     * Probe execution is delegated to the agent-runtime sidecar via the
+     * PodProbeMarker Serverless protocol (kruise.io/podprobe annotation).
+     * The controller reads results from Pod.Status.Conditions and mirrors
+     * them to SandboxStatus.Conditions for observability.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("probes")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Probes defines a list of named probes that run periodically while the sandbox\nis Running. Each probe writes its result to a Pod Status Condition with\ntype \"agents.kruise.io/<name>\". Probes are generic — their semantics (e.g.,\n\"activity detection\" vs \"cron task detection\") are defined by\nAutoPausePolicy.Pause/Resume, not by the probe itself.\n\nProbe execution is delegated to the agent-runtime sidecar via the\nPodProbeMarker Serverless protocol (kruise.io/podprobe annotation).\nThe controller reads results from Pod.Status.Conditions and mirrors\nthem to SandboxStatus.Conditions for observability.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.sandboxspec.Probes> probes;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.sandboxspec.Probes> getProbes() {
+        return probes;
+    }
+
+    public void setProbes(java.util.List<io.openkruise.agents.client.v2.models.sandboxspec.Probes> probes) {
+        this.probes = probes;
     }
 
     /**

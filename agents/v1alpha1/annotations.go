@@ -79,16 +79,6 @@ const (
 	// SandboxHashImmutablePart represents the key of sandbox hash than exclude immutable part of sandbox
 	// e.g. metadata, image and resources
 	SandboxHashImmutablePart = "sandbox.agents.kruise.io/hash-immutable-part"
-
-	// AnnotationWakeOnTraffic enables wake-on-traffic for a paused sandbox.
-	// When set to "true", the sandbox-gateway will attempt to resume the sandbox
-	// by patching Spec.Paused=false when traffic arrives.
-	AnnotationWakeOnTraffic = InternalPrefix + "wake-on-traffic"
-
-	// AnnotationWakeTimeoutSeconds stores the auto-pause timeout (in seconds) to
-	// apply when the sandbox is woken by traffic. The gateway reads this to set
-	// ResumeOptions.Timeout.PauseTime, re-arming auto-pause after wake.
-	AnnotationWakeTimeoutSeconds = InternalPrefix + "wake-timeout-seconds"
 )
 
 // E2B annotations
@@ -114,3 +104,10 @@ const (
 // patches the template and removes this annotation to trigger the actual
 // pod replacement.
 const AnnotationUpgradeResumeTrigger = InternalPrefix + "upgrade-resume-trigger"
+
+// AnnotationPodProbe is the annotation key used by the PodProbeMarker Serverless
+// protocol. The sandbox controller writes probe definitions to this annotation
+// on the Pod, and the agent-runtime sidecar reads them, executes the probes,
+// and writes results to Pod.Status.Conditions.
+// See: https://openkruise.io/docs/user-manuals/podprobemarker#support-for-serverless-scenarios
+const AnnotationPodProbe = "kruise.io/podprobe"

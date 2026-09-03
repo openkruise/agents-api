@@ -94,6 +94,12 @@ for crd_file in "${CRD_SOURCE_DIR}"/*.yaml; do
     ruff format -q "${output_model}"
 done
 
+# ── Regenerate package exports ──────────────────────────────────────────────
+# Rebuild models/__init__.py so newly added CRDs are re-exported
+# automatically (no manual maintenance).
+echo "==> Regenerating models/__init__.py exports..."
+python3 "${PROJECT_ROOT}/k8s/codegen/generate_python_init.py" "${MODELS_DIR}"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 PY_FILE_COUNT=$(find "${MODELS_DIR}" -name '*.py' ! -name '__init__.py' | wc -l | tr -d ' ')
 echo ""

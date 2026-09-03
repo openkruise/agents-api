@@ -68,7 +68,7 @@ agents-api/
   - `github.com/go-bindata/go-bindata` v3.1.2
   - `google.golang.org/protobuf` v1.36.9
 - **Code Generation Tools**:
-  - `controller-gen` v0.16.5 (downloaded to `./bin/`)
+  - `controller-gen` v0.18.0 (downloaded to `./bin/`)
   - `openapi-gen` (version derived from go.mod)
 
 ## Build Commands

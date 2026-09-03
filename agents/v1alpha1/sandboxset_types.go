@@ -24,12 +24,12 @@ import (
 // AnnotationsClearedOnRecycle lists all annotation keys that are removed from a
 // sandbox when it is successfully recycled and returned to the pool. When adding
 // a new annotation that should be cleared during recycle, append it here to avoid
-// missing the recycle in resetMetadataForPool.
+// missing the recycle in resetSandboxForPool.
 //
 // Note: AnnotationUpdatedMetadataInClaim is handled separately because it is
 // consumed before deletion to determine user-specified metadata keys.
 // Annotations from other packages (e.g. identity.AgentKeyTokenRefreshStatus)
-// are handled individually in resetMetadataForPool.
+// are handled individually in resetSandboxForPool.
 var AnnotationsClearedOnRecycle = []string{
 	AnnotationClaimTime,
 	AnnotationLock,
@@ -47,8 +47,6 @@ var AnnotationsClearedOnRecycle = []string{
 	// (header injections, blocks); leaking it across a claim would apply one
 	// tenant's rules — potentially carrying credentials — to another.
 	AnnotationSecurityRules,
-	AnnotationWakeOnTraffic,
-	AnnotationWakeTimeoutSeconds,
 }
 
 // InternalKeysPreservedOnCreation lists internal keys (with the InternalPrefix)
@@ -76,6 +74,13 @@ const (
 	SandboxStateDead      = "dead"
 )
 
+// Reason values reported alongside SandboxState* by utils.GetSandboxState.
+// Exported so downstream controllers can match on them without repeating the
+// hard-coded string literal.
+const (
+	SandboxStateReasonResourcePending = "ResourcePending"
+)
+
 var SandboxSetControllerKind = GroupVersion.WithKind("SandboxSet")
 
 // SandboxSetSpec defines the desired state of SandboxSet
@@ -99,6 +104,26 @@ type SandboxSetSpec struct {
 	// +listType=atomic
 	Runtimes []RuntimeConfig `json:"runtimes,omitempty"`
 
+	// Probes defines the named probes that sandboxes created from this SandboxSet
+	// run while they are Running. It is copied verbatim onto each created Sandbox
+	// and is part of the update revision hash, so changing it triggers a rolling
+	// update of already-created pool sandboxes.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=16
+	Probes []Probe `json:"probes,omitempty"`
+
+	// AutoPausePolicy defines the pause/resume decision rules for sandboxes
+	// created from this SandboxSet. Probe-driven rules reference probes by
+	// name (so they are normally set together with spec.probes); the
+	// OnIngressTraffic resume rule is event-driven and does not require a
+	// probe. The policy is copied verbatim onto each created Sandbox and is
+	// part of the update revision hash, so changing it triggers a rolling
+	// update of already-created pool sandboxes.
+	// +optional
+	AutoPausePolicy *AutoPausePolicy `json:"autoPausePolicy,omitempty"`
+
 	EmbeddedSandboxTemplate `json:",inline"`
 
 	// ScaleStrategy indicates the ScaleStrategy that will be employed to
@@ -113,10 +138,24 @@ type SandboxSetSpec struct {
 
 // SandboxSetScaleStrategy defines strategies for sandboxes scale.
 type SandboxSetScaleStrategy struct {
-	// The maximum number of sandboxes that can be unavailable for scaled sandboxes.
-	// This field can control the changes rate of replicas for SandboxSet so as to minimize the impact for users' service.
-	// The scale will fail if the number of unavailable sandboxes were greater than this MaxUnavailable at scaling up.
-	// MaxUnavailable works only when scaling up.
+	// MaxUnavailable caps concurrent physical scale-up operations and serves as
+	// the startup budget for the ScalingLimited condition. It can be an absolute
+	// number (ex: 5) or a percentage of desired pods (ex: 10%); percentages are
+	// rounded up against spec.replicas. If unset or invalid, the controller uses
+	// the base (equivalent to 100%, i.e. no cap). Scale-down is unaffected.
+	//
+	// The physical scale-up budget is charged by startup blockers: sandboxes
+	// whose Ready condition is False with reason PodCreateFailed or
+	// StartContainerFailed, sandboxes stuck in Creating/ResourcePending past the
+	// configured --max-pending-timeout, and sandbox creations that have been
+	// issued but are not yet observed by the controller (they release their slot
+	// once observed as healthy Creating sandboxes). Healthy observed Creating
+	// sandboxes do NOT count against the budget.
+	//
+	// The ScalingLimited condition becomes True with reason
+	// StartupBudgetExhausted when failed plus pending-timeout sandboxes exhaust
+	// the resolved startup budget.
+	// MaxUnavailable works only for scale-up.
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
 }
 
@@ -138,6 +177,14 @@ type SandboxSetUpdateStrategy struct {
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
 }
 
+// SandboxSetConditionType is a valid value for SandboxSet conditions.
+type SandboxSetConditionType string
+
+const (
+	// SandboxSetConditionScalingLimited indicates whether startup blockers exhaust the scale-up budget.
+	SandboxSetConditionScalingLimited SandboxSetConditionType = "ScalingLimited"
+)
+
 // SandboxSetStatus defines the observed state of SandboxSet.
 type SandboxSetStatus struct {
 	// observedGeneration is the most recent generation observed for this SandboxSet. It corresponds to the
@@ -151,7 +198,8 @@ type SandboxSetStatus struct {
 	AvailableReplicas int32 `json:"availableReplicas"`
 
 	// UpdateRevision is the FNV-32 hash computed from spec.template,
-	// spec.persistentContents, spec.runtimes, and spec.pauseStrategy.
+	// spec.persistentContents, spec.runtimes, spec.pauseStrategy,
+	// spec.probes, and spec.autoPausePolicy.
 	// It represents the latest desired template version.
 	UpdateRevision string `json:"updateRevision,omitempty"`
 

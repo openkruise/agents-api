@@ -32,6 +32,7 @@ type AgentsV1alpha1Interface interface {
 	CommitsGetter
 	GlobalSecurityProfilesGetter
 	GlobalTrafficPoliciesGetter
+	PoolAutoscalersGetter
 	SandboxesGetter
 	SandboxClaimsGetter
 	SandboxSetsGetter
@@ -60,6 +61,10 @@ func (c *AgentsV1alpha1Client) GlobalSecurityProfiles() GlobalSecurityProfileInt
 
 func (c *AgentsV1alpha1Client) GlobalTrafficPolicies() GlobalTrafficPolicyInterface {
 	return newGlobalTrafficPolicies(c)
+}
+
+func (c *AgentsV1alpha1Client) PoolAutoscalers(namespace string) PoolAutoscalerInterface {
+	return newPoolAutoscalers(c, namespace)
 }
 
 func (c *AgentsV1alpha1Client) Sandboxes(namespace string) SandboxInterface {
