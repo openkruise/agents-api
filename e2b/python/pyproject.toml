@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agents-api"
+version = "0.1.0"
+description = "Customized E2B SDK patch that converts the native E2B protocol to the OpenKruise Agents private protocol"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9,<4.0"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "e2b>=2.8.0",
+    "e2b-code-interpreter>=2.4.1",
+    "packaging>=23.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/openkruise/agents-api"
+"Bug Tracker" = "https://github.com/openkruise/agents-api/issues"
+
+[project.optional-dependencies]
+traffic-token-refresh = [
+    "e2b>=2.35.0,<2.38.0",
+    "e2b-code-interpreter>=2.9.0,<2.10.0",
+]
+dev = [
+    "e2b>=2.35.0,<2.38.0",
+    "e2b-code-interpreter>=2.9.0,<2.10.0",
+    "pytest>=6.2.5",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=2.12.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agents_api*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
