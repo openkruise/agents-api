@@ -79,6 +79,11 @@ func main() {
 - **Native**：基于子域名路由，对应原生公网部署
 - **Private**：基于路径前缀（`/kruise/...`）通过统一网关路由，适用于私有化或本地端口转发场景
 
+> 代码解释器（`sb.CodeInterpreter`）使用独立端口（默认 `49999`），因此其 URL 与上表的 Sandbox URL 不同：
+> Native 为 `https://49999-<sandboxID>.<domain>`，Private 为 `<scheme>://<domain>/kruise/<sandboxID>/49999`。
+> 该路由由 `sb.CodeInterpreter` 自动处理，API 用法见
+> [Runtime SDK 代码解释器](https://github.com/openkruise/agents-api/blob/master/runtime/README_zh-CH.md#代码解释器code-interpreter)章节。
+
 #### Scheme（协议头）
 
 | 值                 | 适用场景              |
@@ -98,6 +103,7 @@ func main() {
 | `WithProtocol(p Protocol)`            | 路由协议，默认 `ProtocolNative`                          |
 | `WithAPIURL(url string)`              | **最高优先级**：直接覆盖 API base URL，绕过 Protocol/Domain 拼装 |
 | `WithSandboxBaseURL(url string)`      | **最高优先级**：直接覆盖 sandbox envd base URL              |
+| `WithCodeInterpreterPort(port int)`   | 代码解释器端口，默认 `49999`                              |
 | `WithRequestTimeout(d time.Duration)` | HTTP 请求超时，默认 60s                                  |
 | `WithHTTPClient(client *http.Client)` | 自定义 HTTP 客户端用于 API 请求                            |
 

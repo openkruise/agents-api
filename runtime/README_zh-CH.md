@@ -24,6 +24,8 @@ runtime/
 ├── commands.go                   #   Commands：Run / Start / Kill / SendStdin / List / ConnectToProcess
 ├── command_handle.go             #   CommandHandle：Wait / Disconnect / Kill
 ├── filesystem.go                 #   Filesystem：List / Exists / GetInfo / MakeDir / Rename / Remove / Read / Write
+├── codeinterpreter.go            #   CodeInterpreter：RunCode / RunCodeStreaming / CreateContext / RemoveContext / ListContexts
+├── codeinterpreter_types.go      #   代码解释器类型：Execution / Result / Logs / Context / 事件
 └── envd/                         #   protobuf 生成代码
     ├── process/                  #   envd Process gRPC
     │   ├── process.pb.go
@@ -95,9 +97,11 @@ func main() {
 | `WithScheme(scheme string)`           | URL scheme，默认 `http`             |
 | `WithRuntimeToken(token string)`      | 运行时 Token，写入请求头 `X-Access-Token` |
 | `WithRuntimePort(port int)`           | 运行时端口，默认 `49983`                 |
+| `WithCodeInterpreterPort(port int)`   | 代码解释器端口，默认 `49999`              |
 | `WithAPIKey(apiKey string)`           | 可选 API Key                       |
 | `WithAuthHeader(header string)`       | 覆盖默认的 Authorization 头            |
 | `WithSandboxBaseURL(url string)`      | 完全覆盖 URL 拼装                      |
+| `WithCodeInterpreterBaseURL(url string)` | 覆盖代码解释器 base URL（E2B NATIVE/PRIVATE 协议将端口内嵌在 URL 中） |
 | `WithHeader(key, value string)`       | 添加单个自定义 header                   |
 | `WithHeaders(headers map)`            | 合并多个自定义 headers                  |
 | `WithRequestTimeout(d time.Duration)` | HTTP 超时，默认 60s                   |
@@ -230,3 +234,96 @@ rc, _ := c.Files.ReadStream(ctx, "/tmp/large.log")
 defer rc.Close()
 io.Copy(os.Stdout, rc)
 ```
+
+---
+
+## 代码解释器（Code Interpreter）
+
+通过 `c.CodeInterpreter` 在沙箱内执行代码。代码解释器服务运行在独立端口（默认 `49999`），通过
+`e2b-sandbox-port` 请求头路由；`/execute` 端点以 NDJSON 流返回结果 —— 每行一个 JSON 事件
+（`stdout`、`stderr`、`result`、`error`、`number_of_executions`、`end_of_execution`）。
+
+支持的语言：`python`（默认）、`javascript`、`typescript`、`r`、`java`、`bash`。
+
+### 方法
+
+| 方法                                                              | 说明                                          |
+|-----------------------------------------------------------------|---------------------------------------------|
+| `RunCode(ctx, code, opts...) (*Execution, error)`               | **阻塞执行**：收集所有事件到结构化的 Execution         |
+| `RunCodeStreaming(ctx, code, opts...) error`                    | **流式执行**：通过回调处理事件，低内存占用            |
+| `CreateContext(ctx, cwd, language) (*Context, error)`           | 创建隔离的执行上下文（跨执行保持状态）                 |
+| `ListContexts(ctx) ([]*Context, error)`                         | 列出所有执行上下文                                 |
+| `RemoveContext(ctx, contextID) error`                           | 按 ID 删除执行上下文                              |
+
+### `RunCodeOpts` 字段
+
+```go
+type RunCodeOpts struct {
+Language  string            // python / javascript / typescript / r / java / bash
+Cwd       string            // 工作目录
+Envs      map[string]string // 环境变量
+Timeout   time.Duration     // 服务端执行超时（秒）
+ContextID string            // 在已有上下文中执行（设置后 Language 被忽略）
+OnStdout  func (StdoutEvent)     // 实时 stdout 回调
+OnStderr  func (StderrEvent)     // 实时 stderr 回调
+OnResult  func (*Result)         // 实时结果回调
+OnError   func (*ExecutionError) // 代码抛出错误时的回调
+OnEvent   func (ExecutionEvent)  // 所有事件的回调（含开始/结束）
+}
+```
+
+> 代码本身抛出的错误通过 `Execution.Error` 报告，**不**作为 Go error 返回。Go error 仅用于传输层失败
+> （HTTP 状态码、网络错误、ctx 取消）。
+
+### `Execution` / `Result`
+
+```go
+type Execution struct {
+Results        []*Result      // 所有可展示结果（类似 Jupyter 输出）
+Logs           Logs           // 按到达顺序收集的 Stdout / Stderr
+Error          *ExecutionError // 代码抛出的错误（成功时为 nil）
+ExecutionCount int            // 上下文中的执行次数
+}
+
+type Result struct {
+Text, HTML, Markdown, SVG, PNG, JPEG, PDF, LaTeX, Javascript string
+JSON, Data, Extra map[string]interface{}
+MainResult bool // 是否为主结果（最终结果）
+}
+
+// Formats() 返回 Result 中存在的格式名称列表，
+// 如 ["text", "png"]（与 Java getFormats() / Python formats() 一致）
+res.Formats() []string
+```
+
+### 示例
+
+```go
+// 阻塞执行：聚合结果
+exec, err := c.CodeInterpreter.RunCode(ctx, "import math\nmath.sqrt(16)")
+if err != nil { /* 传输层错误 */ }
+fmt.Println(exec.Text())   // "4.0"
+fmt.Println(exec.Logs.Stdout)
+
+// 选项 + 实时回调（同时仍会聚合）
+exec, err = c.CodeInterpreter.RunCode(ctx, "console.log('hi')", runtime.RunCodeOpts{
+Language: runtime.LanguageJavaScript,
+Envs:     map[string]string{"KEY": "value"},
+Timeout:  30 * time.Second,
+OnStdout: func(e runtime.StdoutEvent) { fmt.Print(e.Text) },
+OnResult: func(res *runtime.Result) { fmt.Println(res.Text) },
+})
+
+// 纯流式：不聚合，恒定内存
+err = c.CodeInterpreter.RunCodeStreaming(ctx, "for i in range(3):\n    print(i)", runtime.RunCodeOpts{
+OnStdout: func(e runtime.StdoutEvent) { fmt.Print(e.Text) },
+})
+
+// 上下文跨执行保持状态（变量、导入）
+ctxObj, _ := c.CodeInterpreter.CreateContext(ctx, "/home/user/proj", runtime.LanguagePython)
+c.CodeInterpreter.RunCode(ctx, "counter = 40", runtime.RunCodeOpts{ContextID: ctxObj.ID})
+exec, _ = c.CodeInterpreter.RunCode(ctx, "counter + 2", runtime.RunCodeOpts{ContextID: ctxObj.ID})
+fmt.Println(exec.Text()) // "42"
+c.CodeInterpreter.RemoveContext(ctx, ctxObj.ID)
+```
+

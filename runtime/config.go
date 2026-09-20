@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	defaultDomain         = "domain.app"
-	defaultScheme         = "http"
-	defaultRequestTimeout = 60 * time.Second
-	defaultRuntimePort    = 49983
-	defaultAuthHeader     = "Basic cm9vdDo="
+	defaultDomain              = "domain.app"
+	defaultScheme              = "http"
+	defaultRequestTimeout      = 60 * time.Second
+	defaultRuntimePort         = 49983
+	defaultCodeInterpreterPort = 49999
+	defaultAuthHeader          = "Basic cm9vdDo="
 )
 
 // Config stores everything needed to address and authenticate against the runtime service.
@@ -26,12 +27,24 @@ type Config struct {
 	Scheme string
 	// RuntimePort is the port the runtime service listens on inside the sandbox.
 	RuntimePort int
+	// CodeInterpreterPort is the port the code-interpreter service listens on
+	// inside the sandbox. Default: 49999. Requests are routed to this port
+	// through the "e2b-sandbox-port" header (see CodeInterpreterHeaders).
+	CodeInterpreterPort int
 	// RuntimeToken is the token used to authenticate with the runtime.
 	RuntimeToken string
 
 	// SandboxBaseURL, when non-empty, fully overrides Protocol/Domain based
 	// URL composition. The final runtime URL is "<SandboxBaseURL>/<sandboxID>".
 	SandboxBaseURL string
+
+	// CodeInterpreterBaseURL, when non-empty, fully overrides the code
+	// interpreter base URL. Useful when the code-interpreter service is
+	// addressed by a different URL than the runtime service (e.g. E2B
+	// NATIVE/PRIVATE protocols embed the port in the URL). When empty,
+	// CodeInterpreterURL falls back to SandboxURL and the port is routed
+	// through the "e2b-sandbox-port" header.
+	CodeInterpreterBaseURL string
 
 	// AuthHeader is the value sent in the "Authorization" header to the runtime service.
 	// Defaults to "Basic cm9vdDo=" (root with empty password) which matches
@@ -73,12 +86,13 @@ type Option func(*Config)
 //	SCHEME     -> Scheme
 func NewConfig(opts ...Option) *Config {
 	cfg := &Config{
-		Domain:         defaultDomain,
-		Scheme:         defaultScheme,
-		RuntimePort:    defaultRuntimePort,
-		AuthHeader:     defaultAuthHeader,
-		Headers:        make(map[string]string),
-		RequestTimeout: defaultRequestTimeout,
+		Domain:              defaultDomain,
+		Scheme:              defaultScheme,
+		RuntimePort:         defaultRuntimePort,
+		CodeInterpreterPort: defaultCodeInterpreterPort,
+		AuthHeader:          defaultAuthHeader,
+		Headers:             make(map[string]string),
+		RequestTimeout:      defaultRequestTimeout,
 	}
 
 	if v := os.Getenv("SCHEME"); v != "" {
@@ -106,6 +120,11 @@ func WithRuntimePort(port int) Option {
 	return func(c *Config) { c.RuntimePort = port }
 }
 
+// WithCodeInterpreterPort sets a custom code-interpreter port (default 49999).
+func WithCodeInterpreterPort(port int) Option {
+	return func(c *Config) { c.CodeInterpreterPort = port }
+}
+
 // WithRuntimeToken sets a runtimeToken.
 func WithRuntimeToken(runtimeToken string) Option {
 	return func(c *Config) { c.RuntimeToken = runtimeToken }
@@ -114,6 +133,13 @@ func WithRuntimeToken(runtimeToken string) Option {
 // WithSandboxBaseURL fully overrides URL composition.
 func WithSandboxBaseURL(url string) Option {
 	return func(c *Config) { c.SandboxBaseURL = url }
+}
+
+// WithCodeInterpreterBaseURL fully overrides the code interpreter base URL.
+// When unset, the code interpreter shares the runtime base URL and the port
+// is routed via the "e2b-sandbox-port" header.
+func WithCodeInterpreterBaseURL(url string) Option {
+	return func(c *Config) { c.CodeInterpreterBaseURL = url }
 }
 
 // WithAuthHeader overrides the default runtime Authorization header.
@@ -170,8 +196,10 @@ func WithConfig(cfg *Config) Option {
 		c.Domain = cfg.Domain
 		c.Scheme = cfg.Scheme
 		c.RuntimePort = cfg.RuntimePort
+		c.CodeInterpreterPort = cfg.CodeInterpreterPort
 		c.RuntimeToken = cfg.RuntimeToken
 		c.SandboxBaseURL = cfg.SandboxBaseURL
+		c.CodeInterpreterBaseURL = cfg.CodeInterpreterBaseURL
 		c.AuthHeader = cfg.AuthHeader
 		c.APIKey = cfg.APIKey
 		c.RequestTimeout = cfg.RequestTimeout
@@ -215,12 +243,52 @@ func (c *Config) SandboxHeaders(sandboxID string) map[string]string {
 		headers["X-Access-Token"] = c.RuntimeToken
 	}
 	headers["e2b-sandbox-id"] = sandboxID
-	headers["e2b-sandbox-port"] = fmt.Sprintf("%d", c.RuntimePort)
+	headers["e2b-sandbox-port"] = fmt.Sprintf("%d", c.runtimePort())
 
 	for k, v := range c.Headers {
 		headers[k] = v
 	}
 	return headers
+}
+
+// CodeInterpreterURL returns the base URL of the code-interpreter service for
+// a given sandbox ID. When CodeInterpreterBaseURL is set (e.g. by the E2B
+// client whose NATIVE/PRIVATE protocols embed the port in the URL), it is
+// returned as-is. Otherwise the code-interpreter service shares the runtime
+// base URL and the port is routed through the "e2b-sandbox-port" header (see
+// CodeInterpreterHeaders).
+func (c *Config) CodeInterpreterURL(sandboxID string) string {
+	if c.CodeInterpreterBaseURL != "" {
+		return c.CodeInterpreterBaseURL
+	}
+	return c.SandboxURL(sandboxID)
+}
+
+// CodeInterpreterHeaders builds the headers sent with every code-interpreter
+// request: the runtime sandbox headers with "e2b-sandbox-port" overridden to
+// CodeInterpreterPort (49999 by default).
+func (c *Config) CodeInterpreterHeaders(sandboxID string) map[string]string {
+	headers := c.SandboxHeaders(sandboxID)
+	headers["e2b-sandbox-port"] = fmt.Sprintf("%d", c.codeInterpreterPort())
+	return headers
+}
+
+// runtimePort returns the configured runtime port, falling back to the
+// default when unset or invalid.
+func (c *Config) runtimePort() int {
+	if c.RuntimePort > 0 {
+		return c.RuntimePort
+	}
+	return defaultRuntimePort
+}
+
+// codeInterpreterPort returns the configured code-interpreter port, falling
+// back to the default when unset or invalid.
+func (c *Config) codeInterpreterPort() int {
+	if c.CodeInterpreterPort > 0 {
+		return c.CodeInterpreterPort
+	}
+	return defaultCodeInterpreterPort
 }
 
 // HTTPClient returns the lazily-initialized shared http.Client.

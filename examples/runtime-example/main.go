@@ -14,15 +14,35 @@ import (
 )
 
 const (
-	sandboxName = "openclaw-advanced-k8s-sbs-lght9"
-	namespace   = "default"
-	gatewayUrl  = "127.0.0.1:7788"
+	// Defaults can be overridden via environment variables so a prebuilt
+	// binary can be pointed at any environment without recompiling:
+	//
+	//	SANDBOX_NAME -> sandboxName
+	//	NAMESPACE    -> namespace
+	//	GATEWAY_URL  -> gatewayUrl
+	defaultSandboxName = "openclaw-advanced-k8s-sbs-lght9"
+	defaultNamespace   = "default"
+	defaultGatewayURL  = "127.0.0.1:7788"
 )
+
+// envOr returns the value of the environment variable key, or fallback when
+// unset or empty.
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 func main() {
 	ctx := context.Background()
 
+	sandboxName := envOr("SANDBOX_NAME", defaultSandboxName)
+	namespace := envOr("NAMESPACE", defaultNamespace)
+	gatewayUrl := envOr("GATEWAY_URL", defaultGatewayURL)
+
 	fmt.Println("\n========== runtime direct client example ==========")
+	fmt.Printf("Config: namespace=%s, sandbox=%s, gateway=%s\n", namespace, sandboxName, gatewayUrl)
 
 	// Build a runtime client directly from the K8s Sandbox CR.
 	// NewFromK8s automatically resolves sandboxID and runtimeToken.
@@ -52,6 +72,10 @@ func main() {
 	// ========== 3. ReadStream Demo ==========
 	fmt.Println("\n--- Filesystem ReadStream Demo ---")
 	testReadStream(ctx, c.Files)
+
+	// ========== 4. CodeInterpreter Demo ==========
+	fmt.Println("\n--- CodeInterpreter Demo ---")
+	demonstrateCodeInterpreter(ctx, c.CodeInterpreter)
 
 	fmt.Println("\n========== done ==========")
 }
@@ -214,6 +238,103 @@ func testReadStream(ctx context.Context, files *runtime.Filesystem) {
 	files.Remove(ctx, testPath)
 	files.Remove(ctx, largePath)
 	fmt.Println("    Cleaned up")
+}
+
+// demonstrateCodeInterpreter exercises the CodeInterpreter API surface:
+// blocking RunCode with aggregated results, streaming callbacks, and
+// context lifecycle management.
+func demonstrateCodeInterpreter(ctx context.Context, codeInterpreter *runtime.CodeInterpreter) {
+	// 1. Run Python code (default language) and collect everything.
+	fmt.Println("\n[1] Running Python code (blocking, aggregated Execution)...")
+	code := "import math\n" +
+		"print('hello from code interpreter')\n" +
+		"math.sqrt(16)"
+	exec, err := codeInterpreter.RunCode(ctx, code)
+	if err != nil {
+		fmt.Printf("    Error: %v\n", err)
+		return
+	}
+	fmt.Printf("    ExecutionCount: %d\n", exec.ExecutionCount)
+	fmt.Printf("    Stdout: %v\n", exec.Logs.Stdout)
+	fmt.Printf("    Main result: %s\n", exec.Text())
+	if exec.Error != nil {
+		fmt.Printf("    Code error: %s: %s\n", exec.Error.Name, exec.Error.Value)
+	}
+
+	// 2. Run with options: language, cwd, env vars, timeout and streaming callbacks.
+	fmt.Println("\n[2] Running with options and streaming callbacks...")
+	exec, err = codeInterpreter.RunCode(ctx, "console.log('js hello, ' + process.env.GREETING)", runtime.RunCodeOpts{
+		Language: runtime.LanguageJavaScript,
+		Envs:     map[string]string{"GREETING": "from Go SDK"},
+		Timeout:  30 * time.Second,
+		OnStdout: func(e runtime.StdoutEvent) { fmt.Printf("    [stdout] %s", e.Text) },
+		OnStderr: func(e runtime.StderrEvent) { fmt.Printf("    [stderr] %s", e.Text) },
+		OnResult: func(res *runtime.Result) { fmt.Printf("    [result] %s\n", res.Text) },
+		OnError:  func(e *runtime.ExecutionError) { fmt.Printf("    [error] %s: %s\n", e.Name, e.Value) },
+	})
+	if err != nil {
+		fmt.Printf("    Error: %v\n", err)
+		return
+	}
+	fmt.Printf("    Results: %d, code error: %v\n", len(exec.Results), exec.Error != nil)
+
+	// 3. Pure streaming: process events as they arrive without aggregation.
+	fmt.Println("\n[3] Streaming execution (low memory, no aggregation)...")
+	err = codeInterpreter.RunCodeStreaming(ctx, "for i in range(3):\n    print(f'line {i}')", runtime.RunCodeOpts{
+		OnStdout: func(e runtime.StdoutEvent) { fmt.Printf("    [stream] %s", e.Text) },
+	})
+	if err != nil {
+		fmt.Printf("    Error: %v\n", err)
+	}
+
+	// 4. Context lifecycle: create, run inside, list, remove.
+	fmt.Println("\n[4] Context management...")
+	created, err := codeInterpreter.CreateContext(ctx, "/home/user/proj", runtime.LanguagePython)
+	if err != nil {
+		fmt.Printf("    CreateContext error: %v\n", err)
+		return
+	}
+	fmt.Printf("    Created context: ID=%s, language=%s, cwd=%s\n", created.ID, created.Language, created.Cwd)
+
+	// Variables persist inside a context across runs.
+	if _, err := codeInterpreter.RunCode(ctx, "counter = 40", runtime.RunCodeOpts{ContextID: created.ID}); err != nil {
+		fmt.Printf("    RunCode error: %v\n", err)
+	}
+	exec, err = codeInterpreter.RunCode(ctx, "counter + 2", runtime.RunCodeOpts{ContextID: created.ID})
+	if err != nil {
+		fmt.Printf("    RunCode error: %v\n", err)
+	} else {
+		fmt.Printf("    Context state persists: counter + 2 = %s\n", exec.Text())
+	}
+
+	contexts, err := codeInterpreter.ListContexts(ctx)
+	if err != nil {
+		fmt.Printf("    ListContexts error: %v\n", err)
+	} else {
+		fmt.Printf("    Contexts: %d\n", len(contexts))
+		for _, c := range contexts {
+			fmt.Printf("      - ID=%s, language=%s, cwd=%s\n", c.ID, c.Language, c.Cwd)
+		}
+	}
+
+	if err := codeInterpreter.RemoveContext(ctx, created.ID); err != nil {
+		fmt.Printf("    RemoveContext error: %v\n", err)
+	} else {
+		fmt.Println("    Context removed")
+	}
+
+	// 5. Error surfaced as Execution.Error, not a Go error.
+	fmt.Println("\n[5] Running failing code (error is reported in Execution)...")
+	exec, err = codeInterpreter.RunCode(ctx, "raise ValueError('boom')")
+	if err != nil {
+		fmt.Printf("    Error: %v\n", err)
+		return
+	}
+	if exec.Error != nil {
+		fmt.Printf("    Code error: %s: %s\n", exec.Error.Name, exec.Error.Value)
+	} else {
+		fmt.Println("    No code error reported")
+	}
 }
 
 // demonstrateCommandOperations exercises the Commands API surface.

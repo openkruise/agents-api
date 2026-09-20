@@ -23,11 +23,12 @@ const (
 )
 
 const (
-	defaultDomain         = "your.domain.com"
-	defaultScheme         = "https"
-	defaultRequestTimeout = 60 * time.Second
-	defaultSandboxTimeout = 300 // seconds
-	defaultRuntimePort    = 49983
+	defaultDomain              = "your.domain.com"
+	defaultScheme              = "https"
+	defaultRequestTimeout      = 60 * time.Second
+	defaultSandboxTimeout      = 300 // seconds
+	defaultRuntimePort         = 49983
+	defaultCodeInterpreterPort = 49999
 )
 
 // ConnectionConfig stores the configuration for connecting to E2B services.
@@ -52,6 +53,10 @@ type ConnectionConfig struct {
 	RequestTimeout time.Duration
 	// RuntimePort is the port for the runtime service inside the sandbox.
 	RuntimePort int
+	// CodeInterpreterPort is the port for the code-interpreter service inside
+	// the sandbox. Default: 49999. Unlike the runtime URL, the code
+	// interpreter URL embeds this port (see GetCodeInterpreterURL).
+	CodeInterpreterPort int
 	// Headers contains additional headers to send with sandbox requests.
 	Headers map[string]string
 	// HTTPClient is a custom HTTP client to use for API requests.
@@ -66,12 +71,13 @@ type ConnectionConfig struct {
 // NewConnectionConfig creates a new ConnectionConfig with defaults and environment variable fallback.
 func NewConnectionConfig(opts ...ConnectionConfigOption) *ConnectionConfig {
 	config := &ConnectionConfig{
-		Domain:         defaultDomain,
-		Scheme:         defaultScheme,
-		Protocol:       ProtocolNative,
-		RequestTimeout: defaultRequestTimeout,
-		RuntimePort:    defaultRuntimePort,
-		Headers:        make(map[string]string),
+		Domain:              defaultDomain,
+		Scheme:              defaultScheme,
+		Protocol:            ProtocolNative,
+		RequestTimeout:      defaultRequestTimeout,
+		RuntimePort:         defaultRuntimePort,
+		CodeInterpreterPort: defaultCodeInterpreterPort,
+		Headers:             make(map[string]string),
 	}
 
 	// Apply environment variable defaults
@@ -162,6 +168,13 @@ func WithSandboxBaseURL(sandboxBaseURL string) ConnectionConfigOption {
 	}
 }
 
+// WithCodeInterpreterPort sets a custom code interpreter port (default 49999).
+func WithCodeInterpreterPort(port int) ConnectionConfigOption {
+	return func(c *ConnectionConfig) {
+		c.CodeInterpreterPort = port
+	}
+}
+
 // WithHTTPClient sets a custom HTTP client for API requests.
 func WithHTTPClient(httpClient *http.Client) ConnectionConfigOption {
 	return func(c *ConnectionConfig) {
@@ -187,10 +200,50 @@ func (c *ConnectionConfig) GetSandboxURL(sandboxID string) string {
 		return fmt.Sprintf("%s/%s", c.SandboxBaseURL, sandboxID)
 	}
 	scheme := c.getScheme()
+	port := c.runtimePort()
 	if c.Protocol == ProtocolPrivate {
-		return fmt.Sprintf("%s://%s/kruise/%s/%d", scheme, c.Domain, sandboxID, c.RuntimePort)
+		return fmt.Sprintf("%s://%s/kruise/%s/%d", scheme, c.Domain, sandboxID, port)
 	}
-	return fmt.Sprintf("%s://%d-%s.%s", scheme, c.RuntimePort, sandboxID, c.Domain)
+	return fmt.Sprintf("%s://%d-%s.%s", scheme, port, sandboxID, c.Domain)
+}
+
+// GetCodeInterpreterURL returns the code-interpreter URL for a given sandbox.
+// Unlike the runtime URL, the code-interpreter port is embedded in the URL
+// (the two services listen on different ports):
+//
+//	NATIVE : <scheme>://<codeInterpreterPort>-<sandboxID>.<domain>
+//	PRIVATE: <scheme>://<domain>/kruise/<sandboxID>/<codeInterpreterPort>
+//
+// When SandboxBaseURL is set, it takes priority and the same gateway URL as
+// GetSandboxURL is returned (port routing via the "e2b-sandbox-port" header).
+func (c *ConnectionConfig) GetCodeInterpreterURL(sandboxID string) string {
+	if c.SandboxBaseURL != "" {
+		return fmt.Sprintf("%s/%s", c.SandboxBaseURL, sandboxID)
+	}
+	scheme := c.getScheme()
+	port := c.codeInterpreterPort()
+	if c.Protocol == ProtocolPrivate {
+		return fmt.Sprintf("%s://%s/kruise/%s/%d", scheme, c.Domain, sandboxID, port)
+	}
+	return fmt.Sprintf("%s://%d-%s.%s", scheme, port, sandboxID, c.Domain)
+}
+
+// runtimePort returns the configured runtime port, falling back to the
+// default when unset or invalid.
+func (c *ConnectionConfig) runtimePort() int {
+	if c.RuntimePort > 0 {
+		return c.RuntimePort
+	}
+	return defaultRuntimePort
+}
+
+// codeInterpreterPort returns the configured code-interpreter port, falling
+// back to the default when unset or invalid.
+func (c *ConnectionConfig) codeInterpreterPort() int {
+	if c.CodeInterpreterPort > 0 {
+		return c.CodeInterpreterPort
+	}
+	return defaultCodeInterpreterPort
 }
 
 // getScheme returns the URL scheme, defaulting to "https".
@@ -216,6 +269,12 @@ func (c *ConnectionConfig) toEnvdConfig(sandboxID string) *runtime.Config {
 	// Pre-compute the full sandbox URL using the Protocol-aware logic so
 	// the envd client can use it directly without knowing about Protocol.
 	cfg.SandboxBaseURL = c.GetSandboxURL(sandboxID)
+
+	// The code-interpreter service runs on its own port (49999): its URL
+	// embeds that port instead of the runtime port. Propagate both the URL
+	// and the port (sent as the "e2b-sandbox-port" header on requests).
+	cfg.CodeInterpreterBaseURL = c.GetCodeInterpreterURL(sandboxID)
+	cfg.CodeInterpreterPort = c.codeInterpreterPort()
 
 	if len(c.Headers) > 0 {
 		cfg.Headers = make(map[string]string, len(c.Headers))

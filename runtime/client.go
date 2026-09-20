@@ -8,12 +8,15 @@ import (
 )
 
 // Client talks directly to the runtime service of a single sandbox,
-// exposing in-sandbox capabilities (Files, Commands).
+// exposing in-sandbox capabilities (Files, Commands, CodeInterpreter).
 type Client struct {
 	// Commands provides command execution in the sandbox.
 	Commands *Commands
 	// Files provides filesystem operations in the sandbox.
 	Files *Filesystem
+	// CodeInterpreter provides code execution in the sandbox via the
+	// code-interpreter service (port 49999 by default).
+	CodeInterpreter *CodeInterpreter
 
 	sandboxID  string
 	config     *Config
@@ -40,13 +43,17 @@ func NewWithConfig(sandboxID string, cfg *Config) *Client {
 	fsRPC := filesystemconnect.NewFilesystemClient(httpClient, runtimeURL)
 	procRPC := processconnect.NewProcessClient(httpClient, runtimeURL)
 
+	codeInterpreterURL := cfg.CodeInterpreterURL(sandboxID)
+	codeInterpreterHeaders := cfg.CodeInterpreterHeaders(sandboxID)
+
 	return &Client{
-		Commands:   NewCommands(procRPC, headers),
-		Files:      NewFilesystem(fsRPC, httpClient, streamingClient, runtimeURL, headers),
-		sandboxID:  sandboxID,
-		config:     cfg,
-		runtimeURL: runtimeURL,
-		httpClient: httpClient,
+		Commands:        NewCommands(procRPC, headers),
+		Files:           NewFilesystem(fsRPC, httpClient, streamingClient, runtimeURL, headers),
+		CodeInterpreter: NewCodeInterpreter(httpClient, streamingClient, codeInterpreterURL, codeInterpreterHeaders),
+		sandboxID:       sandboxID,
+		config:          cfg,
+		runtimeURL:      runtimeURL,
+		httpClient:      httpClient,
 	}
 }
 

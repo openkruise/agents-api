@@ -82,6 +82,12 @@ Connection behavior is controlled by `ConnectionConfig`, determined by two ortho
 - **Private**: Path-prefix routing (`/kruise/...`) via a unified gateway, suitable for private deployments or local
   port-forwarding
 
+> The code interpreter (`sb.CodeInterpreter`) uses its own port (default `49999`), so its URL differs from the sandbox
+> URL above: `https://49999-<sandboxID>.<domain>` (Native) or `<scheme>://<domain>/kruise/<sandboxID>/49999` (Private).
+> This is handled automatically by `sb.CodeInterpreter` — see
+> the [Runtime SDK Code Interpreter](https://github.com/openkruise/agents-api/blob/master/runtime/README.md#code-interpreter)
+> section for the API surface.
+
 #### Scheme
 
 | Value                   | Use Case                                 |
@@ -101,6 +107,7 @@ Applied via `e2b.NewConnectionConfig(opts...)` or embedded in `Create/Connect` w
 | `WithProtocol(p Protocol)`            | Routing protocol, defaults to `ProtocolNative`                 |
 | `WithAPIURL(url string)`              | **Highest priority**: directly overrides API base URL          |
 | `WithSandboxBaseURL(url string)`      | **Highest priority**: directly overrides sandbox envd base URL |
+| `WithCodeInterpreterPort(port int)`   | Code interpreter port, defaults to `49999`                     |
 | `WithRequestTimeout(d time.Duration)` | HTTP request timeout, defaults to 60s                          |
 | `WithHTTPClient(client *http.Client)` | Custom HTTP client for API requests                            |
 

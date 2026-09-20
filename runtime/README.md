@@ -24,6 +24,8 @@ runtime/
 ├── commands.go                   #   Commands: Run / Start / Kill / SendStdin / List / ConnectToProcess
 ├── command_handle.go             #   CommandHandle: Wait / Disconnect / Kill
 ├── filesystem.go                 #   Filesystem: List / Exists / GetInfo / MakeDir / Rename / Remove / Read / Write
+├── codeinterpreter.go            #   CodeInterpreter: RunCode / RunCodeStreaming / CreateContext / RemoveContext / ListContexts
+├── codeinterpreter_types.go      #   Code Interpreter types: Execution / Result / Logs / Context / events
 └── envd/                         #   protobuf generated code
     ├── process/                  #   envd Process gRPC
     │   ├── process.pb.go
@@ -99,9 +101,11 @@ The runtime client **does not involve Protocol** — only `Scheme` + `Domain` ar
 | `WithScheme(scheme string)`           | URL scheme, defaults to `http`                 |
 | `WithRuntimeToken(token string)`      | Runtime token, sent as `X-Access-Token` header |
 | `WithRuntimePort(port int)`           | Runtime port, defaults to `49983`              |
+| `WithCodeInterpreterPort(port int)`   | Code interpreter port, defaults to `49999`     |
 | `WithAPIKey(apiKey string)`           | Optional API Key                               |
 | `WithAuthHeader(header string)`       | Override default Authorization header          |
 | `WithSandboxBaseURL(url string)`      | Completely override URL assembly               |
+| `WithCodeInterpreterBaseURL(url string)` | Override code interpreter base URL (E2B NATIVE/PRIVATE embed the port in the URL) |
 | `WithHeader(key, value string)`       | Add a single custom header                     |
 | `WithHeaders(headers map)`            | Merge multiple custom headers                  |
 | `WithRequestTimeout(d time.Duration)` | HTTP timeout, defaults to 60s                  |
@@ -235,3 +239,96 @@ rc, _ := c.Files.ReadStream(ctx, "/tmp/large.log")
 defer rc.Close()
 io.Copy(os.Stdout, rc)
 ```
+
+---
+
+## Code Interpreter
+
+Execute code inside the sandbox via `c.CodeInterpreter`. The code-interpreter service runs on its own port (default
+`49999`) routed through the `e2b-sandbox-port` header, and the `/execute` endpoint answers with an NDJSON stream — each
+line is one JSON event (`stdout`, `stderr`, `result`, `error`, `number_of_executions`, `end_of_execution`).
+
+Supported languages: `python` (default), `javascript`, `typescript`, `r`, `java`, `bash`.
+
+### Methods
+
+| Method                                                                            | Description                                                          |
+|-------------------------------------------------------------------|----------------------------------------------------------------------|
+| `RunCode(ctx, code, opts...) (*Execution, error)`                 | **Blocking**: collect all events into a structured Execution         |
+| `RunCodeStreaming(ctx, code, opts...) error`                      | **Streaming**: process events via callbacks, low memory footprint    |
+| `CreateContext(ctx, cwd, language) (*Context, error)`             | Create an isolated execution context (persistent state across runs)  |
+| `ListContexts(ctx) ([]*Context, error)`                           | List all execution contexts                                          |
+| `RemoveContext(ctx, contextID) error`                             | Remove an execution context by ID                                    |
+
+### `RunCodeOpts` Fields
+
+```go
+type RunCodeOpts struct {
+Language  string            // python / javascript / typescript / r / java / bash
+Cwd       string            // Working directory
+Envs      map[string]string // Environment variables
+Timeout   time.Duration     // Server-side execution timeout (seconds)
+ContextID string            // Execute inside an existing context (overrides Language)
+OnStdout  func (StdoutEvent)  // Real-time stdout callback
+OnStderr  func (StderrEvent)  // Real-time stderr callback
+OnResult  func (*Result)      // Real-time result callback
+OnError   func (*ExecutionError) // Callback when the code raises an error
+OnEvent   func (ExecutionEvent)  // Callback for every event (including start/end)
+}
+```
+
+> An error raised by the executed code is reported through `Execution.Error`, not as a Go error. Go errors are reserved
+> for transport-level failures (HTTP status, network, ctx cancellation).
+
+### `Execution` / `Result`
+
+```go
+type Execution struct {
+Results        []*Result      // All displayable results (Jupyter-like output)
+Logs           Logs           // Stdout / Stderr chunks in arrival order
+Error          *ExecutionError // Error raised by the code (nil on success)
+ExecutionCount int            // Number of executions in the context
+}
+
+type Result struct {
+Text, HTML, Markdown, SVG, PNG, JPEG, PDF, LaTeX, Javascript string
+JSON, Data, Extra map[string]interface{}
+MainResult bool // true for the main (final) result
+}
+
+// Formats() returns the names of the formats present in the Result,
+// e.g. ["text", "png"] (same as Java getFormats() / Python formats())
+res.Formats() []string
+```
+
+### Examples
+
+```go
+// Blocking execution: aggregated result
+exec, err := c.CodeInterpreter.RunCode(ctx, "import math\nmath.sqrt(16)")
+if err != nil { /* transport error */ }
+fmt.Println(exec.Text())   // "4.0"
+fmt.Println(exec.Logs.Stdout)
+
+// Options + real-time callbacks (aggregation still happens)
+exec, err = c.CodeInterpreter.RunCode(ctx, "console.log('hi')", runtime.RunCodeOpts{
+Language: runtime.LanguageJavaScript,
+Envs:     map[string]string{"KEY": "value"},
+Timeout:  30 * time.Second,
+OnStdout: func(e runtime.StdoutEvent) { fmt.Print(e.Text) },
+OnResult: func(res *runtime.Result) { fmt.Println(res.Text) },
+})
+
+// Pure streaming: no aggregation, constant memory
+err = c.CodeInterpreter.RunCodeStreaming(ctx, "for i in range(3):\n    print(i)", runtime.RunCodeOpts{
+OnStdout: func(e runtime.StdoutEvent) { fmt.Print(e.Text) },
+})
+
+// Contexts keep state (variables, imports) across runs
+ctxObj, _ := c.CodeInterpreter.CreateContext(ctx, "/home/user/proj", runtime.LanguagePython)
+c.CodeInterpreter.RunCode(ctx, "counter = 40", runtime.RunCodeOpts{ContextID: ctxObj.ID})
+exec, _ = c.CodeInterpreter.RunCode(ctx, "counter + 2", runtime.RunCodeOpts{ContextID: ctxObj.ID})
+fmt.Println(exec.Text()) // "42"
+c.CodeInterpreter.RemoveContext(ctx, ctxObj.ID)
+```
+
