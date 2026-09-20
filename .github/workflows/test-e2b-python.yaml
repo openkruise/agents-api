@@ -1,0 +1,52 @@
+name: E2B Python Patch Tests
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - release-*
+    paths:
+      - 'e2b/python/**'
+      - 'Makefile'
+      - '.github/workflows/test-e2b-python.yaml'
+  pull_request:
+    paths:
+      - 'e2b/python/**'
+      - 'Makefile'
+      - '.github/workflows/test-e2b-python.yaml'
+  workflow_dispatch: {}
+
+permissions: read-all
+
+jobs:
+  unit-tests:
+    name: pytest (e2b ${{ matrix.e2b }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with the supported range enforced by
+        # e2b/python/agents_api/patch_traffic_token.py (_check_compatibility).
+        e2b: ["2.35.0", "2.36.0", "2.37.0", "2.37.1"]
+        include:
+          # Oldest supported SDK combination.
+          - e2b: "2.35.0"
+            code-interpreter: "2.9.0"
+          # Lower Python bound for the traffic-token patch (needs 3.10+).
+          - e2b: "2.37.1"
+            python: "3.10"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python || '3.11' }}
+
+      - name: Run unit tests
+        run: |
+          make test-e2b-patch \
+            E2B_VERSION=${{ matrix.e2b }} \
+            CODE_INTERPRETER_VERSION=${{ matrix.code-interpreter }}

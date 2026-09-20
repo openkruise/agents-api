@@ -60,6 +60,25 @@ if __name__ == "__main__":
         sbx.run_code("print('hello world')")
 ```
 
+## API Key Compatibility
+
+Official E2B SDKs validate the API key format locally. To feed a raw OpenKruise
+Agents API key to such a client, wrap it first:
+
+```python
+from agents_api.keys import encode_for_e2b_sdk
+
+api_key = encode_for_e2b_sdk("5b14a58f-93f4-4d3e-9a92-2f3e0e1a9e33")
+```
+
+The encoding is byte-for-byte compatible with the server-side implementation
+in the sandbox-manager repository (`pkg/servers/e2b/keys/compat.go` in
+openkruise/agents — the same file `agents_api/keys.py` must stay in sync
+with); `tests/test_keys.py` locks the format with golden values.
+`patch_e2b(validate_key=False)` bypasses the local format check
+instead, so this helper is only needed for clients that keep validation
+enabled.
+
 ## Traffic JWT Refresh
 
 Traffic JWT refresh is an independent, opt-in monkey patch. It requires Python
@@ -112,3 +131,19 @@ token expires.
 Deploy the lazy-Connect SDK behavior before upgrading sandbox-manager to a
 version that no longer issues Traffic JWTs from Connect. Older clients cannot
 recover a missing token when reconnecting by Sandbox ID.
+
+## Development
+
+Run the unit test suite with the dev extra:
+
+```bash
+cd e2b/python
+pip install -e ".[dev]"
+pytest tests/ -v
+```
+
+To exercise a specific SDK combination, pin either version:
+`make test-e2b-patch E2B_VERSION=2.35.0 CODE_INTERPRETER_VERSION=2.9.0` from
+the repository root. CI (`.github/workflows/test-e2b-python.yaml`) runs the
+suite against every e2b version in the supported range on each pull request.
+

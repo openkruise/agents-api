@@ -1,3 +1,21 @@
+"""Refresh Traffic JWTs before expiration by monkey-patching the E2B SDK.
+
+This patch rewrites E2B SDK internals process-wide: ``SandboxBase.__init__``
+and its ``traffic_access_token`` property, envd ``build_interceptors``, the
+sync ``Filesystem``/``Commands``/``Pty`` client factories, the async sandbox
+``__init__``, the Jupyter ``_client`` properties, and the ``connect`` /
+``_cls_connect_sandbox`` entry points (including in-place mutation of the
+``class_method_variant`` descriptors). It is therefore tightly coupled to the
+e2b / e2b-code-interpreter versions enforced by ``_check_compatibility()``.
+
+Because the patched surface is SDK-private, an upstream release that
+reshuffles these internals can break the patch in ways the compatibility check
+cannot catch. When bumping the supported range — or any upstream minor —
+re-run the pytest suite under ``tests/`` against every e2b version in the new
+range; ``.github/workflows/test-e2b-python.yaml`` runs exactly that matrix on
+every pull request.
+"""
+
 from __future__ import annotations
 
 import inspect

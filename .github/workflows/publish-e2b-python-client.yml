@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release'
+        description: 'Version to release (e.g. 0.1.0)'
         required: true
         default: '0.1.0'
         type: string
@@ -12,25 +12,61 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # One-time setup required before the first run:
+    # 1. Create a protected "pypi" environment (repo Settings → Environments)
+    #    and add required reviewers so releases need an approval gate.
+    # 2. Configure Trusted Publishing on PyPI for this repository and this
+    #    workflow file name (pypi.org → Manage project → Publishing). After
+    #    that no PYPI_API_TOKEN secret is needed.
+    environment: pypi
     permissions:
       contents: read
+      # OIDC token for PyPI Trusted Publishing.
+      id-token: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install build tools
-        run: pip install build twine
+        run: pip install build
+
+      - name: Validate version input
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version must be a plain X.Y.Z string (optional leading v), got '$VERSION'"
+            exit 1
+          fi
+        env:
+          VERSION: ${{ github.event.inputs.version }}
 
       - name: Update version in pyproject.toml
         run: |
           cd e2b/python
-          sed -i "s/version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+          python - <<'EOF'
+          import os
+          import re
+
+          version = os.environ["VERSION"].removeprefix("v")
+          with open("pyproject.toml", encoding="utf-8") as f:
+              content = f.read()
+          if len(re.findall(r'^version = "[^"]*"$', content, flags=re.MULTILINE)) != 1:
+              raise SystemExit("pyproject.toml must contain exactly one version field")
+          content = re.sub(
+              r'^version = "[^"]*"$',
+              f'version = "{version}"',
+              content,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          with open("pyproject.toml", "w", encoding="utf-8", newline="\n") as f:
+              f.write(content)
+          EOF
         env:
           VERSION: ${{ github.event.inputs.version }}
 
@@ -40,15 +76,13 @@ jobs:
           python -m build
 
       - name: Publish to PyPI
-        run: |
-          cd e2b/python
-          twine upload dist/* --username __token__
-        env:
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: e2b/python/dist
 
       - name: Upload build artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: e2b-python-client-artifacts
           path: e2b/python/dist/*
