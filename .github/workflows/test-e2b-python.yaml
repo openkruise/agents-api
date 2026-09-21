@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         # Keep in sync with the supported range enforced by
-        # e2b/python/agents_api/patch_traffic_token.py (_check_compatibility).
+        # e2b/python/kruise_agents/patch_traffic_token.py (_check_compatibility).
         e2b: ["2.35.0", "2.36.0", "2.37.0", "2.37.1"]
         include:
           # Oldest supported SDK combination.

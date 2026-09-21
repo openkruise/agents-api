@@ -25,9 +25,9 @@ import httpx
 
 from e2b_code_interpreter import Sandbox
 
-import agents_api.patch_traffic_token as patch_module
-from agents_api.patch_e2b import patch_e2b
-from agents_api.traffic_token import TrafficAccessToken, parse_expiration
+import kruise_agents.patch_traffic_token as patch_module
+from kruise_agents.patch_e2b import patch_e2b
+from kruise_agents.traffic_token import TrafficAccessToken, parse_expiration
 
 # https=True when SSL_CERT_FILE is set; validate_key=False bypasses E2B's local
 # key format check (same setup as demo.py).
@@ -93,7 +93,7 @@ def client_with_traffic_jwt(sandbox: Sandbox, token: str) -> Sandbox:
 
 
 def describe_token(token: str) -> str:
-    from agents_api.traffic_token import expiration_from_jwt
+    from kruise_agents.traffic_token import expiration_from_jwt
 
     expires_at, issued_at = expiration_from_jwt(token)
     issued = f", issued {issued_at:%H:%M:%S}" if issued_at else ""

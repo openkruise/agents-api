@@ -143,7 +143,7 @@ cleanup-test-e2e:
 # Pin either variable to test a specific SDK combination, for example:
 #   make test-e2b-patch E2B_VERSION=2.35.0 CODE_INTERPRETER_VERSION=2.9.0
 # Unpinned runs resolve the newest versions allowed by the dev extra. Keep the
-# pin ranges in sync with e2b/python/agents_api/patch_traffic_token.py
+# pin ranges in sync with e2b/python/kruise_agents/patch_traffic_token.py
 # (_check_compatibility); CI exercises the full matrix in
 # .github/workflows/test-e2b-python.yaml.
 .PHONY: test-e2b-patch

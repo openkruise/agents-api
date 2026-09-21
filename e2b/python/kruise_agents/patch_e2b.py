@@ -38,6 +38,16 @@ def __jupyter_url_http(self) -> str:
 def patch_e2b(https: bool = True, validate_key: bool = True):
     """
     patch e2b sdk to use kruise private protocol
+
+    Rewrites every URL the SDK builds, in memory (no E2B code is modified
+    on disk):
+
+    - Management API: ``{scheme}://{E2B_DOMAIN}/kruise/api``
+    - Sandbox data plane (envd, Jupyter):
+      ``{scheme}://{sandbox_domain}/kruise/{sandbox_id}/{port}``
+
+    where ``scheme`` is ``https`` by default, ``http`` when ``https=False``.
+
     :param https: Use https to connect to sandbox-manager
     :param validate_key: Set to false to disable api key validation. Only works for e2b>=2.25.0, other versions may cause an error
     :return: None

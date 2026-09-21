@@ -1,4 +1,4 @@
-"""Golden-value tests for agents_api.keys.
+"""Golden-value tests for kruise_agents.keys.
 
 The expected strings lock the byte-for-byte wire format that the server-side
 compat layer (pkg/servers/e2b/keys/compat.go in the openkruise/agents
@@ -6,12 +6,12 @@ sandbox-manager — the implementation keys.py must stay in sync with) must
 keep producing. Regenerate additions:
 
     cd e2b/python && python -c \
-        "from agents_api.keys import encode_for_e2b_sdk as e; print(e('raw'))"
+        "from kruise_agents.keys import encode_for_e2b_sdk as e; print(e('raw'))"
 """
 
 import hashlib
 
-from agents_api.keys import (
+from kruise_agents.keys import (
     _E2B_SDK_COMPAT_CHECKSUM_SALT,
     _E2B_SDK_COMPAT_MAGIC,
     _E2B_SDK_COMPAT_VERSION,

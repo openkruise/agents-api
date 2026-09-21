@@ -50,15 +50,46 @@ Requirements:
 - `e2b-code-interpreter>=2.4.1`
 
 ```python
-from agents_api.patch_e2b import patch_e2b
+from kruise_agents.patch_e2b import patch_e2b
 from e2b_code_interpreter import Sandbox
 
-patch_e2b(https=False)  # patch sdk
+patch_e2b(https=False)  # rewrite SDK URLs to the private protocol (see below)
 
 if __name__ == "__main__":
     with Sandbox.create() as sbx:
         sbx.run_code("print('hello world')")
 ```
+
+### What `patch_e2b` does
+
+`patch_e2b` monkey-patches the installed E2B SDK in memory — no E2B code is
+modified on disk. After the patch, every request the SDK sends targets the
+private protocol instead of E2B's wildcard-domain protocol (see
+[Problem Statement](#problem-statement) for why that matters):
+
+| Traffic | E2B native protocol | After `patch_e2b` |
+|---|---|---|
+| Management API (create / kill / pause / ...) | `https://api.<E2B_DOMAIN>` | `<scheme>://<E2B_DOMAIN>/kruise/api` |
+| Sandbox data plane (envd gRPC & HTTP, Jupyter) | `https://<port>-<sid>.<E2B_DOMAIN>` | `<scheme>://<E2B_DOMAIN>/kruise/<sid>/<port>` |
+
+`<scheme>` is `https` by default and `http` when `https=False`.
+
+Parameters:
+
+- `https` — scheme used for both planes. `https=False` additionally forces
+  the sandbox envd and Jupyter base URLs to plain HTTP, which is what
+  certificate-less setups need (in-cluster Service URLs,
+  `kubectl port-forward`).
+- `validate_key` — set to `False` to disable the SDK's local API key format
+  check. That check only accepts official `e2b_`-prefixed keys, while
+  OpenKruise keys are plain UUIDs or admin keys; authentication itself
+  happens server-side on sandbox-manager. Only works with `e2b>=2.25.0`.
+
+Call `patch_e2b` once at startup, before creating or connecting any Sandbox.
+
+For end-to-end setup (domain resolution, certificates, port-forward), see the
+OpenKruise E2B client guide:
+<https://openkruise.io/kruiseagents/user-manuals/e2b-client>
 
 ## API Key Compatibility
 
@@ -66,14 +97,14 @@ Official E2B SDKs validate the API key format locally. To feed a raw OpenKruise
 Agents API key to such a client, wrap it first:
 
 ```python
-from agents_api.keys import encode_for_e2b_sdk
+from kruise_agents.keys import encode_for_e2b_sdk
 
 api_key = encode_for_e2b_sdk("5b14a58f-93f4-4d3e-9a92-2f3e0e1a9e33")
 ```
 
 The encoding is byte-for-byte compatible with the server-side implementation
 in the sandbox-manager repository (`pkg/servers/e2b/keys/compat.go` in
-openkruise/agents — the same file `agents_api/keys.py` must stay in sync
+openkruise/agents — the same file `kruise_agents/keys.py` must stay in sync
 with); `tests/test_keys.py` locks the format with golden values.
 `patch_e2b(validate_key=False)` bypasses the local format check
 instead, so this helper is only needed for clients that keep validation
@@ -86,8 +117,8 @@ Traffic JWT refresh is an independent, opt-in monkey patch. It requires Python
 `e2b-code-interpreter>=2.9.0,<2.10.0`.
 
 ```python
-from agents_api.patch_e2b import patch_e2b
-from agents_api.patch_traffic_token import patch_traffic_access_token
+from kruise_agents.patch_e2b import patch_e2b
+from kruise_agents.patch_traffic_token import patch_traffic_access_token
 
 patch_e2b(https=False)
 patch_traffic_access_token()
