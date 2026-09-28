@@ -344,6 +344,12 @@ func (s *SandboxApi) RefreshTrafficAccessToken(ctx context.Context, sandboxID st
 		}
 	}
 	req.Header.Set("Content-Type", "application/json")
+	// Custom connection headers ride along, mirroring _refresh_headers in
+	// the Python kruise_agents patch; X-API-Key is applied last so it wins
+	// on a collision.
+	for key, value := range s.config.Headers {
+		req.Header.Set(key, value)
+	}
 	if s.config.APIKey != "" {
 		req.Header.Set("X-API-Key", s.config.APIKey)
 	}

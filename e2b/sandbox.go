@@ -29,6 +29,11 @@ type sandboxOptions struct {
 	envVars             map[string]string
 	mcp                 map[string]interface{}
 	volumeMounts        []api.SandboxVolumeMount
+
+	// trafficAccessToken is an explicit seed for the traffic token manager
+	// (WithTrafficAccessToken), used by Create and Connect alike; empty
+	// means "derive the token from the API response".
+	trafficAccessToken string
 }
 
 // WithTimeout sets the sandbox timeout in seconds.
@@ -42,6 +47,20 @@ func WithTimeout(timeout int32) SandboxOption {
 func WithMetadata(metadata map[string]string) SandboxOption {
 	return func(o *sandboxOptions) {
 		o.metadata = metadata
+	}
+}
+
+// WithTrafficAccessToken seeds the traffic token manager with an externally
+// issued Traffic JWT, overriding whatever token the management API returns
+// (create/connect responses may carry a legacy opaque token instead). It is
+// the Go counterpart of the Python SDK's traffic_access_token constructor
+// parameter: when an external identity provider — not the sandbox-manager —
+// mints the JWTs, the client is handed the initial token this way and
+// refreshes continue through the management API. Non-JWT values keep the
+// legacy behavior (no traffic header, no refresh).
+func WithTrafficAccessToken(token string) SandboxOption {
+	return func(o *sandboxOptions) {
+		o.trafficAccessToken = token
 	}
 }
 
@@ -159,7 +178,13 @@ func Create(ctx context.Context, template string, opts ...SandboxOption) (*Sandb
 	}
 
 	sb := newSandbox(config, api, resp.SandboxID, resp.EnvdAccessToken, resp.TemplateID, resp.EnvdVersion)
-	sb.installTrafficTokenManager(resp.TrafficAccessToken)
+	if options.trafficAccessToken != "" {
+		// An explicit seed (externally issued JWT) overrides the response
+		// token, mirroring the Python SDK's traffic_access_token parameter.
+		sb.installTrafficTokenManager(options.trafficAccessToken)
+	} else {
+		sb.installTrafficTokenManager(resp.TrafficAccessToken)
+	}
 	return sb, nil
 }
 
@@ -186,9 +211,14 @@ func Connect(ctx context.Context, sandboxID string, opts ...SandboxOption) (*San
 	}
 
 	sb := newSandbox(config, api, resp.GetSandboxID(), resp.GetEnvdAccessToken(), resp.GetTemplateID(), resp.GetEnvdVersion())
-	if trafficAccessToken != "" {
+	switch {
+	case options.trafficAccessToken != "":
+		// An explicit seed (externally issued JWT) overrides the response
+		// token, mirroring the Python SDK's traffic_access_token parameter.
+		sb.installTrafficTokenManager(options.trafficAccessToken)
+	case trafficAccessToken != "":
 		sb.installTrafficTokenManager(trafficAccessToken)
-	} else {
+	default:
 		// No token on the connect response: resume an existing sandbox whose
 		// JWT-protected state may have been issued before this client saw it.
 		// The lookup is best-effort so non-JWT deployments (no traffic token

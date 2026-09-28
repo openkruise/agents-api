@@ -417,6 +417,22 @@ func TestTrafficTokenManagerResponseValidation(t *testing.T) {
 			t.Fatalf("empty refresh response should keep current, got (%q, %v)", got, err)
 		}
 	})
+
+	t.Run("not a JWT", func(t *testing.T) {
+		m, clock, current := newManager(t, func(now float64) TrafficAccessToken {
+			// The reported expiration is fine, but the token does not
+			// parse as a JWT at all.
+			return TrafficAccessToken{
+				Token:     "not-a-jwt",
+				ExpiresAt: time.Unix(int64(now+3600), 0).UTC(),
+			}
+		})
+		clock.Advance(3301)
+		got, err := m.EnsureValidToken(context.Background(), false)
+		if err != nil || got != current {
+			t.Fatalf("non-JWT refresh response should keep current, got (%q, %v)", got, err)
+		}
+	})
 }
 
 func TestTrafficTokenManagerConcurrentRefreshCoalesced(t *testing.T) {
@@ -524,6 +540,62 @@ func TestTrafficTokenManagerForcedRefreshCoalescedWhileInFlight(t *testing.T) {
 	wg.Wait()
 	if got := refreshCalls.Load(); got != 1 {
 		t.Errorf("refresh calls = %d, want 1 (in-flight callers coalesced)", got)
+	}
+}
+
+func TestTrafficTokenManagerForcedRefreshFailureCoalesced(t *testing.T) {
+	clock := &fakeClock{now: 1_000_000}
+	current := tokenWithValidity(clock.now, 3600)
+
+	entered := make(chan struct{})
+	gate := make(chan struct{})
+	var refreshCalls atomic.Int64
+	refreshFunc := func(ctx context.Context) (TrafficAccessToken, error) {
+		refreshCalls.Add(1)
+		close(entered)
+		<-gate
+		// The in-flight refresh fails: concurrent forced callers must
+		// coalesce onto this single attempt and keep the current token.
+		return TrafficAccessToken{}, &TrafficAccessTokenRefreshError{
+			TrafficAccessTokenError: &TrafficAccessTokenError{msg: "unavailable"},
+		}
+	}
+
+	m, _ := newTrafficTokenManager(current, refreshFunc, clock.Now, staticRandom)
+
+	const callers = 8
+	results := make([]string, callers)
+	var started atomic.Int64
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := 0; i < callers; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			<-start
+			started.Add(1)
+			token, _ := m.EnsureValidToken(context.Background(), true)
+			results[i] = token
+		}(i)
+	}
+	close(start)
+	<-entered // the single refresh is in flight
+	// Let the remaining callers take their pre-lock snapshots while the
+	// refresh is held open, then let it fail.
+	for started.Load() < callers {
+		time.Sleep(time.Millisecond)
+	}
+	time.Sleep(25 * time.Millisecond)
+	close(gate)
+	wg.Wait()
+
+	for i, got := range results {
+		if got != current {
+			t.Errorf("caller %d = %q, want current token (failed refresh coalesced)", i, got)
+		}
+	}
+	if got := refreshCalls.Load(); got != 1 {
+		t.Errorf("failed forced refreshes = %d, want 1 (coalesced)", got)
 	}
 }
 
@@ -711,6 +783,49 @@ func TestSandboxApiRefreshTrafficAccessTokenError(t *testing.T) {
 	}
 }
 
+func TestSandboxApiRefreshTrafficAccessTokenCustomHeaders(t *testing.T) {
+	now := float64(time.Now().Unix())
+	token := tokenWithValidity(now, 3600)
+	tokens := pushTokens(token)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Custom connection headers ride on the refresh request...
+		if got := r.Header.Get("X-Custom-Header"); got != "custom-value" {
+			t.Errorf("X-Custom-Header = %q, want custom-value", got)
+		}
+		// ...and X-API-Key wins when both are configured for the same key.
+		if got := r.Header.Get("X-API-Key"); got != "test-key" {
+			t.Errorf("X-API-Key = %q, want test-key (API key shadows custom header)", got)
+		}
+		select {
+		case tok := <-tokens:
+			exp := jwtExp(tok)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"trafficAccessToken":           tok,
+				"trafficAccessTokenExpiration": time.Unix(int64(exp), 0).UTC().Format(time.RFC3339),
+			})
+		default:
+			t.Error("unexpected extra refresh call")
+			w.WriteHeader(http.StatusTooManyRequests)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	cfg := NewConnectionConfig(
+		WithDomain("unused"),
+		WithAPIKey("test-key"),
+		WithAPIURL(server.URL),
+		WithHeader("X-Custom-Header", "custom-value"),
+		WithHeader("X-API-Key", "shadowed"),
+	)
+	api := NewSandboxApi(cfg)
+
+	if _, err := api.RefreshTrafficAccessToken(context.Background(), "sbx-1"); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+}
+
 func TestSandboxDataPlaneHeaderInjection(t *testing.T) {
 	now := float64(time.Now().Unix())
 	first := tokenWithValidity(now, 3600)
@@ -817,5 +932,123 @@ func TestSandboxTrafficTokenProviderWithoutManager(t *testing.T) {
 	}
 	if token != "" {
 		t.Errorf("token = %q, want empty", token)
+	}
+}
+
+// --- Sandbox-level explicit token seeding (WithTrafficAccessToken) ---
+
+// seedSetup spins up a mock management API whose create/connect responses
+// carry a legacy opaque traffic token (as the OSS sandbox-manager does in the
+// JWT demo environment) and whose refresh endpoint hands out real JWTs.
+func seedSetup(t *testing.T, responseToken string, tokens chan string, refreshCalls *atomic.Int64) string {
+	t.Helper()
+
+	sandboxJSON := func(w http.ResponseWriter) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"templateID":         "code-interpreter",
+			"sandboxID":          "sbx-1",
+			"clientID":           "",
+			"envdVersion":        "0.0.1",
+			"envdAccessToken":    "envd-token",
+			"trafficAccessToken": responseToken,
+			"domain":             "example.com",
+		})
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/connect"):
+			sandboxJSON(w)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/sandboxes"):
+			sandboxJSON(w)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/traffic-access-token"):
+			refreshCalls.Add(1)
+			select {
+			case token := <-tokens:
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"trafficAccessToken":           token,
+					"trafficAccessTokenExpiration": time.Unix(int64(jwtExp(token)), 0).UTC().Format(time.RFC3339),
+				})
+			default:
+				t.Errorf("unexpected refresh call: %s", r.URL.Path)
+			}
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(server.Close)
+	return server.URL
+}
+
+func TestSandboxConnectWithTrafficAccessTokenSeed(t *testing.T) {
+	now := float64(time.Now().Unix())
+	seed := tokenWithValidity(now, 3600)
+	fresh := tokenWithValidity(now, 7200)
+	tokens := pushTokens(fresh)
+	var refreshCalls atomic.Int64
+	apiURL := seedSetup(t, "opaque-uuid-style-token", tokens, &refreshCalls)
+
+	t.Run("explicit seed overrides the legacy response token", func(t *testing.T) {
+		sb, err := Connect(context.Background(), "sbx-1",
+			WithConfig(WithAPIURL(apiURL), WithAPIKey("test-key")),
+			WithTrafficAccessToken(seed),
+		)
+		if err != nil {
+			t.Fatalf("connect: %v", err)
+		}
+		if got := sb.TrafficAccessToken(); got != seed {
+			t.Errorf("TrafficAccessToken() = %q, want the explicit seed", got)
+		}
+		// The seeded manager keeps refreshing through the management API.
+		got, err := sb.RefreshTrafficAccessToken(context.Background())
+		if err != nil || got != fresh {
+			t.Fatalf("forced refresh = (%q, %v), want the fresh token", got, err)
+		}
+		if refreshCalls.Load() != 1 {
+			t.Errorf("refresh calls = %d, want 1", refreshCalls.Load())
+		}
+	})
+
+	t.Run("legacy response token installs no manager", func(t *testing.T) {
+		sb, err := Connect(context.Background(), "sbx-1",
+			WithConfig(WithAPIURL(apiURL), WithAPIKey("test-key")),
+		)
+		if err != nil {
+			t.Fatalf("connect: %v", err)
+		}
+		if got := sb.TrafficAccessToken(); got != "" {
+			t.Errorf("legacy token should not install a manager, got %q", got)
+		}
+		if _, err := sb.RefreshTrafficAccessToken(context.Background()); err == nil {
+			t.Error("RefreshTrafficAccessToken should fail without a manager")
+		}
+		if refreshCalls.Load() != 1 {
+			t.Errorf("refresh calls = %d, want 1 (no extra refreshes)", refreshCalls.Load())
+		}
+	})
+}
+
+func TestSandboxCreateWithTrafficAccessTokenSeed(t *testing.T) {
+	now := float64(time.Now().Unix())
+	seed := tokenWithValidity(now, 3600)
+	tokens := pushTokens()
+	var refreshCalls atomic.Int64
+	apiURL := seedSetup(t, "opaque-uuid-style-token", tokens, &refreshCalls)
+
+	sb, err := Create(context.Background(), "code-interpreter",
+		WithConfig(WithAPIURL(apiURL), WithAPIKey("test-key")),
+		WithTrafficAccessToken(seed),
+	)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if got := sb.TrafficAccessToken(); got != seed {
+		t.Errorf("TrafficAccessToken() = %q, want the explicit seed (not the legacy response token)", got)
+	}
+	if refreshCalls.Load() != 0 {
+		t.Errorf("refresh calls = %d, want 0 (seeded manager refreshes lazily)", refreshCalls.Load())
 	}
 }

@@ -112,6 +112,7 @@ Applied via `e2b.NewConnectionConfig(opts...)` or embedded in `Create/Connect` w
 | `WithCodeInterpreterPort(port int)`   | Code interpreter port, defaults to `49999`                     |
 | `WithRequestTimeout(d time.Duration)` | HTTP request timeout, defaults to 60s                          |
 | `WithHTTPClient(client *http.Client)` | Custom HTTP client for API requests                            |
+| `WithHeader(key, value string)`         | Add a custom header sent with every request                   |
 
 #### Priority
 
@@ -285,10 +286,11 @@ The SDK handles this transparently — **no code change is required on the calle
 1. `Create` / `Connect` receive the initial token from the management API and install a token manager
    (empty-token bootstrap via a first refresh when connecting to an already-running JWT sandbox without a token).
 2. Every data-plane request obtains a valid token right before it is sent. Tokens are refreshed ahead of expiry
-   (`min(300s, max(60s, validity/5))`).
-3. Concurrent requests needing a refresh at the same time coalesce into a **single** refresh call.
-4. Failed refreshes retry with exponential backoff + jitter (server `Retry-After` is honored). While the current
-   token is still valid, the stale token is used; once it expires the manager **fails closed** and returns
+   (`min(300s, max(60s, validity/5))`, minus a small random jitter to spread refreshes).
+3. Concurrent requests needing a refresh at the same time coalesce into a **single** refresh call (this also holds
+   when the refresh fails: concurrent forced refreshes keep the current token and share one retry).
+4. Failed refreshes retry with exponential backoff (server `Retry-After` is honored). While the current token is
+   still valid, the stale token is used; once it expires the manager **fails closed** and returns
    `*TrafficAccessTokenExpired` instead of sending a request that would be rejected.
 5. A refresh is detached from the caller's context: cancelling the caller does not abort the in-flight refresh.
 
@@ -303,6 +305,12 @@ sb, err := e2b.Create(ctx, "code-interpreter",
 // Optional manual control:
 token := sb.TrafficAccessToken()          // cached token, no refresh, "" when not JWT-protected
 token, err = sb.RefreshTrafficAccessToken(ctx)  // forced refresh (concurrent forces coalesce)
+
+// Externally issued initial token (external identity provider deployments):
+sb2, err := e2b.Connect(ctx, id,
+    e2b.WithConfig(e2b.WithAPIKey("xxx"), e2b.WithDomain("example.com")),
+    e2b.WithTrafficAccessToken(jwt), // seed the manager; refreshes continue via the management API
+)
 ```
 
 Non-JWT sandboxes (no traffic token, legacy opaque tokens) and `WithDebug(true)` keep the legacy behavior: no
@@ -311,6 +319,16 @@ traffic header, no refresh, and `RefreshTrafficAccessToken` returns an error.
 > The low-level `SandboxApi.RefreshTrafficAccessToken(ctx, sandboxID)` POSTs
 > `/sandboxes/{sandboxID}/traffic-access-token` and returns the raw
 > `*TrafficAccessToken{Token, ExpiresAt}`; the `Sandbox`-level machinery above is the recommended entry point.
+
+### Verifying against a JWT-enabled gateway
+
+`examples/jwt-gateway-example` is the Go counterpart of the Python SDK's `demo_jwt_gateway.py`: it runs the
+complete flow against a sandbox-gateway with `enableJwtAuth=true` and an external OIDC provider — a data-plane
+call rejected without a valid JWT, calls carrying an externally issued token (`WithTrafficAccessToken`), and
+automatic rotation of short-lived tokens. A local translating proxy routes the refresh endpoint to the external
+issuer (the OSS sandbox-manager issues opaque UUID tokens), so the full SDK refresh path — headers, Retry-After
+handling, response validation — is exercised end to end. See the example's header comment for deployment
+prerequisites and environment variables.
 
 ### Key Compatibility Encoding
 
@@ -323,6 +341,17 @@ encoded := e2b.EncodeForE2BSDK("my-raw-key") // e2b_6f6b6167...
 
 The encoding is `e2b_` + fixed magic + version `01` + 8-hex-digit length + hex body + 8-byte SHA-256 checksum —
 byte-for-byte compatible with the Python SDK's `encode_for_e2b_sdk`.
+
+### Rollout
+
+Sandbox-manager preserves the legacy, approximately 100-year Traffic JWT validity by default. Deploy this SDK (or
+another client with equivalent refresh support) before configuring a shorter `--traffic-access-token-validity` for
+existing JWT-authenticated workloads; clients that do not refresh lose data-plane access when a short-lived token
+expires.
+
+Deploy the lazy-Connect behavior (recovering a missing token by checking the sandbox metadata on reconnect) before
+upgrading sandbox-manager to a version that no longer issues Traffic JWTs from Connect. Older clients cannot recover
+a missing token when reconnecting by sandbox ID.
 
 ---
 
