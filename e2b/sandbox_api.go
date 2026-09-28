@@ -2,6 +2,7 @@ package e2b
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -316,6 +317,77 @@ func (s *SandboxApi) ConnectSandbox(ctx context.Context, sandboxID string, timeo
 	}
 
 	return resp, nil
+}
+
+// RefreshTrafficAccessToken fetches a fresh traffic access token for a
+// sandbox from the management API:
+//
+//	POST {apiURL}/sandboxes/{sandboxID}/traffic-access-token
+//
+// This endpoint is hand-written against the shared APIClient (the OpenAPI
+// generator does not emit it), so it reuses the same base URL, HTTP client
+// and X-API-Key authentication as every other management call. On failure
+// the response body is not surfaced (to avoid leaking server error details
+// into client logs); the status code and Retry-After delay are preserved in
+// a *TrafficAccessTokenRefreshError instead.
+func (s *SandboxApi) RefreshTrafficAccessToken(ctx context.Context, sandboxID string) (*TrafficAccessToken, error) {
+	refreshURL := fmt.Sprintf("%s/sandboxes/%s/traffic-access-token",
+		s.config.GetAPIURL(), url.PathEscape(sandboxID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, refreshURL, nil)
+	if err != nil {
+		return nil, &TrafficAccessTokenRefreshError{
+			TrafficAccessTokenError: &TrafficAccessTokenError{
+				msg: "traffic access token refresh request could not be built",
+			},
+			Err: err,
+		}
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if s.config.APIKey != "" {
+		req.Header.Set("X-API-Key", s.config.APIKey)
+	}
+
+	httpResp, err := s.apiClient.GetConfig().HTTPClient.Do(req)
+	if err != nil {
+		return nil, &TrafficAccessTokenRefreshError{
+			TrafficAccessTokenError: &TrafficAccessTokenError{
+				msg: "traffic access token refresh request failed",
+			},
+			Err: err,
+		}
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
+		return nil, &TrafficAccessTokenRefreshError{
+			TrafficAccessTokenError: &TrafficAccessTokenError{
+				msg: fmt.Sprintf("traffic access token refresh failed with status %d", httpResp.StatusCode),
+			},
+			StatusCode: httpResp.StatusCode,
+			RetryAfter: parseRetryAfter(httpResp.Header.Get("Retry-After")),
+		}
+	}
+
+	var payload struct {
+		Token     string `json:"trafficAccessToken"`
+		ExpiresAt string `json:"trafficAccessTokenExpiration"`
+	}
+	if err := json.NewDecoder(httpResp.Body).Decode(&payload); err != nil {
+		return nil, &TrafficAccessTokenError{
+			msg: "traffic access token refresh returned a malformed response",
+		}
+	}
+	if payload.Token == "" {
+		return nil, &TrafficAccessTokenError{
+			msg: "traffic access token refresh returned an empty token",
+		}
+	}
+	expiresAt, err := parseTrafficTokenExpiration(payload.ExpiresAt)
+	if err != nil {
+		return nil, err
+	}
+	return &TrafficAccessToken{Token: payload.Token, ExpiresAt: expiresAt}, nil
 }
 
 // Pause pauses a sandbox.

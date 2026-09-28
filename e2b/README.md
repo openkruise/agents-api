@@ -21,6 +21,8 @@ e2b/
 ├── api/                              #   OpenAPI-generated REST client (sandbox management)
 ├── sandbox.go                        #   Sandbox struct: Create / Connect / Pause / Kill
 ├── sandbox_api.go                    #   Low-level REST client (SandboxApi): List / GetInfo / Kill / ...
+├── traffic_token.go                  #   Traffic JWT manager: transparent refresh, backoff, fail-closed
+├── keys.go                           #   EncodeForE2BSDK: key-compat encoding for the E2B ecosystem
 └── config.go                         #   ConnectionConfig: Protocol / Scheme / Domain / API URL
 ```
 
@@ -179,6 +181,8 @@ e2b.WithConfig(e2b.WithAPIKey("xxx"), e2b.WithDomain("example.com")),
 | `Pause(ctx) (string, error)`           | Pause the sandbox                        |
 | `Kill(ctx) (bool, error)`              | Destroy the sandbox                      |
 | `Close(ctx) error`                     | Alias for `Kill`, convenient for `defer` |
+| `TrafficAccessToken() string`          | Currently cached traffic token (no refresh) |
+| `RefreshTrafficAccessToken(ctx) (string, error)` | Force a traffic token refresh    |
 
 `Sandbox` exposes two sub-modules:
 
@@ -208,6 +212,7 @@ e2b.WithDomain("example.com"),
 | `CreateSandbox(ctx, opts CreateSandboxOpts) (*SandboxCreateResponse, error)` | Low-level create API                          |
 | `ConnectSandbox(ctx, sandboxID, timeout int32) (*client.Sandbox, error)`     | Low-level connect API                         |
 | `Pause(ctx, sandboxID) (string, error)`                                      | Pause sandbox                                 |
+| `RefreshTrafficAccessToken(ctx, sandboxID) (*TrafficAccessToken, error)`      | Fetch a fresh traffic access token            |
 
 ### ListSandboxOpts
 
@@ -266,6 +271,58 @@ for {
 
 fmt.Printf("Total: %d sandboxes\n", len(allSandboxes))
 ```
+
+---
+
+## Traffic JWT Refresh
+
+When a sandbox is created with metadata `"security.agents.kruise.io/enable-jwt-auth": "true"`, the sandbox-manager
+issues a short-lived **Traffic JWT**. Every data-plane request (Commands / Files / CodeInterpreter) must then carry it
+as the `e2b-traffic-access-token` header, or the gateway rejects the request with 403.
+
+The SDK handles this transparently — **no code change is required on the caller side**:
+
+1. `Create` / `Connect` receive the initial token from the management API and install a token manager
+   (empty-token bootstrap via a first refresh when connecting to an already-running JWT sandbox without a token).
+2. Every data-plane request obtains a valid token right before it is sent. Tokens are refreshed ahead of expiry
+   (`min(300s, max(60s, validity/5))`).
+3. Concurrent requests needing a refresh at the same time coalesce into a **single** refresh call.
+4. Failed refreshes retry with exponential backoff + jitter (server `Retry-After` is honored). While the current
+   token is still valid, the stale token is used; once it expires the manager **fails closed** and returns
+   `*TrafficAccessTokenExpired` instead of sending a request that would be rejected.
+5. A refresh is detached from the caller's context: cancelling the caller does not abort the in-flight refresh.
+
+```go
+sb, err := e2b.Create(ctx, "code-interpreter",
+    e2b.WithConfig(e2b.WithAPIKey("xxx"), e2b.WithDomain("example.com")),
+    e2b.WithMetadata(map[string]string{"security.agents.kruise.io/enable-jwt-auth": "true"}),
+)
+// ...data-plane calls (Commands / Files / CodeInterpreter) just work —
+// the token is attached and refreshed automatically.
+
+// Optional manual control:
+token := sb.TrafficAccessToken()          // cached token, no refresh, "" when not JWT-protected
+token, err = sb.RefreshTrafficAccessToken(ctx)  // forced refresh (concurrent forces coalesce)
+```
+
+Non-JWT sandboxes (no traffic token, legacy opaque tokens) and `WithDebug(true)` keep the legacy behavior: no
+traffic header, no refresh, and `RefreshTrafficAccessToken` returns an error.
+
+> The low-level `SandboxApi.RefreshTrafficAccessToken(ctx, sandboxID)` POSTs
+> `/sandboxes/{sandboxID}/traffic-access-token` and returns the raw
+> `*TrafficAccessToken{Token, ExpiresAt}`; the `Sandbox`-level machinery above is the recommended entry point.
+
+### Key Compatibility Encoding
+
+`keys.go` provides `EncodeForE2BSDK`, which wraps a raw (OpenKruise) API key into the format understood by
+E2B-ecosystem tooling that expects `e2b_`-prefixed keys:
+
+```go
+encoded := e2b.EncodeForE2BSDK("my-raw-key") // e2b_6f6b6167...
+```
+
+The encoding is `e2b_` + fixed magic + version `01` + 8-hex-digit length + hex body + 8-byte SHA-256 checksum —
+byte-for-byte compatible with the Python SDK's `encode_for_e2b_sdk`.
 
 ---
 

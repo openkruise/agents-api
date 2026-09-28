@@ -21,6 +21,7 @@ runtime/
 ├── client.go                     #   Client 结构体：New / NewWithConfig
 ├── k8s.go                        #   NewFromK8s：从 K8s 自动解析 sandboxID 和 runtimeToken
 ├── config.go                     #   Config 与 Options：Domain / Scheme / RuntimeToken / ...
+├── traffic_token.go              #   TrafficTokenProvider 与 transport 包装：注入 traffic JWT 请求头
 ├── commands.go                   #   Commands：Run / Start / Kill / SendStdin / List / ConnectToProcess
 ├── command_handle.go             #   CommandHandle：Wait / Disconnect / Kill
 ├── filesystem.go                 #   Filesystem：List / Exists / GetInfo / MakeDir / Rename / Remove / Read / Write
@@ -105,7 +106,30 @@ func main() {
 | `WithHeader(key, value string)`       | 添加单个自定义 header                   |
 | `WithHeaders(headers map)`            | 合并多个自定义 headers                  |
 | `WithRequestTimeout(d time.Duration)` | HTTP 超时，默认 60s                   |
+| `WithTrafficTokenProvider(p TrafficTokenProvider)` | 附加短时效 traffic JWT（见下文） |
 | `WithConfig(cfg *Config)`             | 传入预构建的 Config 替换默认配置             |
+
+### Traffic Token（JWT 鉴权）
+
+以元数据 `"security.agents.kruise.io/enable-jwt-auth": "true"` 创建的 sandbox，其每个数据面请求都必须在
+`e2b-traffic-access-token` 请求头中携带短时效的 Traffic JWT。`WithTrafficTokenProvider` 安装一个在每个
+请求发送前一刻调用的 provider，token 的获取与刷新可以完全透明：
+
+```go
+c, err := runtime.NewWithConfig(sandboxID, &runtime.Config{
+    Domain: "sandbox-gateway.sandbox-system.svc:7788",
+    TrafficTokenProvider: func(ctx context.Context) (string, error) {
+        return fetchOrRefreshTrafficToken(ctx, sandboxID) // 你的 token 来源
+    },
+})
+```
+
+返回 `("", nil)` 时不发送 traffic 请求头（legacy 行为）；返回 error 时请求在离开进程前即失败
+（fail-closed）。provider 必须在构造客户端时设置 —— 它以 Transport 包装的形式在 `New` /
+`NewWithConfig` 中安装，不能事后补加。
+
+> `e2b` 包会为 JWT 保护的 sandbox 自动接线此选项（透明刷新、并发合并、退避）。完整机制见
+> [E2B SDK Traffic JWT 自动刷新](https://github.com/openkruise/agents-api/blob/master/e2b/README_zh-CH.md#traffic-jwt-自动刷新)章节。
 
 ---
 

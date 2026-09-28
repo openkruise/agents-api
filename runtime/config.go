@@ -59,6 +59,12 @@ type Config struct {
 	// RequestTimeout is the timeout applied to the underlying HTTP client.
 	RequestTimeout time.Duration
 
+	// TrafficTokenProvider, when non-nil, is invoked immediately before each
+	// data-plane request to obtain the traffic access token sent as the
+	// TrafficTokenHeader header. Use it to attach short-lived Traffic JWTs
+	// (refreshed transparently) to sandbox data-plane traffic.
+	TrafficTokenProvider TrafficTokenProvider
+
 	// CustomHTTPClient is a custom HTTP client to use for runtime requests.
 	// If nil, a default client with RequestTimeout will be created.
 	CustomHTTPClient *http.Client
@@ -179,6 +185,15 @@ func WithRequestTimeout(d time.Duration) Option {
 	return func(c *Config) { c.RequestTimeout = d }
 }
 
+// WithTrafficTokenProvider sets a provider invoked immediately before every
+// data-plane request to obtain the traffic access token sent as the
+// TrafficTokenHeader header. The provider is installed at client build time
+// (runtime.New / runtime.NewWithConfig) as a Transport wrapper, so it must
+// be configured before the client is constructed.
+func WithTrafficTokenProvider(provider TrafficTokenProvider) Option {
+	return func(c *Config) { c.TrafficTokenProvider = provider }
+}
+
 // WithHTTPClient sets a custom HTTP client for runtime requests.
 // This allows users to configure TLS certificates, proxies, etc.
 func WithHTTPClient(httpClient *http.Client) Option {
@@ -203,6 +218,7 @@ func WithConfig(cfg *Config) Option {
 		c.AuthHeader = cfg.AuthHeader
 		c.APIKey = cfg.APIKey
 		c.RequestTimeout = cfg.RequestTimeout
+		c.TrafficTokenProvider = cfg.TrafficTokenProvider
 		c.CustomHTTPClient = cfg.CustomHTTPClient
 		// Defensive copy of the headers map so callers cannot mutate ours.
 		if cfg.Headers != nil {

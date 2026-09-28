@@ -95,6 +95,10 @@ func main() {
 	fmt.Println("\n--- Code Interpreter Demo ---")
 	demonstrateCodeInterpreter(ctx, sb)
 
+	// ========== 8. Pause / Resume Demo ==========
+	fmt.Println("\n--- Pause / Resume Demo ---")
+	demonstratePauseResume(ctx, sb, configOpts)
+
 	fmt.Println("\n========== Example completed ==========")
 }
 
@@ -120,6 +124,61 @@ func demonstrateCodeInterpreter(ctx context.Context, sb *sandbox.Sandbox) {
 		return
 	}
 	fmt.Printf("Streamed %d stdout chunks\n", len(exec.Logs.Stdout))
+}
+
+// demonstratePauseResume pauses the sandbox, reconnects (which resumes it),
+// and verifies the data plane works again. For JWT-protected sandboxes
+// (metadata "security.agents.kruise.io/enable-jwt-auth=true") the traffic
+// access token is re-issued on connect and refreshed transparently on every
+// data-plane request — the snippet below only inspects it for demonstration.
+func demonstratePauseResume(ctx context.Context, sb *sandbox.Sandbox, configOpts []sandbox.ConnectionConfigOption) {
+	// 1. Pause the sandbox.
+	fmt.Println("\n[1] Pausing sandbox...")
+	if _, err := sb.Pause(ctx); err != nil {
+		fmt.Printf("    Error pausing sandbox: %v\n", err)
+		return
+	}
+
+	// 2. Reconnect — connecting a paused sandbox resumes it.
+	fmt.Println("\n[2] Reconnecting (resumes the sandbox)...")
+	sb2, err := sandbox.Connect(ctx, sb.SandboxID(), sandbox.WithConfig(configOpts...))
+	if err != nil {
+		fmt.Printf("    Error reconnecting: %v\n", err)
+		return
+	}
+	fmt.Printf("    Reconnected to %s\n", sb2.SandboxID())
+
+	// 3. Verify the data plane works again on the reconnected handle.
+	fmt.Println("\n[3] Verifying data plane after resume...")
+	if res, err := sb2.Commands.Run(ctx, "echo back-after-resume"); err != nil {
+		fmt.Printf("    Error: %v\n", err)
+	} else {
+		fmt.Printf("    Stdout: %s", res.Stdout)
+	}
+
+	// 4. Traffic JWT introspection (JWT-protected sandboxes only).
+	fmt.Println("\n[4] Traffic access token...")
+	if token := sb2.TrafficAccessToken(); token != "" {
+		fmt.Printf("    Cached token: %s...\n", truncateToken(token))
+		if fresh, err := sb2.RefreshTrafficAccessToken(ctx); err != nil {
+			fmt.Printf("    Forced refresh failed: %v\n", err)
+		} else {
+			fmt.Printf("    Refreshed token: %s...\n", truncateToken(fresh))
+		}
+	} else {
+		fmt.Println("    No traffic token (sandbox is not JWT-protected) — legacy behavior")
+	}
+
+	// sb2 points at the same sandbox; the outer defer cleanup handles the kill.
+}
+
+// truncateToken shortens a token for display.
+func truncateToken(token string) string {
+	const maxLen = 24
+	if len(token) <= maxLen {
+		return token
+	}
+	return token[:maxLen]
 }
 
 // listSandboxes lists all running sandboxes.
