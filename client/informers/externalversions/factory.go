@@ -26,6 +26,7 @@ import (
 	versioned "github.com/openkruise/agents-api/client/clientset/versioned"
 	agents "github.com/openkruise/agents-api/client/informers/externalversions/agents"
 	internalinterfaces "github.com/openkruise/agents-api/client/informers/externalversions/internalinterfaces"
+	security "github.com/openkruise/agents-api/client/informers/externalversions/security"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -256,8 +257,13 @@ type SharedInformerFactory interface {
 	InformerFor(obj runtime.Object, newFunc internalinterfaces.NewInformerFunc) cache.SharedIndexInformer
 
 	Agents() agents.Interface
+	Security() security.Interface
 }
 
 func (f *sharedInformerFactory) Agents() agents.Interface {
 	return agents.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Security() security.Interface {
+	return security.New(f, f.namespace, f.tweakListOptions)
 }

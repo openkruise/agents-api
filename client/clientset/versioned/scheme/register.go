@@ -20,6 +20,7 @@ package scheme
 
 import (
 	agentsv1alpha1 "github.com/openkruise/agents-api/agents/v1alpha1"
+	securityv1alpha1 "github.com/openkruise/agents-api/security/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,6 +33,7 @@ var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
 	agentsv1alpha1.AddToScheme,
+	securityv1alpha1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition

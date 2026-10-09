@@ -29,8 +29,16 @@ const (
 	LabelTemplateHash     = InternalPrefix + "template-hash"
 	// LabelSandboxReservedFailed marks a failed sandbox retained for debugging.
 	LabelSandboxReservedFailed = InternalPrefix + "reserved-failed-sandbox"
-	// LabelSandboxName is the label key used by TrafficPolicy Spec.Selector to select the sandbox pod.
+	// LabelSandboxName carries the owning Sandbox's name on its pod, written only
+	// when the name fits the 63-character label-value limit. TrafficPolicy falls
+	// back to this key for pods created before the controller stamped
+	// LabelSandboxUID, since it is the only sandbox identity label they carry.
 	LabelSandboxName = InternalPrefix + "sandbox-name"
+	// LabelSandboxUID carries the owning Sandbox's metadata.uid on its pod. A UID
+	// is always 36 characters of [0-9a-f-] and therefore always a valid label
+	// value, so unlike LabelSandboxName the controller writes it on every pod and
+	// TrafficPolicy prefers to select by it.
+	LabelSandboxUID = InternalPrefix + "sandbox-uid"
 	// LabelAllowInternetAccess indicates whether the sandbox is allowed internet access.
 	// Default is "true"; set to "false" when the user explicitly disables internet access.
 	// GlobalTrafficPolicy uses this label to select pods and apply egress rules.
@@ -48,8 +56,17 @@ const (
 	// PodLabelTemplateHash is pod template hash
 	PodLabelTemplateHash = "pod-template-hash"
 
-	// CheckpointLabelSandboxName is checkpointed sandbox name
+	// CheckpointLabelSandboxName is the checkpointed sandbox name, written only
+	// when the name fits the 63-character label-value limit. It exists to keep
+	// selectors written against earlier versions working; new consumers should
+	// select by CheckpointLabelSandboxUID, which is always present.
 	CheckpointLabelSandboxName = InternalPrefix + "sandbox-name"
+	// CheckpointLabelSandboxUID is the checkpointed sandbox's metadata.uid. A UID
+	// is always 36 characters of [0-9a-f-] and therefore always a valid label
+	// value, so unlike CheckpointLabelSandboxName it is written on every
+	// Checkpoint. For a human-readable link to the sandbox, use spec.sandboxName
+	// or spec.podName, which carry no length limit.
+	CheckpointLabelSandboxUID = InternalPrefix + "sandbox-uid"
 
 	// CheckpointLabelType is the checkpoint type label key
 	CheckpointLabelType = InternalPrefix + "checkpoint-type"

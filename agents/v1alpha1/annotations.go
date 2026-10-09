@@ -105,9 +105,10 @@ const (
 // pod replacement.
 const AnnotationUpgradeResumeTrigger = InternalPrefix + "upgrade-resume-trigger"
 
-// AnnotationPodProbe is the annotation key used by the PodProbeMarker Serverless
-// protocol. The sandbox controller writes probe definitions to this annotation
-// on the Pod, and the agent-runtime sidecar reads them, executes the probes,
-// and writes results to Pod.Status.Conditions.
+// AnnotationPodProbe carries the Sandbox's probe definitions in the format of the
+// PodProbeMarker Serverless protocol. The sandbox controller writes it when the
+// Pod is created; serverless platforms consume it at creation and do not re-read a
+// later patch, so probe edits only reach a running pod through recreation. Real
+// nodes do not use it — they get a PodProbeMarker executed by kruise-daemon.
 // See: https://openkruise.io/docs/user-manuals/podprobemarker#support-for-serverless-scenarios
 const AnnotationPodProbe = "kruise.io/podprobe"

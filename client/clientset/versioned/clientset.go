@@ -23,6 +23,7 @@ import (
 	http "net/http"
 
 	agentsv1alpha1 "github.com/openkruise/agents-api/client/clientset/versioned/typed/agents/v1alpha1"
+	securityv1alpha1 "github.com/openkruise/agents-api/client/clientset/versioned/typed/security/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -31,17 +32,24 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	AgentsV1alpha1() agentsv1alpha1.AgentsV1alpha1Interface
+	SecurityV1alpha1() securityv1alpha1.SecurityV1alpha1Interface
 }
 
 // Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	agentsV1alpha1 *agentsv1alpha1.AgentsV1alpha1Client
+	agentsV1alpha1   *agentsv1alpha1.AgentsV1alpha1Client
+	securityV1alpha1 *securityv1alpha1.SecurityV1alpha1Client
 }
 
 // AgentsV1alpha1 retrieves the AgentsV1alpha1Client
 func (c *Clientset) AgentsV1alpha1() agentsv1alpha1.AgentsV1alpha1Interface {
 	return c.agentsV1alpha1
+}
+
+// SecurityV1alpha1 retrieves the SecurityV1alpha1Client
+func (c *Clientset) SecurityV1alpha1() securityv1alpha1.SecurityV1alpha1Interface {
+	return c.securityV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -92,6 +100,10 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 	if err != nil {
 		return nil, err
 	}
+	cs.securityV1alpha1, err = securityv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
@@ -114,6 +126,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.agentsV1alpha1 = agentsv1alpha1.New(c)
+	cs.securityV1alpha1 = securityv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs
