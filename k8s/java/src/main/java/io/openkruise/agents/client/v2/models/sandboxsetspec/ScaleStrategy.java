@@ -13,10 +13,10 @@ public class ScaleStrategy implements io.fabric8.kubernetes.api.model.Kubernetes
      * the base (equivalent to 100%, i.e. no cap). Scale-down is unaffected.
      *
      * The physical scale-up budget is charged by startup blockers: sandboxes
-     * whose Ready condition is False with reason PodCreateFailed or
-     * StartContainerFailed, sandboxes stuck in Creating/ResourcePending past the
-     * configured --max-pending-timeout, and sandbox creations that have been
-     * issued but are not yet observed by the controller (they release their slot
+     * whose Ready condition is False with reason PodCreateFailed,
+     * StartContainerFailed, or Unschedulable, sandboxes stuck in
+     * Creating/ResourcePending past the configured --max-pending-timeout, and
+     * sandbox creations that have been issued but are not yet observed by the controller (they release their slot
      * once observed as healthy Creating sandboxes). Healthy observed Creating
      * sandboxes do NOT count against the budget.
      *
@@ -26,7 +26,7 @@ public class ScaleStrategy implements io.fabric8.kubernetes.api.model.Kubernetes
      * MaxUnavailable works only for scale-up.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("maxUnavailable")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("MaxUnavailable caps concurrent physical scale-up operations and serves as\nthe startup budget for the ScalingLimited condition. It can be an absolute\nnumber (ex: 5) or a percentage of desired pods (ex: 10%); percentages are\nrounded up against spec.replicas. If unset or invalid, the controller uses\nthe base (equivalent to 100%, i.e. no cap). Scale-down is unaffected.\n\nThe physical scale-up budget is charged by startup blockers: sandboxes\nwhose Ready condition is False with reason PodCreateFailed or\nStartContainerFailed, sandboxes stuck in Creating/ResourcePending past the\nconfigured --max-pending-timeout, and sandbox creations that have been\nissued but are not yet observed by the controller (they release their slot\nonce observed as healthy Creating sandboxes). Healthy observed Creating\nsandboxes do NOT count against the budget.\n\nThe ScalingLimited condition becomes True with reason\nStartupBudgetExhausted when failed plus pending-timeout sandboxes exhaust\nthe resolved startup budget.\nMaxUnavailable works only for scale-up.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("MaxUnavailable caps concurrent physical scale-up operations and serves as\nthe startup budget for the ScalingLimited condition. It can be an absolute\nnumber (ex: 5) or a percentage of desired pods (ex: 10%); percentages are\nrounded up against spec.replicas. If unset or invalid, the controller uses\nthe base (equivalent to 100%, i.e. no cap). Scale-down is unaffected.\n\nThe physical scale-up budget is charged by startup blockers: sandboxes\nwhose Ready condition is False with reason PodCreateFailed,\nStartContainerFailed, or Unschedulable, sandboxes stuck in\nCreating/ResourcePending past the configured --max-pending-timeout, and\nsandbox creations that have been issued but are not yet observed by the controller (they release their slot\nonce observed as healthy Creating sandboxes). Healthy observed Creating\nsandboxes do NOT count against the budget.\n\nThe ScalingLimited condition becomes True with reason\nStartupBudgetExhausted when failed plus pending-timeout sandboxes exhaust\nthe resolved startup budget.\nMaxUnavailable works only for scale-up.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.fabric8.kubernetes.api.model.IntOrString maxUnavailable;
 
