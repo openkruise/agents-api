@@ -21,6 +21,7 @@ runtime/
 ├── client.go                     #   Client struct: New / NewWithConfig
 ├── k8s.go                        #   NewFromK8s: auto-resolve sandboxID and runtimeToken from K8s
 ├── config.go                     #   Config & Options: Domain / Scheme / RuntimeToken / ...
+├── traffic_token.go              #   TrafficTokenProvider & transport wrapper: inject traffic JWT header
 ├── commands.go                   #   Commands: Run / Start / Kill / SendStdin / List / ConnectToProcess
 ├── command_handle.go             #   CommandHandle: Wait / Disconnect / Kill
 ├── filesystem.go                 #   Filesystem: List / Exists / GetInfo / MakeDir / Rename / Remove / Read / Write
@@ -109,7 +110,31 @@ The runtime client **does not involve Protocol** — only `Scheme` + `Domain` ar
 | `WithHeader(key, value string)`       | Add a single custom header                     |
 | `WithHeaders(headers map)`            | Merge multiple custom headers                  |
 | `WithRequestTimeout(d time.Duration)` | HTTP timeout, defaults to 60s                  |
+| `WithTrafficTokenProvider(p TrafficTokenProvider)` | Attach short-lived traffic JWTs (see below) |
 | `WithConfig(cfg *Config)`             | Pass a pre-built Config to replace defaults    |
+
+### Traffic Token (JWT Auth)
+
+For sandboxes created with metadata `"security.agents.kruise.io/enable-jwt-auth": "true"`, every data-plane request
+must carry a short-lived Traffic JWT in the `e2b-traffic-access-token` header. `WithTrafficTokenProvider` installs a
+provider invoked immediately before each request, so tokens can be fetched/refreshed transparently:
+
+```go
+c, err := runtime.NewWithConfig(sandboxID, &runtime.Config{
+    Domain: "sandbox-gateway.sandbox-system.svc:7788",
+    TrafficTokenProvider: func(ctx context.Context) (string, error) {
+        return fetchOrRefreshTrafficToken(ctx, sandboxID) // your token source
+    },
+})
+```
+
+Returning `("", nil)` sends no traffic header (legacy behavior); returning an error fails the request before it
+leaves the process (fail-closed). The provider must be set at client construction time — it is installed as a
+Transport wrapper in `New` / `NewWithConfig`, not applied retroactively.
+
+> The `e2b` package wires this option automatically for JWT-protected sandboxes (transparent refresh, concurrency
+> coalescing, backoff). See the [E2B SDK Traffic JWT Refresh](https://github.com/openkruise/agents-api/blob/master/e2b/README.md#traffic-jwt-refresh)
+> section for the high-level machinery.
 
 ---
 
