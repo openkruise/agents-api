@@ -84,10 +84,11 @@ type SandboxSpec struct {
 	// "activity detection" vs "cron task detection") are defined by
 	// AutoPausePolicy.Pause/Resume, not by the probe itself.
 	//
-	// Probe execution is delegated to the agent-runtime sidecar via the
-	// PodProbeMarker Serverless protocol (kruise.io/podprobe annotation).
-	// The controller reads results from Pod.Status.Conditions and mirrors
-	// them to SandboxStatus.Conditions for observability.
+	// Probe delivery depends on where the pod lands: virtual-kubelet nodes read
+	// the kruise.io/podprobe annotation written at pod creation, real nodes get a
+	// PodProbeMarker executed by kruise-daemon. Either way results arrive in
+	// Pod.Status.Conditions, which the controller mirrors to
+	// SandboxStatus.Conditions for observability.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
@@ -605,11 +606,13 @@ const (
 	SandboxReadyReasonUpgrading            = "Upgrading"
 	SandboxReadyReasonStartContainerFailed = "StartContainerFailed"
 	SandboxReadyReasonPodCreateFailed      = "PodCreateFailed"
+	SandboxReadyReasonUnschedulable        = "Unschedulable"
 
 	// SandboxConditionInplaceUpdate Reason
-	SandboxInplaceUpdateReasonInplaceUpdating = "InplaceUpdating"
-	SandboxInplaceUpdateReasonSucceeded       = "Succeeded"
-	SandboxInplaceUpdateReasonFailed          = "Failed"
+	SandboxInplaceUpdateReasonInplaceUpdating   = "InplaceUpdating"
+	SandboxInplaceUpdateReasonSucceeded         = "Succeeded"
+	SandboxInplaceUpdateReasonFailed            = "Failed"
+	SandboxInplaceUpdateReasonUnsupportedResize = "UnsupportedResize"
 
 	// SandboxConditionUpgrading Reason
 	SandboxUpgradingReasonResuming         = "Resuming"
