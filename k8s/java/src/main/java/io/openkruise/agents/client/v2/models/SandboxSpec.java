@@ -115,13 +115,14 @@ public class SandboxSpec implements io.fabric8.kubernetes.api.model.KubernetesRe
      * "activity detection" vs "cron task detection") are defined by
      * AutoPausePolicy.Pause/Resume, not by the probe itself.
      *
-     * Probe execution is delegated to the agent-runtime sidecar via the
-     * PodProbeMarker Serverless protocol (kruise.io/podprobe annotation).
-     * The controller reads results from Pod.Status.Conditions and mirrors
-     * them to SandboxStatus.Conditions for observability.
+     * Probe delivery depends on where the pod lands: virtual-kubelet nodes read
+     * the kruise.io/podprobe annotation written at pod creation, real nodes get a
+     * PodProbeMarker executed by kruise-daemon. Either way results arrive in
+     * Pod.Status.Conditions, which the controller mirrors to
+     * SandboxStatus.Conditions for observability.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("probes")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Probes defines a list of named probes that run periodically while the sandbox\nis Running. Each probe writes its result to a Pod Status Condition with\ntype \"agents.kruise.io/<name>\". Probes are generic — their semantics (e.g.,\n\"activity detection\" vs \"cron task detection\") are defined by\nAutoPausePolicy.Pause/Resume, not by the probe itself.\n\nProbe execution is delegated to the agent-runtime sidecar via the\nPodProbeMarker Serverless protocol (kruise.io/podprobe annotation).\nThe controller reads results from Pod.Status.Conditions and mirrors\nthem to SandboxStatus.Conditions for observability.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Probes defines a list of named probes that run periodically while the sandbox\nis Running. Each probe writes its result to a Pod Status Condition with\ntype \"agents.kruise.io/<name>\". Probes are generic — their semantics (e.g.,\n\"activity detection\" vs \"cron task detection\") are defined by\nAutoPausePolicy.Pause/Resume, not by the probe itself.\n\nProbe delivery depends on where the pod lands: virtual-kubelet nodes read\nthe kruise.io/podprobe annotation written at pod creation, real nodes get a\nPodProbeMarker executed by kruise-daemon. Either way results arrive in\nPod.Status.Conditions, which the controller mirrors to\nSandboxStatus.Conditions for observability.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.sandboxspec.Probes> probes;
 
