@@ -1,6 +1,6 @@
 * text=auto eol=lf
 
-# Windows 脚本必须保留 CRLF（当前仓库无此类文件，防御性声明）
+# Windows scripts keep CRLF
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
