@@ -114,6 +114,10 @@ status (may take a few minutes to several hours to sync).
 
 ## Important Notes
 
+- **Versions are immutable**: Once a version (e.g., `0.1.0`) is published to Maven Central, it can never be re-released,
+  overwritten, or deleted. Re-publishing an existing version fails with `Deployment ... failed while publishing`. Always
+  bump the version (e.g., `0.1.1`) when re-running a publish workflow; the workflow fetches the latest published version
+  from Maven Central before building and fails fast with a clear message if the requested version is not greater than it
 - **Namespace must match GroupId**: The Namespace owned by your Sonatype Central account must match the `groupId` in
   `pom.xml` (e.g., `io.openkruise`), otherwise publishing will be rejected
 - **GPG Email must match Developer Email**: The Email in the GPG key must match the `<email>` in `<developers>` section

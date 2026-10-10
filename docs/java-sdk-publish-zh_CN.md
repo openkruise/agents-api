@@ -107,6 +107,9 @@ gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY-ID>
 
 ## 注意事项
 
+- **版本一经发布不可变**：某个版本（如 `0.1.0`）发布到 Maven Central 后，无法重新发布、覆盖或删除。重复发布同一版本会报
+  `Deployment ... failed while publishing` 错误。重新运行发布 Workflow 时必须使用新版本号（如 `0.1.1`）；Workflow
+  会在构建前获取 Maven Central 上已发布的最新版本，若输入版本号不大于最新版本将提前失败并给出明确提示
 - **Namespace 与 GroupId 一致**：Sonatype Central 账号拥有的 Namespace 必须与 `pom.xml` 中的 `groupId` 一致（如
   `io.openkruise`），否则发布会被拒绝
 - **GPG Email 与 Developer Email 一致**：GPG 密钥的 Email 必须与 `pom.xml` 中 `<developers>` 的 `<email>` 一致，否则签名验证会失败
