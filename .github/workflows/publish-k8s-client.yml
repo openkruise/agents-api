@@ -24,6 +24,20 @@ jobs:
           distribution: 'zulu'
           cache: 'maven'
       
+      - name: Setup Maven 3.9.16
+        # Pin Maven to 3.9.x: runner images ship Maven 3.10+ (Resolver 2), which
+        # breaks central-publishing-maven-plugin staging. Resolver 2 writes
+        # maven-metadata-local.xml / _remote.repositories / .locks into the
+        # staging directory; these end up inside the bundle and Central rejects
+        # it with "Bundle has content that does NOT have a .pom file".
+        # Remove this step once the plugin fixes Maven 3.10 / Resolver 2 support.
+        run: |
+          curl -sSL -o /tmp/apache-maven-3.9.16-bin.tar.gz \
+            https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.16/apache-maven-3.9.16-bin.tar.gz
+          tar -xzf /tmp/apache-maven-3.9.16-bin.tar.gz -C "$HOME"
+          echo "$HOME/apache-maven-3.9.16/bin" >> "$GITHUB_PATH"
+          "$HOME/apache-maven-3.9.16/bin/mvn" -version
+      
       - name: Install GPG
         run: |
           sudo apt-get update
