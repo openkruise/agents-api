@@ -1,6 +1,12 @@
-"""End-to-end demo of Traffic JWT against a gateway with enable-jwt-auth.
+"""End-to-end demo of Traffic JWT over the native E2B protocol.
 
-Deployment prerequisites (see docs / conversation for full instructions):
+This is demo_jwt_gateway.py without patch_e2b: the SDK keeps its native
+protocol (https://api.{E2B_DOMAIN} for the management API,
+{port}-{sandbox_id}.{E2B_DOMAIN} for the data plane) and only the traffic
+token patch runs on top of it — the two patches are independent (see README
+"Combining the patches").
+
+Deployment prerequisites:
 
 1. jwt-e2e-oidc-provider deployed in sandbox-system, reachable in-cluster.
 2. sandbox-gateway upgraded with:
@@ -8,15 +14,15 @@ Deployment prerequisites (see docs / conversation for full instructions):
      gateway.envoy.oidc.discoveryUrl=https://jwt-e2e-oidc-provider.sandbox-system.svc:8443/...
      gateway.envoy.oidc.caConfigMap.namespace/name pointing at the provider CA.
 3. kubectl on PATH with access to the sandbox resources.
+4. Wildcard DNS + TLS for {port}-{sandbox_id}.{E2B_DOMAIN} pointing at the
+   gateway, and api.{E2B_DOMAIN} (or E2B_API_URL) routed to sandbox-manager —
+   the deployment costs patch_e2b exists to avoid.
 
 Because the OSS sandbox-manager issues opaque UUID tokens, this demo mirrors
 the upstream E2E suite: it issues a real JWT through the external provider and
 injects it into the SDK client. Run on the Linux host:
 
-    python demo_jwt_gateway.py
-
-See demo_jwt_gateway_native.py for the same flow over the native E2B protocol
-(traffic token patch only, no patch_e2b).
+    python demo_jwt_gateway_native.py
 """
 
 import os
@@ -29,13 +35,19 @@ import httpx
 from e2b_code_interpreter import Sandbox
 
 import kruise_agents.patch_traffic_token as patch_module
-from kruise_agents.patch_e2b import patch_e2b
 from kruise_agents.traffic_token import TrafficAccessToken, parse_expiration
 
-# https=True when SSL_CERT_FILE is set; validate_key=False bypasses E2B's local
-# key format check (same setup as demo.py).
-use_https = bool(os.environ.get("SSL_CERT_FILE"))
-patch_e2b(use_https, validate_key=False)
+if not os.environ.get("E2B_DOMAIN"):
+    raise SystemExit("E2B_DOMAIN must be set to the deployment domain")
+
+# Native protocol, JWT only — no patch_e2b. Point the management API at
+# sandbox-manager through the SDK's own env vars instead; E2B_VALIDATE_API_KEY
+# is the native equivalent of patch_e2b(validate_key=False). The data plane
+# keeps {port}-{sandbox_id}.{E2B_DOMAIN} URLs and the SDK forces https there,
+# so the deployment needs wildcard TLS (SSL_CERT_FILE selects the trusted CA
+# bundle for both planes).
+os.environ.setdefault("E2B_API_URL", f"https://api.{os.environ['E2B_DOMAIN']}")
+os.environ.setdefault("E2B_VALIDATE_API_KEY", "false")
 patch_module.patch_traffic_access_token()
 
 PROVIDER_SERVICE = os.environ.get("JWT_PROVIDER_SERVICE", "jwt-e2e-oidc-provider")
