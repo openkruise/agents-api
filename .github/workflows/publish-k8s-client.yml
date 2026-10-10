@@ -6,7 +6,7 @@ on:
       version:
         description: 'Version to release'
         required: true
-        default: '0.1.0'
+        default: '0.1.1'
         type: string
 
 jobs:
@@ -16,7 +16,43 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
+      - name: Check version availability on Maven Central
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          ARTIFACT="agents-client-k8s"
+          BASE_URL="https://repo1.maven.org/maven2/io/openkruise/${ARTIFACT}"
+
+          # Look up the latest published version (metadata returns 404 for brand-new artifacts)
+          META_CODE=$(curl -s -o /tmp/maven-metadata.xml -w "%{http_code}" "${BASE_URL}/maven-metadata.xml" || true)
+          LATEST=$(sed -n 's:.*<latest>\(.*\)</latest>.*:\1:p' /tmp/maven-metadata.xml 2>/dev/null || true)
+          if [ -n "$LATEST" ]; then
+            echo "Latest published version of ${ARTIFACT}: ${LATEST}; releasing: ${VERSION}"
+            # Fail fast if the requested version is not strictly greater than the latest
+            # (GNU sort -V is available on ubuntu runners)
+            if [ "$(printf '%s\n%s\n' "$LATEST" "$VERSION" | sort -V | tail -n 1)" = "$LATEST" ]; then
+              echo "::error::Version ${VERSION} of ${ARTIFACT} is not greater than the latest published version ${LATEST}. Published artifacts are immutable; use a version greater than ${LATEST} and re-run this workflow."
+              exit 1
+            fi
+          elif [ "$META_CODE" = "404" ]; then
+            echo "No published versions of ${ARTIFACT} yet; releasing first version ${VERSION}."
+          else
+            echo "::warning::Could not fetch maven-metadata.xml (HTTP ${META_CODE}); skipping latest-version comparison."
+          fi
+
+          # Exact check: the .pom of the target version must not already exist
+          # (also guards against a stale maven-metadata.xml due to CDN caching)
+          URL="${BASE_URL}/${VERSION}/${ARTIFACT}-${VERSION}.pom"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "::error::${ARTIFACT} ${VERSION} is already published on Maven Central. Published artifacts are immutable and cannot be re-released; bump the version and re-run this workflow."
+            exit 1
+          elif [ "$HTTP_CODE" != "404" ]; then
+            echo "::warning::Could not verify version availability on Maven Central (HTTP ${HTTP_CODE}), continuing anyway."
+          else
+            echo "${ARTIFACT} ${VERSION} is available, proceeding."
+          fi
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -76,7 +112,12 @@ jobs:
           GPG_TTY: ''
           GPG_AGENT_INFO: /dev/null
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-      
+
+      - name: Publishing failure hint
+        if: failure()
+        run: |
+          echo "::error::Publishing failed on the Sonatype side. Open https://central.sonatype.com/publishing/deployments (sign in with the account owning the io.openkruise namespace) and check the failed deployment's validation results for the exact reason (duplicate version, invalid signature, missing sources/javadoc, etc.)."
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
