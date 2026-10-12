@@ -21,6 +21,8 @@ e2b/
 ├── api/                              #   OpenAPI 生成的 REST 客户端（sandbox 管理）
 ├── sandbox.go                        #   Sandbox 结构体：Create / Connect / Pause / Kill
 ├── sandbox_api.go                    #   底层 REST 客户端（SandboxApi）：List / GetInfo / Kill / ...
+├── traffic_token.go                  #   Traffic JWT 管理器：透明刷新、退避重试、fail-closed
+├── keys.go                           #   EncodeForE2BSDK：E2B 生态的 key 兼容编码
 └── config.go                         #   ConnectionConfig：Protocol / Scheme / Domain / API URL
 ```
 
@@ -106,6 +108,7 @@ func main() {
 | `WithCodeInterpreterPort(port int)`   | 代码解释器端口，默认 `49999`                              |
 | `WithRequestTimeout(d time.Duration)` | HTTP 请求超时，默认 60s                                  |
 | `WithHTTPClient(client *http.Client)` | 自定义 HTTP 客户端用于 API 请求                            |
+| `WithHeader(key, value string)`         | 为每个请求添加自定义 header                              |
 
 #### 优先级
 
@@ -174,6 +177,8 @@ e2b.WithConfig(e2b.WithAPIKey("xxx"), e2b.WithDomain("example.com")),
 | `Pause(ctx) (string, error)`           | 暂停                       |
 | `Kill(ctx) (bool, error)`              | 销毁                       |
 | `Close(ctx) error`                     | `Kill` 的别名，方便 `defer` 使用 |
+| `TrafficAccessToken() string`          | 当前缓存的 traffic token（不触发刷新） |
+| `RefreshTrafficAccessToken(ctx) (string, error)` | 强制刷新 traffic token |
 
 `Sandbox` 暴露两个子模块：
 
@@ -202,6 +207,7 @@ e2b.WithDomain("example.com"),
 | `CreateSandbox(ctx, opts CreateSandboxOpts) (*SandboxCreateResponse, error)` | 底层创建接口                              |
 | `ConnectSandbox(ctx, sandboxID, timeout int32) (*client.Sandbox, error)`     | 底层连接接口                              |
 | `Pause(ctx, sandboxID) (string, error)`                                      | 暂停 sandbox                          |
+| `RefreshTrafficAccessToken(ctx, sandboxID) (*TrafficAccessToken, error)`      | 获取新的 traffic access token         |
 
 ### ListSandboxOpts
 
@@ -260,6 +266,81 @@ for {
 
 fmt.Printf("总计: %d 个 sandbox\n", len(allSandboxes))
 ```
+
+---
+
+## Traffic JWT 自动刷新
+
+当 sandbox 以元数据 `"security.agents.kruise.io/enable-jwt-auth": "true"` 创建时，sandbox-manager 会签发一个
+短时效的 **Traffic JWT**。此后每个数据面请求（Commands / Files / CodeInterpreter）都必须携带
+`e2b-traffic-access-token` 请求头，否则网关返回 403。
+
+SDK 会透明地处理这一切 —— **调用方无需修改任何代码**：
+
+1. `Create` / `Connect` 从管理 API 获取初始 token 并安装 token 管理器（连接一个已在运行但响应中未带
+   token 的 JWT sandbox 时，通过首次刷新以空 token 自举）。
+2. 每个数据面请求在发送前一刻获取有效 token。token 会在过期前主动刷新
+   （提前量 `min(300s, max(60s, 时长/5))`，再减去少量随机抖动以分散刷新时机）。
+3. 多个请求同时需要刷新时，会合并为**一次**刷新调用（刷新失败时同样成立：并发强制刷新保留当前
+   token，共享同一次重试）。
+4. 刷新失败时按指数退避重试（遵循服务端 `Retry-After`）。当前 token 仍有效时继续使用旧 token；
+   一旦过期则**fail-closed**，返回 `*TrafficAccessTokenExpired`，而不是发出一个注定被拒绝的请求。
+5. 刷新与调用方的 context 解耦：取消调用方不会中止进行中的刷新。
+
+```go
+sb, err := e2b.Create(ctx, "code-interpreter",
+    e2b.WithConfig(e2b.WithAPIKey("xxx"), e2b.WithDomain("example.com")),
+    e2b.WithMetadata(map[string]string{"security.agents.kruise.io/enable-jwt-auth": "true"}),
+)
+// ...数据面调用（Commands / Files / CodeInterpreter）直接可用 ——
+// token 的附带与刷新全部自动完成。
+
+// 可选的手动控制：
+token := sb.TrafficAccessToken()                 // 缓存中的 token，不触发刷新；非 JWT sandbox 返回 ""
+token, err = sb.RefreshTrafficAccessToken(ctx)   // 强制刷新（并发强制刷新会合并）
+
+// 外部签发的初始 token（外部身份提供方部署场景）：
+sb2, err := e2b.Connect(ctx, id,
+    e2b.WithConfig(e2b.WithAPIKey("xxx"), e2b.WithDomain("example.com")),
+    e2b.WithTrafficAccessToken(jwt), // 种入 manager；后续刷新仍走管理 API
+)
+```
+
+非 JWT sandbox（没有 traffic token、legacy 不透明 token）以及 `WithDebug(true)` 保持旧行为：不带 traffic
+请求头、不刷新，且 `RefreshTrafficAccessToken` 返回错误。
+
+> 底层 `SandboxApi.RefreshTrafficAccessToken(ctx, sandboxID)` POST
+> `/sandboxes/{sandboxID}/traffic-access-token` 并返回原始的
+> `*TrafficAccessToken{Token, ExpiresAt}`；推荐使用上面 `Sandbox` 层的封装。
+
+### 对接启用 JWT 的网关做端到端验证
+
+`examples/jwt-gateway-example` 是 Python SDK `demo_jwt_gateway.py` 的 Go 对应版本：针对开启 `enableJwtAuth=true`
+的 sandbox-gateway 与外部 OIDC 签发器跑完整流程 —— 无有效 JWT 的数据面请求被拒绝、携带外部签发 token 的调用
+正常（`WithTrafficAccessToken`）、短时效 token 自动轮换。本地翻译代理把刷新端点路由到外部签发器（OSS
+sandbox-manager 签发的是不透明 UUID token），因此 SDK 的完整刷新链路 —— header、Retry-After 处理、响应校验 ——
+得到端到端验证。部署前置与环境变量见示例文件头部注释。
+
+### Key 兼容编码
+
+`keys.go` 提供 `EncodeForE2BSDK`，将原始（OpenKruise）API key 包装成 E2B 生态工具能识别的
+`e2b_` 前缀格式：
+
+```go
+encoded := e2b.EncodeForE2BSDK("my-raw-key") // e2b_6f6b6167...
+```
+
+编码格式为 `e2b_` + 固定 magic + 版本 `01` + 8 位十六进制长度 + hex body + 8 字节 SHA-256 校验和 ——
+与 Python SDK 的 `encode_for_e2b_sdk` 逐字节兼容。
+
+### 上线指引（Rollout）
+
+sandbox-manager 默认保留 legacy 的约 100 年 Traffic JWT 有效期。请先部署本 SDK（或其他具备同等刷新能力的
+客户端），再为现有启用 JWT 认证的工作负载配置更短的 `--traffic-access-token-validity`；不具备刷新能力的
+客户端在短时效 token 过期后会失去数据面访问。
+
+请先部署 lazy-Connect 行为（重连时通过 sandbox 元数据恢复缺失的 token），再将 sandbox-manager 升级到不再
+从 Connect 签发 Traffic JWT 的版本。旧客户端在按 sandbox ID 重连时无法恢复缺失的 token。
 
 ---
 

@@ -182,6 +182,20 @@ func WithHTTPClient(httpClient *http.Client) ConnectionConfigOption {
 	}
 }
 
+// WithHeader adds a custom header sent with every request: management API
+// calls (including traffic token refreshes) and the sandbox data plane.
+// Setting the same key twice keeps the last value. On the management API
+// (including refreshes) X-API-Key wins on a collision; on the data plane
+// custom headers are applied after the auth headers and win instead.
+func WithHeader(key, value string) ConnectionConfigOption {
+	return func(c *ConnectionConfig) {
+		if c.Headers == nil {
+			c.Headers = make(map[string]string)
+		}
+		c.Headers[key] = value
+	}
+}
+
 // GetAPIURL returns the base API URL.
 func (c *ConnectionConfig) GetAPIURL() string {
 	if c.APIURL != "" {
@@ -300,6 +314,12 @@ func (c *ConnectionConfig) NewAPIClient() *api.APIClient {
 			cfg.HTTPClient = &http.Client{
 				Timeout: c.RequestTimeout,
 			}
+		}
+		// Custom headers ride on every management request; X-API-Key is
+		// applied after them so the API key wins on a collision, matching
+		// _refresh_headers in the Python kruise_agents patch.
+		for k, v := range c.Headers {
+			cfg.DefaultHeader[k] = v
 		}
 		if c.APIKey != "" {
 			cfg.DefaultHeader["X-API-Key"] = c.APIKey
