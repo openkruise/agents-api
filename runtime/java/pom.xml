@@ -4,7 +4,7 @@
     <groupId>io.openkruise</groupId>
     <artifactId>agents-client-runtime</artifactId>
     <packaging>jar</packaging>
-    <version>0.1.0</version>
+    <version>0.6.0</version>
     <name>agents-client-runtime</name>
     <description>Java runtime client for Agents</description>
     <url>https://github.com/openkruise/agents-api</url>

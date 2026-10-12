@@ -10,7 +10,7 @@ operations) APIs.
 <dependency>
     <groupId>io.openkruise</groupId>
     <artifactId>agents-client-e2b</artifactId>
-    <version>0.1.0</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 

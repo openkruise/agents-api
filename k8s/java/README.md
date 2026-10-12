@@ -11,7 +11,7 @@ Add this dependency to your project's POM:
 <dependency>
     <groupId>io.openkruise</groupId>
     <artifactId>agents-client-k8s</artifactId>
-    <version>0.1.0</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
