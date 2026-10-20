@@ -78,10 +78,16 @@ echo "==> Generating Java SDK v2..."
 GEN_TEMP_DIR=$(mktemp -d)
 trap "rm -rf ${GEN_TEMP_DIR}" EXIT
 
+# Both API groups are remapped into the single target package:
+#   agents.kruise.io         → io.kruise.agents.v1alpha1
+#   security.agents.kruise.io → io.kruise.agents.security.v1alpha1
+# Without the second override the security CRD classes would land in their
+# default package and be silently dropped when copying to V2_MODELS_DIR.
 java -jar "${CLI_JAR}" \
     --source "${CRD_SOURCE_DIR}" \
     --target "${GEN_TEMP_DIR}" \
     --package-overrides io.kruise.agents.v1alpha1="${TARGET_PACKAGE}" \
+    --package-overrides io.kruise.agents.security.v1alpha1="${TARGET_PACKAGE}" \
     --enum-uppercase \
     --skip-generated-annotations
 

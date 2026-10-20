@@ -17,10 +17,14 @@ limitations under the License.
 package v1alpha1
 
 type CSIMountConfig struct {
-	MountID    string            `json:"mountID,omitempty"`    // mount id
-	PvName     string            `json:"pvName"`               // persistent volume name for mounting
-	MountPath  string            `json:"mountPath"`            // mount target in container to mount the persistent volume
-	SubPath    string            `json:"subPath,omitempty"`    // sub path address in persistent volume
-	ReadOnly   bool              `json:"readOnly,omitempty"`   // whether to mount the persistent volume as read-only
-	Attributes map[string]string `json:"attributes,omitempty"` // generic key-value attributes for storage authentication and provider-specific configuration
+	MountID   string `json:"mountID,omitempty"`  // mount id
+	PvName    string `json:"pvName"`             // persistent volume name for mounting
+	MountPath string `json:"mountPath"`          // mount target in container to mount the persistent volume
+	SubPath   string `json:"subPath,omitempty"`  // sub path address in persistent volume
+	ReadOnly  bool   `json:"readOnly,omitempty"` // whether to mount the persistent volume as read-only
+	// Attributes contains provider-specific values copied into the CSI
+	// NodePublishVolumeRequest VolumeContext for this mount. Values are persisted
+	// in Sandbox and Checkpoint annotations, so callers must not include credentials.
+	// The keys path, authType, and the csi.storage.k8s.io/ prefix are reserved.
+	Attributes map[string]string `json:"attributes,omitempty"`
 }

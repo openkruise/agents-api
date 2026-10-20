@@ -1,9 +1,26 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"keepRunning","persistentContents","podName","sandboxName","ttlAfterFinished"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"containers","keepRunning","persistentContents","podName","sandboxName","ttlAfterFinished"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class CheckpointSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
+
+    /**
+     * Containers lists the names of containers to checkpoint.
+     * An empty list means all eligible containers in the Pod.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("containers")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Containers lists the names of containers to checkpoint.\nAn empty list means all eligible containers in the Pod.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<String> containers;
+
+    public java.util.List<String> getContainers() {
+        return containers;
+    }
+
+    public void setContainers(java.util.List<String> containers) {
+        this.containers = containers;
+    }
 
     /**
      * KeepRunning indicates whether the pod remains in the Running state after passing the checkpoint.
@@ -23,10 +40,10 @@ public class CheckpointSpec implements io.fabric8.kubernetes.api.model.Kubernete
     }
 
     /**
-     * PersistentContents indicates resume pod with persistent content, Enum: podInfo, memory, filesystem
+     * PersistentContents indicates resume pod with persistent content, Enum: podInfo, memory, filesystem, gpuMemory
      */
     @com.fasterxml.jackson.annotation.JsonProperty("persistentContents")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PersistentContents indicates resume pod with persistent content, Enum: podInfo, memory, filesystem")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PersistentContents indicates resume pod with persistent content, Enum: podInfo, memory, filesystem, gpuMemory")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<String> persistentContents;
 

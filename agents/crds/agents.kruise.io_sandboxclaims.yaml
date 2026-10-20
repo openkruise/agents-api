@@ -88,6 +88,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
+                      description: |-
+                        Attributes contains provider-specific values copied into the CSI
+                        NodePublishVolumeRequest VolumeContext for this mount. Values are persisted
+                        in Sandbox and Checkpoint annotations, so callers must not include credentials.
+                        The keys path, authType, and the csi.storage.k8s.io/ prefix are reserved.
                       type: object
                     mountID:
                       type: string

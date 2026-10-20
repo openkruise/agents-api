@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"checkpointId","completionTime","message","observedGeneration","phase","podTemplateDelta"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"checkpointId","checkpointLocation","completionTime","message","observedGeneration","phase","podTemplateDelta"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class CheckpointStatus implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -19,6 +19,22 @@ public class CheckpointStatus implements io.fabric8.kubernetes.api.model.Kuberne
 
     public void setCheckpointId(String checkpointId) {
         this.checkpointId = checkpointId;
+    }
+
+    /**
+     * CheckpointLocation describes where the checkpoint artifacts are stored.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("checkpointLocation")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("CheckpointLocation describes where the checkpoint artifacts are stored.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.checkpointstatus.CheckpointLocation checkpointLocation;
+
+    public io.openkruise.agents.client.v2.models.checkpointstatus.CheckpointLocation getCheckpointLocation() {
+        return checkpointLocation;
+    }
+
+    public void setCheckpointLocation(io.openkruise.agents.client.v2.models.checkpointstatus.CheckpointLocation checkpointLocation) {
+        this.checkpointLocation = checkpointLocation;
     }
 
     /**
