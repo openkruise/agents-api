@@ -136,7 +136,7 @@ executed through `/bin/bash -l -c <cmd>`.
 RunOptions opts=new RunOptions()
     .envs(Map.of("LANG","C"))               // Environment variables
     .cwd("/tmp")                              // Working directory
-    .user("nobody")                           // Run as this user (must exist in the image)
+    .user("nobody")                           // Run as this user (must exist in the image, must not contain ':'); applies to run/runBackground only; unset = default (root)
     .onStdout(line->System.out.print(line)) // Streaming stdout callback
     .onStderr(line->System.err.print(line));// Streaming stderr callback
 ```

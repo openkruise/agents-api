@@ -133,6 +133,11 @@ public class Commands {
         // the process as that user (Basic auth, empty password).
         Map<String, String> extraHeaders = null;
         if (options.getUser() != null && !options.getUser().isEmpty()) {
+            if (options.getUser().contains(":")) {
+                throw new IllegalArgumentException(
+                    "Invalid user '" + options.getUser() + "': must not contain ':' "
+                    + "(Basic auth would split it into a user:password pair)");
+            }
             extraHeaders = new HashMap<>();
             extraHeaders.put("Authorization", RuntimeConfig.authHeaderForUser(options.getUser()));
         }
@@ -394,8 +399,12 @@ public class Commands {
 
         /**
          * Sets the user to run the command as (sent via the Authorization
-         * header; the user must exist inside the sandbox image). When unset,
-         * the configured Authorization header is used (root by default).
+         * header; the user must exist inside the sandbox image; must not
+         * contain ':', which Basic auth would split into a user:password
+         * pair). The override applies to the process start request only
+         * (run/runBackground); other process RPCs (list, kill, sendInput,
+         * connect) keep the default header. When unset, the configured
+         * Authorization header is used (root by default).
          */
         public RunOptions user(String user) {
             this.user = user;

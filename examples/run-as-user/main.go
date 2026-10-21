@@ -1,5 +1,3 @@
-package main
-
 // Command run-as-user verification for the Go SDKs. One binary covers both
 // SDK flavors because the data plane is shared: e2b.Sandbox embeds the
 // runtime SDK's *runtime.Client, so every check below exercises the runtime
@@ -12,10 +10,11 @@ package main
 //	E2B_API_KEY   -> apiKey    (your-apiKey)
 //	E2B_DOMAIN    -> domain    (your.domain.com)
 //	E2B_TEMPLATE  -> template  (code-interpreter)
-//	RUN_AS_USER   -> runAsUser (nobody, must exist in the image)
+//	RUN_AS_USER   -> runAsUser (nobody, must exist in the image, must not contain ':')
 //	E2B_PROTOCOL  -> protocol  (private; native for subdomain routing)
 //	E2B_SCHEME    -> scheme    (derived: https when SSL_CERT_FILE is set, else http)
 //	SSL_CERT_FILE -> CA bundle trusted for https (PEM)
+package main
 
 import (
 	"context"
@@ -41,6 +40,10 @@ const (
 	// noSuchUser is expected to be absent from every image; the negative
 	// check relies on envd rejecting an unknown username.
 	noSuchUser = "no-such-user-run-as-user-demo"
+
+	// totalChecks is the number of checks verify() performs; the result
+	// line and the exit-code decision both key off it.
+	totalChecks = 5
 )
 
 // envOr returns the value of the environment variable key, or fallback when
@@ -53,6 +56,14 @@ func envOr(key, fallback string) string {
 }
 
 func main() {
+	os.Exit(run())
+}
+
+// run performs the verification and returns the process exit code: 0 when
+// all checks pass, 1 otherwise. The main/exit-code split exists so cleanup
+// can be deferred — deferred calls do not run on os.Exit, and a panic in
+// verify must not leak the sandbox.
+func run() int {
 	ctx := context.Background()
 
 	apiKey := envOr("E2B_API_KEY", defaultAPIKey)
@@ -110,14 +121,16 @@ func main() {
 	}
 	fmt.Printf("Sandbox created: %s\n", sb.SandboxID())
 
-	// Ensure cleanup on exit.
-	passed := verify(ctx, sb, runAsUser)
-	cleanup(ctx, sb)
+	// Kill the sandbox no matter how verify exits (early return or panic).
+	defer cleanup(ctx, sb)
 
-	fmt.Printf("\n========== Result: %d/5 checks passed ==========\n", passed)
-	if passed != 5 {
-		os.Exit(1)
+	passed := verify(ctx, sb, runAsUser)
+
+	fmt.Printf("\n========== Result: %d/%d checks passed ==========\n", passed, totalChecks)
+	if passed != totalChecks {
+		return 1
 	}
+	return 0
 }
 
 // verify runs the run-as-user checks against the sandbox and returns how

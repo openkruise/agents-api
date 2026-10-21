@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/openkruise/agents-api/runtime/envd/process"
@@ -118,8 +119,12 @@ type RunOpts struct {
 	Cwd string
 	// User, when non-empty, runs the command as that user. The username is
 	// sent via the Authorization header (Basic auth, matching the envd
-	// convention) and must exist inside the sandbox image. When empty, the
-	// configured Authorization header is used (root by default).
+	// convention) and must exist inside the sandbox image; usernames
+	// containing ':' are rejected because Basic auth would split them into
+	// a user:password pair. The override applies to the process start
+	// request only (Run/Start); other process RPCs (List, Kill, SendStdin,
+	// ConnectToProcess) keep the default header. When empty, the configured
+	// Authorization header is used (root by default).
 	User string
 	// Stdin enables stdin for the command.
 	Stdin bool
@@ -171,6 +176,9 @@ func (c *Commands) Start(ctx context.Context, cmd string, opts ...RunOpts) (*Com
 	})
 	c.setHeaders(req)
 	if opt.User != "" {
+		if strings.ContainsRune(opt.User, ':') {
+			return nil, fmt.Errorf("invalid RunOpts.User %q: must not contain ':' (Basic auth would split it into a user:password pair)", opt.User)
+		}
 		req.Header().Set("Authorization", userAuthHeader(opt.User))
 	}
 

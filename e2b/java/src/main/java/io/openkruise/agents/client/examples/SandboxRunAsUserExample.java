@@ -32,7 +32,7 @@ import okhttp3.OkHttpClient;
  *
  * <ul>
  *   <li>{@code E2B_TEMPLATE} -> template ({@code code-interpreter})
- *   <li>{@code RUN_AS_USER}  -> runAsUser ({@code nobody}, must exist in the image)
+ *   <li>{@code RUN_AS_USER}  -> runAsUser ({@code nobody}, must exist in the image, must not contain ':')
  *   <li>{@code E2B_PROTOCOL} -> protocol ({@code PRIVATE}; {@code NATIVE} for subdomain routing)
  *   <li>{@code E2B_SCHEME}   -> scheme (derived: {@code https} when SSL_CERT_FILE is set, else {@code http})
  *   <li>{@code SSL_CERT_FILE} -> CA bundle trusted for https (PEM)
@@ -44,6 +44,10 @@ import okhttp3.OkHttpClient;
 public class SandboxRunAsUserExample {
     private static final String DEFAULT_TEMPLATE = "code-interpreter";
     private static final String DEFAULT_RUN_AS_USER = "nobody";
+
+    /** Number of checks verify() performs; the result line and the
+     *  exit-code decision both key off it. */
+    private static final int TOTAL_CHECKS = 5;
 
     /** Expected to be absent from every image; the negative check relies on
      *  envd rejecting an unknown username. */
@@ -114,8 +118,8 @@ public class SandboxRunAsUserExample {
             }
         }
 
-        System.out.printf("%n========== Result: %d/5 checks passed ==========%n", passed);
-        if (passed != 5) {
+        System.out.printf("%n========== Result: %d/%d checks passed ==========%n", passed, TOTAL_CHECKS);
+        if (passed != TOTAL_CHECKS) {
             System.exit(1);
         }
     }
@@ -189,8 +193,9 @@ public class SandboxRunAsUserExample {
         }
     }
 
-    /** Builds an OkHttpClient that trusts the PEM CA bundle at the given
-     *  path on top of the default trust store (self-signed environments). */
+    /** Builds an OkHttpClient that trusts only the PEM CA bundle at the
+     *  given path, replacing the platform default trust store
+     *  (self-signed environments). */
     private static OkHttpClient trustingClient(String certFile) throws Exception {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());

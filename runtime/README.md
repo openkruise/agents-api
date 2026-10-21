@@ -134,7 +134,7 @@ Operate in-container processes via `c.Commands`. Uses the envd `Process` gRPC se
 type RunOpts struct {
 Envs       map[string]string // Process environment variables
 Cwd        string            // Working directory
-User       string            // Run as this user (must exist in the image); empty = default (root)
+User       string            // Run as this user (must exist in the image, must not contain ':'); applies to Run/Start only; empty = default (root)
 Stdin      bool // Allow writing via SendStdin
 Background bool // Background execution (reserved)
 OnStdout   func (string) // Streaming stdout callback (foreground)
