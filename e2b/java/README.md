@@ -51,6 +51,7 @@ try (sandbox) {
 
 - [Lifecycle Management](src/main/java/io/openkruise/agents/client/examples/SandboxApiManagerExample.java)
 - [Commands](src/main/java/io/openkruise/agents/client/examples/SandboxCommandsExample.java)
+- [Run as User](src/main/java/io/openkruise/agents/client/examples/SandboxRunAsUserExample.java)
 - [Files](src/main/java/io/openkruise/agents/client/examples/SandboxFilesExample.java)
 - [Code Interpreter](src/main/java/io/openkruise/agents/client/examples/SandboxCodeInterpreterExample.java)
 

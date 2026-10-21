@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 
@@ -115,6 +116,11 @@ type RunOpts struct {
 	Envs map[string]string
 	// Cwd is the working directory for the command.
 	Cwd string
+	// User, when non-empty, runs the command as that user. The username is
+	// sent via the Authorization header (Basic auth, matching the envd
+	// convention) and must exist inside the sandbox image. When empty, the
+	// configured Authorization header is used (root by default).
+	User string
 	// Stdin enables stdin for the command.
 	Stdin bool
 	// Background runs the command in the background, returning a CommandHandle.
@@ -164,6 +170,9 @@ func (c *Commands) Start(ctx context.Context, cmd string, opts ...RunOpts) (*Com
 		Stdin:   &opt.Stdin,
 	})
 	c.setHeaders(req)
+	if opt.User != "" {
+		req.Header().Set("Authorization", userAuthHeader(opt.User))
+	}
 
 	stream, err := c.Rpc.Start(ctx, req)
 	if err != nil {
@@ -228,4 +237,11 @@ func (c *Commands) setHeaders(req interface{ Header() http.Header }) {
 	for k, v := range c.headers {
 		req.Header().Set(k, v)
 	}
+}
+
+// userAuthHeader returns the Authorization header value that authenticates
+// as the given user, matching the envd Basic-auth convention ("user:" with an
+// empty password).
+func userAuthHeader(user string) string {
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(user+":"))
 }

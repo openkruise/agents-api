@@ -9,6 +9,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -119,6 +121,17 @@ public class RuntimeConfig {
             result.put("e2b-sandbox-port", String.valueOf(codeInterpreterPort));
         }
         return result;
+    }
+
+    /**
+     * Builds the Authorization header value that authenticates as the given user
+     * (Basic auth with an empty password), matching the envd convention
+     * "Basic base64(user:)". The user must exist inside the sandbox image.
+     */
+    public static String authHeaderForUser(String user) {
+        String encoded = Base64.getEncoder()
+            .encodeToString((user + ":").getBytes(StandardCharsets.UTF_8));
+        return "Basic " + encoded;
     }
 
     private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
@@ -233,6 +246,16 @@ public class RuntimeConfig {
      */
     public Request buildStreamingRequest(String serviceName, String methodName,
         Message message, String sandboxID) {
+        return buildStreamingRequest(serviceName, methodName, message, sandboxID, null);
+    }
+
+    /**
+     * Builds Connect Protocol streaming requests with extra headers applied on
+     * top of the sandbox headers (overriding same-named ones), e.g. a
+     * per-request Authorization for run-as-user.
+     */
+    public Request buildStreamingRequest(String serviceName, String methodName,
+        Message message, String sandboxID, Map<String, String> extraHeaders) {
         String url = String.format("%s/%s/%s", getSandboxURL(sandboxID), serviceName, methodName);
 
         // Connect Protocol streaming request: body needs to be wrapped in Enveloped-Message
@@ -252,6 +275,9 @@ public class RuntimeConfig {
             .addHeader("Connect-Protocol-Version", "1");
 
         Map<String, String> hdrs = getSandboxHeaders(sandboxID);
+        if (extraHeaders != null) {
+            hdrs.putAll(extraHeaders);
+        }
         for (Map.Entry<String, String> entry : hdrs.entrySet()) {
             reqBuilder.addHeader(entry.getKey(), entry.getValue());
         }
