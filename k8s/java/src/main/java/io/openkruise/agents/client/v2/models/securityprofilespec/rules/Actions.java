@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models.securityprofilespec.rules;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","block","bypass","headerManipulation","mcpToolPolicy","tokenTransformation"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","block","bypass","headerManipulation","httpCallout","mcpToolPolicy","tokenTransformation"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -73,6 +73,37 @@ public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResour
 
     public void setHeaderManipulation(io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.HeaderManipulation headerManipulation) {
         this.headerManipulation = headerManipulation;
+    }
+
+    /**
+     * HTTPCallout delegates the request, the upstream response, or both to a
+     * named HTTP callout provider. Non-terminal unless the provider returns an
+     * immediate response or a fail-closed error occurs. For example:
+     *
+     *     httpCallout:
+     *       provider:
+     *         name: content-scanner
+     *       request:
+     *         headers:
+     *           enabled: true
+     *           filter:
+     *             allowList: [content-type, x-request-id]
+     *         body:
+     *           enabled: true
+     *           maxBytes: 1048576
+     *       failStrategy: Block
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("httpCallout")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("HTTPCallout delegates the request, the upstream response, or both to a\nnamed HTTP callout provider. Non-terminal unless the provider returns an\nimmediate response or a fail-closed error occurs. For example:\n\n    httpCallout:\n      provider:\n        name: content-scanner\n      request:\n        headers:\n          enabled: true\n          filter:\n            allowList: [content-type, x-request-id]\n        body:\n          enabled: true\n          maxBytes: 1048576\n      failStrategy: Block")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.HttpCallout httpCallout;
+
+    public io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.HttpCallout getHttpCallout() {
+        return httpCallout;
+    }
+
+    public void setHttpCallout(io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.HttpCallout httpCallout) {
+        this.httpCallout = httpCallout;
     }
 
     /**

@@ -470,6 +470,205 @@ spec:
                               - name
                               x-kubernetes-list-type: map
                           type: object
+                        httpCallout:
+                          description: |-
+                            HTTPCallout delegates the request, the upstream response, or both to a
+                            named HTTP callout provider. Non-terminal unless the provider returns an
+                            immediate response or a fail-closed error occurs. For example:
+
+                                httpCallout:
+                                  provider:
+                                    name: content-scanner
+                                  request:
+                                    headers:
+                                      enabled: true
+                                      filter:
+                                        allowList: [content-type, x-request-id]
+                                    body:
+                                      enabled: true
+                                      maxBytes: 1048576
+                                  failStrategy: Block
+                          properties:
+                            failStrategy:
+                              default: Block
+                              description: |-
+                                FailStrategy controls execution failures, including provider lookup,
+                                transport, timeout, body-disclosure, and protocol errors. Defaults to
+                                Block. Allow and Ignore skip the failed callout's mutations and continue.
+                                A valid immediate response from the provider is always honored.
+                              enum:
+                              - Allow
+                              - Block
+                              - Ignore
+                              type: string
+                            provider:
+                              description: |-
+                                Provider identifies the HTTP callout provider. The provider owns the
+                                URL, timeout, TLS, and decision-response size limit. A missing, unavailable,
+                                or wrong-type provider is an execution failure handled by FailStrategy;
+                                no other provider is used as a fallback.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name identifies the provider.
+                                    It is required and has no default.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            request:
+                              description: Request enables a callout before the request
+                                is forwarded upstream.
+                              properties:
+                                body:
+                                  description: Body controls body disclosure. Omission
+                                    disables body disclosure.
+                                  properties:
+                                    enabled:
+                                      default: false
+                                      description: |-
+                                        Enabled buffers and sends the complete body when true. The callout then
+                                        runs after buffering, instead of at the headers phase. Defaults to false.
+                                        An empty body is valid. Bodies must be valid UTF-8 and fit within
+                                        MaxBytes; they are never truncated. In the response phase, only the
+                                        response body is sent.
+                                      type: boolean
+                                    maxBytes:
+                                      default: 1048576
+                                      description: |-
+                                        MaxBytes limits the body disclosed in this phase. Defaults to 1 MiB and
+                                        may not exceed 8 MiB. Oversized content is an execution failure, not
+                                        truncated input. This has no effect when Enabled is false and does not
+                                        configure Envoy's buffering limit or the provider's decision-response
+                                        size limit.
+                                      format: int64
+                                      maximum: 8388608
+                                      minimum: 1
+                                      type: integer
+                                  type: object
+                                headers:
+                                  description: Headers controls header disclosure.
+                                    Omission disables header disclosure.
+                                  properties:
+                                    enabled:
+                                      default: false
+                                      description: |-
+                                        Enabled sends headers when true. Defaults to false. When false, Filter
+                                        has no effect. Request metadata such as authority, path, and content
+                                        type remains part of the invocation regardless of this setting.
+                                      type: boolean
+                                    filter:
+                                      description: |-
+                                        Filter selects the headers sent when Enabled is true. Omission sends
+                                        every header, including credentials and cookies. When present, exactly
+                                        one non-empty list must be set; an empty filter is invalid.
+                                      properties:
+                                        allowList:
+                                          description: AllowList names the only headers
+                                            sent. Header names are case-insensitive.
+                                          items:
+                                            maxLength: 256
+                                            minLength: 1
+                                            pattern: ^[A-Za-z0-9!#$%&'*+\-.^_|~]+$
+                                            type: string
+                                          minItems: 1
+                                          type: array
+                                          x-kubernetes-list-type: set
+                                        denyList:
+                                          description: |-
+                                            DenyList names the headers omitted. Header names are case-insensitive.
+                                            Credentials are sent unless explicitly excluded.
+                                          items:
+                                            maxLength: 256
+                                            minLength: 1
+                                            pattern: ^[A-Za-z0-9!#$%&'*+\-.^_|~]+$
+                                            type: string
+                                          minItems: 1
+                                          type: array
+                                          x-kubernetes-list-type: set
+                                      type: object
+                                  type: object
+                              type: object
+                            response:
+                              description: |-
+                                Response enables a callout on the upstream response. Its invocation
+                                includes request correlation metadata, but no request headers or body.
+                              properties:
+                                body:
+                                  description: Body controls body disclosure. Omission
+                                    disables body disclosure.
+                                  properties:
+                                    enabled:
+                                      default: false
+                                      description: |-
+                                        Enabled buffers and sends the complete body when true. The callout then
+                                        runs after buffering, instead of at the headers phase. Defaults to false.
+                                        An empty body is valid. Bodies must be valid UTF-8 and fit within
+                                        MaxBytes; they are never truncated. In the response phase, only the
+                                        response body is sent.
+                                      type: boolean
+                                    maxBytes:
+                                      default: 1048576
+                                      description: |-
+                                        MaxBytes limits the body disclosed in this phase. Defaults to 1 MiB and
+                                        may not exceed 8 MiB. Oversized content is an execution failure, not
+                                        truncated input. This has no effect when Enabled is false and does not
+                                        configure Envoy's buffering limit or the provider's decision-response
+                                        size limit.
+                                      format: int64
+                                      maximum: 8388608
+                                      minimum: 1
+                                      type: integer
+                                  type: object
+                                headers:
+                                  description: Headers controls header disclosure.
+                                    Omission disables header disclosure.
+                                  properties:
+                                    enabled:
+                                      default: false
+                                      description: |-
+                                        Enabled sends headers when true. Defaults to false. When false, Filter
+                                        has no effect. Request metadata such as authority, path, and content
+                                        type remains part of the invocation regardless of this setting.
+                                      type: boolean
+                                    filter:
+                                      description: |-
+                                        Filter selects the headers sent when Enabled is true. Omission sends
+                                        every header, including credentials and cookies. When present, exactly
+                                        one non-empty list must be set; an empty filter is invalid.
+                                      properties:
+                                        allowList:
+                                          description: AllowList names the only headers
+                                            sent. Header names are case-insensitive.
+                                          items:
+                                            maxLength: 256
+                                            minLength: 1
+                                            pattern: ^[A-Za-z0-9!#$%&'*+\-.^_|~]+$
+                                            type: string
+                                          minItems: 1
+                                          type: array
+                                          x-kubernetes-list-type: set
+                                        denyList:
+                                          description: |-
+                                            DenyList names the headers omitted. Header names are case-insensitive.
+                                            Credentials are sent unless explicitly excluded.
+                                          items:
+                                            maxLength: 256
+                                            minLength: 1
+                                            pattern: ^[A-Za-z0-9!#$%&'*+\-.^_|~]+$
+                                            type: string
+                                          minItems: 1
+                                          type: array
+                                          x-kubernetes-list-type: set
+                                      type: object
+                                  type: object
+                              type: object
+                          required:
+                          - provider
+                          type: object
                         mcpToolPolicy:
                           description: |-
                             MCPToolPolicy defines inline MCP tool access control rules.
