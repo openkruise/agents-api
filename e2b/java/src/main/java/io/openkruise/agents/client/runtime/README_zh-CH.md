@@ -200,6 +200,7 @@ try (RuntimeClient client = RuntimeClient.create("sandbox-id", config)) {
 RunOptions opts = new RunOptions()
     .envs(Map.of("LANG", "C"))               // 环境变量
     .cwd("/tmp")                              // 工作目录
+    .user("nobody")                           // 以该用户执行（镜像内须已存在，不含 ':'）；仅作用于 run/runBackground；不设置 = 默认（root）
     .onStdout(line -> System.out.print(line)) // 流式 stdout 回调
     .onStderr(line -> System.err.print(line));// 流式 stderr 回调
 ```

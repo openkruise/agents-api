@@ -290,6 +290,7 @@ Operate in-container processes via `sb.Commands`. Uses the envd `Process` gRPC s
 type RunOpts struct {
 Envs       map[string]string // Process environment variables
 Cwd        string            // Working directory
+User       string            // Run as this user (must exist in the image, must not contain ':'); applies to Run/Start only; empty = default (root)
 Stdin      bool // Allow writing via SendStdin
 Background bool // Background execution (reserved)
 OnStdout   func (string) // Streaming stdout callback (foreground)
@@ -332,7 +333,7 @@ ErrorMessage   string
 
 ```go
 // Foreground execution + streaming output
-res, err := sb.Commands.Run(ctx, "ls -la /tmp", e2b.RunOpts{
+res, err := sb.Commands.Run(ctx, "ls -la /tmp", runtime.RunOpts{
 Cwd:      "/tmp",
 Envs:     map[string]string{"LANG": "C"},
 OnStdout: func (line string) { fmt.Print(line) },

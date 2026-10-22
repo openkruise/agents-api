@@ -130,6 +130,7 @@ func main() {
 type RunOpts struct {
 Envs       map[string]string // 进程环境变量
 Cwd        string            // 工作目录
+User       string            // 以该用户执行（镜像内须已存在，不含 ':'）；仅作用于 Run/Start；留空 = 默认（root）
 Stdin      bool // 是否允许通过 SendStdin 写入
 Background bool // 后台执行（保留字段）
 OnStdout   func (string) // 流式 stdout 回调（前台执行）

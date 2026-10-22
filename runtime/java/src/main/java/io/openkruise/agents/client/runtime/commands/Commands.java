@@ -128,8 +128,20 @@ public class Commands {
             .setStdin(options.isStdin())
             .build();
 
-        // Initiate request via Connect Protocol Server-Streaming
-        Request httpRequest = config.buildStreamingRequest(EnvdMethods.PROCESS_SERVICE, EnvdMethods.PROCESS_START, startReq, sandboxID);
+        // Initiate request via Connect Protocol Server-Streaming.
+        // A per-request user overrides the Authorization header so envd runs
+        // the process as that user (Basic auth, empty password).
+        Map<String, String> extraHeaders = null;
+        if (options.getUser() != null && !options.getUser().isEmpty()) {
+            if (options.getUser().contains(":")) {
+                throw new IllegalArgumentException(
+                    "Invalid user '" + options.getUser() + "': must not contain ':' "
+                    + "(Basic auth would split it into a user:password pair)");
+            }
+            extraHeaders = new HashMap<>();
+            extraHeaders.put("Authorization", RuntimeConfig.authHeaderForUser(options.getUser()));
+        }
+        Request httpRequest = config.buildStreamingRequest(EnvdMethods.PROCESS_SERVICE, EnvdMethods.PROCESS_START, startReq, sandboxID, extraHeaders);
         Response response;
         try {
             // noinspection WithSSRFCheckingInspection
@@ -364,6 +376,7 @@ public class Commands {
         /** Default shell, prefers /bin/bash, can be overridden to /bin/sh, etc. */
         private String shell;
         private String cwd;
+        private String user;
         private Map<String, String> envs;
         private boolean stdin = false;
         private Long timeoutMs;
@@ -381,6 +394,20 @@ public class Commands {
 
         public RunOptions cwd(String cwd) {
             this.cwd = cwd;
+            return this;
+        }
+
+        /**
+         * Sets the user to run the command as (sent via the Authorization
+         * header; the user must exist inside the sandbox image; must not
+         * contain ':', which Basic auth would split into a user:password
+         * pair). The override applies to the process start request only
+         * (run/runBackground); other process RPCs (list, kill, sendInput,
+         * connect) keep the default header. When unset, the configured
+         * Authorization header is used (root by default).
+         */
+        public RunOptions user(String user) {
+            this.user = user;
             return this;
         }
 
@@ -416,6 +443,10 @@ public class Commands {
 
         public String getCwd() {
             return cwd;
+        }
+
+        public String getUser() {
+            return user;
         }
 
         public Map<String, String> getEnvs() {
