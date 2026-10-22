@@ -14,6 +14,9 @@ the upstream E2E suite: it issues a real JWT through the external provider and
 injects it into the SDK client. Run on the Linux host:
 
     python demo_jwt_gateway.py
+
+See demo_jwt_gateway_native.py for the same flow over the native E2B protocol
+(traffic token patch only, no patch_e2b).
 """
 
 import os

@@ -124,6 +124,45 @@ patch_e2b(https=False)
 patch_traffic_access_token()
 ```
 
+### Combining the patches
+
+The two patches are independent: `patch_e2b` decides where requests are sent
+(URL routing), while `patch_traffic_access_token` decides how the Traffic JWT
+is stored, refreshed, and attached to requests. They combine freely:
+
+| `patch_e2b` | `patch_traffic_access_token` | Result |
+|-------------|------------------------------|--------|
+| yes | yes | Private protocol + JWT refresh (the combination above) |
+| no | yes | Native E2B protocol + JWT refresh (below) |
+| yes | no | Private protocol; tokens pass through as-is, nothing refreshes them |
+| no | no | Plain upstream SDK |
+
+To run Traffic JWT refresh on the native protocol, skip `patch_e2b` and point
+the SDK at sandbox-manager through its own configuration. The refresh endpoint
+is derived from `api_url`
+(`POST {api_url}/sandboxes/{sandbox_id}/traffic-access-token`), so it follows
+whichever protocol the client speaks:
+
+```python
+import os
+
+# Management API: sandbox-manager's native entry point.
+os.environ["E2B_API_URL"] = "https://api.your-domain.com"
+# OpenKruise keys are plain UUIDs; skip the SDK's local e2b_ format check
+# (the native equivalent of patch_e2b(validate_key=False)).
+os.environ["E2B_VALIDATE_API_KEY"] = "false"
+
+from kruise_agents.patch_traffic_token import patch_traffic_access_token
+
+patch_traffic_access_token()
+```
+
+A native-protocol deployment still needs wildcard DNS and TLS for the data
+plane (`{port}-{sandbox_id}.{domain}` subdomains) — the deployment costs
+`patch_e2b` exists to avoid. The two combinations are exercised end-to-end by
+`demo_jwt_gateway.py` (private protocol) and `demo_jwt_gateway_native.py`
+(native protocol, traffic token patch only).
+
 When a Sandbox is configured for Traffic JWT authentication, the patch keeps
 its token in memory and refreshes it before expiration. Sync and async envd
 HTTP/RPC requests and code-interpreter Jupyter requests read the latest token
