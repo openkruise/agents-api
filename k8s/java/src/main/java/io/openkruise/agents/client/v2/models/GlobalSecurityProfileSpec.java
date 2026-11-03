@@ -7,10 +7,10 @@ public class GlobalSecurityProfileSpec implements io.fabric8.kubernetes.api.mode
 
     /**
      * Audit defines the audit actions inherited by rules that do not configure
-     * their own Audit list.
+     * their own Audit list. Applies only to HTTP rules, never TLS rules.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("audit")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Audit defines the audit actions inherited by rules that do not configure\ntheir own Audit list.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Audit defines the audit actions inherited by rules that do not configure\ntheir own Audit list. Applies only to HTTP rules, never TLS rules.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.globalsecurityprofilespec.Audit> audit;
 
@@ -59,12 +59,13 @@ public class GlobalSecurityProfileSpec implements io.fabric8.kubernetes.api.mode
     }
 
     /**
-     * Rules is the ordered rule chain. Every matching rule executes until an
-     * action terminates the request. Rules from matching profiles are combined
-     * in profile evaluation order. An empty list forwards all traffic.
+     * Rules is the ordered rule chain. TLS selection uses the first matching
+     * rule; HTTP processing accumulates matching HTTP rules until a terminal
+     * action. Rules from matching profiles are combined in profile evaluation
+     * order. An empty list preserves the existing default traffic behavior.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("rules")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Rules is the ordered rule chain. Every matching rule executes until an\naction terminates the request. Rules from matching profiles are combined\nin profile evaluation order. An empty list forwards all traffic.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Rules is the ordered rule chain. TLS selection uses the first matching\nrule; HTTP processing accumulates matching HTTP rules until a terminal\naction. Rules from matching profiles are combined in profile evaluation\norder. An empty list preserves the existing default traffic behavior.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.globalsecurityprofilespec.Rules> rules;
 

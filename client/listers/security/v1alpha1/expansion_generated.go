@@ -33,3 +33,27 @@ type AgentIdentityListerExpansion interface{}
 // AgentIdentityNamespaceListerExpansion allows custom methods to be added to
 // AgentIdentityNamespaceLister.
 type AgentIdentityNamespaceListerExpansion interface{}
+
+// AgentRoleListerExpansion allows custom methods to be added to
+// AgentRoleLister.
+type AgentRoleListerExpansion interface{}
+
+// AgentRoleNamespaceListerExpansion allows custom methods to be added to
+// AgentRoleNamespaceLister.
+type AgentRoleNamespaceListerExpansion interface{}
+
+// AgentRoleBindingListerExpansion allows custom methods to be added to
+// AgentRoleBindingLister.
+type AgentRoleBindingListerExpansion interface{}
+
+// AgentRoleBindingNamespaceListerExpansion allows custom methods to be added to
+// AgentRoleBindingNamespaceLister.
+type AgentRoleBindingNamespaceListerExpansion interface{}
+
+// CredentialProviderListerExpansion allows custom methods to be added to
+// CredentialProviderLister.
+type CredentialProviderListerExpansion interface{}
+
+// CredentialProviderNamespaceListerExpansion allows custom methods to be added to
+// CredentialProviderNamespaceLister.
+type CredentialProviderNamespaceListerExpansion interface{}

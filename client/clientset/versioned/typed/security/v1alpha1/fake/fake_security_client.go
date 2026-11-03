@@ -36,6 +36,18 @@ func (c *FakeSecurityV1alpha1) AgentIdentities(namespace string) v1alpha1.AgentI
 	return newFakeAgentIdentities(c, namespace)
 }
 
+func (c *FakeSecurityV1alpha1) AgentRoles(namespace string) v1alpha1.AgentRoleInterface {
+	return newFakeAgentRoles(c, namespace)
+}
+
+func (c *FakeSecurityV1alpha1) AgentRoleBindings(namespace string) v1alpha1.AgentRoleBindingInterface {
+	return newFakeAgentRoleBindings(c, namespace)
+}
+
+func (c *FakeSecurityV1alpha1) CredentialProviders(namespace string) v1alpha1.CredentialProviderInterface {
+	return newFakeCredentialProviders(c, namespace)
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSecurityV1alpha1) RESTClient() rest.Interface {

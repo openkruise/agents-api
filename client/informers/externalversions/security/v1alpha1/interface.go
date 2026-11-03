@@ -28,6 +28,12 @@ type Interface interface {
 	AgentAuthenticationConfigs() AgentAuthenticationConfigInformer
 	// AgentIdentities returns a AgentIdentityInformer.
 	AgentIdentities() AgentIdentityInformer
+	// AgentRoles returns a AgentRoleInformer.
+	AgentRoles() AgentRoleInformer
+	// AgentRoleBindings returns a AgentRoleBindingInformer.
+	AgentRoleBindings() AgentRoleBindingInformer
+	// CredentialProviders returns a CredentialProviderInformer.
+	CredentialProviders() CredentialProviderInformer
 }
 
 type version struct {
@@ -49,4 +55,19 @@ func (v *version) AgentAuthenticationConfigs() AgentAuthenticationConfigInformer
 // AgentIdentities returns a AgentIdentityInformer.
 func (v *version) AgentIdentities() AgentIdentityInformer {
 	return &agentIdentityInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// AgentRoles returns a AgentRoleInformer.
+func (v *version) AgentRoles() AgentRoleInformer {
+	return &agentRoleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// AgentRoleBindings returns a AgentRoleBindingInformer.
+func (v *version) AgentRoleBindings() AgentRoleBindingInformer {
+	return &agentRoleBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// CredentialProviders returns a CredentialProviderInformer.
+func (v *version) CredentialProviders() CredentialProviderInformer {
+	return &credentialProviderInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

@@ -21,3 +21,9 @@ package v1alpha1
 type AgentAuthenticationConfigExpansion interface{}
 
 type AgentIdentityExpansion interface{}
+
+type AgentRoleExpansion interface{}
+
+type AgentRoleBindingExpansion interface{}
+
+type CredentialProviderExpansion interface{}

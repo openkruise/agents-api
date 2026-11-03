@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models.globalsecurityprofilespec.rules;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","block","bypass","headerManipulation","httpCallout","mcpToolPolicy","tokenTransformation"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","block","bypass","headerManipulation","httpCallout","mcpToolPolicy","tls","tokenTransformation"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -122,6 +122,23 @@ public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResour
 
     public void setMcpToolPolicy(io.openkruise.agents.client.v2.models.globalsecurityprofilespec.rules.actions.McpToolPolicy mcpToolPolicy) {
         this.mcpToolPolicy = mcpToolPolicy;
+    }
+
+    /**
+     * TLS selects a connection action using visible SNI and the original
+     * destination port. This rule does not participate in HTTP processing.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("tls")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("TLS selects a connection action using visible SNI and the original\ndestination port. This rule does not participate in HTTP processing.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.globalsecurityprofilespec.rules.actions.Tls tls;
+
+    public io.openkruise.agents.client.v2.models.globalsecurityprofilespec.rules.actions.Tls getTls() {
+        return tls;
+    }
+
+    public void setTls(io.openkruise.agents.client.v2.models.globalsecurityprofilespec.rules.actions.Tls tls) {
+        this.tls = tls;
     }
 
     /**

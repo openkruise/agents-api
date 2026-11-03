@@ -6,15 +6,16 @@ package io.openkruise.agents.client.v2.models.securityprofilespec.rules;
 public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Domains lists target host names. Supports "*" (any domain) and
-     * "*.example.com" wildcard prefixes.
+     * Domains lists target host names. Supports "*" (any non-empty domain) and
+     * "*.example.com" wildcard prefixes. TLS connections match visible SNI;
+     * HTTP requests match Host / authority. Missing SNI never matches.
      *
      * CAUTION: wildcard and specific domains can both match the same request
      * under Default Continue semantics, so rule ordering matters.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("domains")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Domains lists target host names. Supports \"*\" (any domain) and\n\"*.example.com\" wildcard prefixes.\n\nCAUTION: wildcard and specific domains can both match the same request\nunder Default Continue semantics, so rule ordering matters.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Domains lists target host names. Supports \"*\" (any non-empty domain) and\n\"*.example.com\" wildcard prefixes. TLS connections match visible SNI;\nHTTP requests match Host / authority. Missing SNI never matches.\n\nCAUTION: wildcard and specific domains can both match the same request\nunder Default Continue semantics, so rule ordering matters.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<String> domains;
 
@@ -109,13 +110,15 @@ public class Match implements io.fabric8.kubernetes.api.model.KubernetesResource
     }
 
     /**
-     * Ports lists destination ports. Multiple entries are ORed.
+     * Ports lists destination ports. Multiple entries are ORed. Omitted or
+     * empty ports impose no restriction. TLS connection selection uses the
+     * original destination port, with no default.
      *
      * An explicit authority port is used directly. Otherwise, HTTP defaults
      * to 80 and HTTPS defaults to 443. Other schemes have no default port.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("ports")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Ports lists destination ports. Multiple entries are ORed.\n\nAn explicit authority port is used directly. Otherwise, HTTP defaults\nto 80 and HTTPS defaults to 443. Other schemes have no default port.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Ports lists destination ports. Multiple entries are ORed. Omitted or\nempty ports impose no restriction. TLS connection selection uses the\noriginal destination port, with no default.\n\nAn explicit authority port is used directly. Otherwise, HTTP defaults\nto 80 and HTTPS defaults to 443. Other schemes have no default port.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<Integer> ports;
 

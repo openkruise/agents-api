@@ -24,6 +24,15 @@ const (
 	LabelSandboxTemplate = InternalPrefix + "sandbox-template"
 	// LabelSandboxIsClaimed indicates whether the sandbox has been claimed by user
 	LabelSandboxIsClaimed = InternalPrefix + "sandbox-claimed"
+	// LabelSandboxClaimMethod records the latest exposed claim method, not delivery success.
+	// Values are ClaimMethodColdStart and ClaimMethodHotStart.
+	LabelSandboxClaimMethod = InternalPrefix + "claim-method"
+
+	// ClaimMethodColdStart is recorded when the claim creates a new sandbox.
+	ClaimMethodColdStart = "cold-start"
+	// ClaimMethodHotStart is recorded when the claim takes a pooled sandbox,
+	// including one that is still creating.
+	ClaimMethodHotStart = "hot-start"
 	// LabelSandboxClaimName indicates the name of the SandboxClaim that claimed this sandbox
 	LabelSandboxClaimName = InternalPrefix + "claim-name"
 	LabelTemplateHash     = InternalPrefix + "template-hash"
@@ -76,3 +85,18 @@ const (
 	True  = "true"
 	False = "false"
 )
+
+// IsPodIdentityLabel reports whether key is a controller-owned Pod identity
+// label. The sandbox controller derives these values from the owning Sandbox
+// when it creates the Pod, so a Pod template is never authoritative for them:
+// a template can carry a stale or empty value (for example an unresolved
+// sandbox name persisted by an older server on clone), and replaying it would
+// point the Pod at another sandbox's identity.
+func IsPodIdentityLabel(key string) bool {
+	switch key {
+	case LabelSandboxName, LabelSandboxUID:
+		return true
+	default:
+		return false
+	}
+}

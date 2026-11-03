@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","pauseStrategy","persistentContents","probes","replicas","runtimes","scaleStrategy","template","templateRef","updateStrategy","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","lifecycle","pauseStrategy","persistentContents","probes","replicas","runtimes","scaleStrategy","template","templateRef","updateStrategy","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxSetSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -25,6 +25,23 @@ public class SandboxSetSpec implements io.fabric8.kubernetes.api.model.Kubernete
 
     public void setAutoPausePolicy(io.openkruise.agents.client.v2.models.sandboxsetspec.AutoPausePolicy autoPausePolicy) {
         this.autoPausePolicy = autoPausePolicy;
+    }
+
+    /**
+     * Lifecycle defines pool-level pause/resume hooks copied to every Sandbox.
+     * Upgrade hooks remain instance policy and are not allowed here.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("lifecycle")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Lifecycle defines pool-level pause/resume hooks copied to every Sandbox.\nUpgrade hooks remain instance policy and are not allowed here.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxsetspec.Lifecycle lifecycle;
+
+    public io.openkruise.agents.client.v2.models.sandboxsetspec.Lifecycle getLifecycle() {
+        return lifecycle;
+    }
+
+    public void setLifecycle(io.openkruise.agents.client.v2.models.sandboxsetspec.Lifecycle lifecycle) {
+        this.lifecycle = lifecycle;
     }
 
     /**
