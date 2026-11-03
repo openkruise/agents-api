@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models.sandboxclaimspec.probes;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"host","httpHeaders","path","port","protocol","scheme"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"host","httpHeaders","path","port","scheme"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class HttpGet implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -71,23 +71,6 @@ public class HttpGet implements io.fabric8.kubernetes.api.model.KubernetesResour
 
     public void setPort(io.fabric8.kubernetes.api.model.IntOrString port) {
         this.port = port;
-    }
-
-    /**
-     * Protocol selects the wire protocol for the probe connection.
-     * Nil defaults to HTTP/1.1.
-     */
-    @com.fasterxml.jackson.annotation.JsonProperty("protocol")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Protocol selects the wire protocol for the probe connection.\nNil defaults to HTTP/1.1.")
-    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
-    private String protocol;
-
-    public String getProtocol() {
-        return protocol;
-    }
-
-    public void setProtocol(String protocol) {
-        this.protocol = protocol;
     }
 
     /**
