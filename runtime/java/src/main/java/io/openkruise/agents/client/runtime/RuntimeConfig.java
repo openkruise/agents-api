@@ -216,7 +216,7 @@ public class RuntimeConfig {
     }
 
     /**
-     * Builds HTTP/JSON unary call requests (List, SendInput, etc.).
+     * Builds HTTP/JSON requests for single calls (List, SendInput, etc.).
      */
     public Request buildHttpRequest(String serviceName, String methodName,
         MessageOrBuilder message, String sandboxID) {
@@ -395,6 +395,14 @@ public class RuntimeConfig {
             return this;
         }
 
+        /**
+         * Sets the client-level request timeout in milliseconds (default
+         * 60000). It bounds single requests (list, kill, sendInput) and,
+         * for Start and ConnectToProcess, the wait for the command to
+         * start. {@code 0} disables the timeout: single requests then run
+         * without a time limit and the wait for the command to start is
+         * not limited either.
+         */
         public Builder requestTimeoutMs(long requestTimeoutMs) {
             this.requestTimeoutMs = requestTimeoutMs;
             return this;

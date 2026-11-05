@@ -56,7 +56,12 @@ type Config struct {
 	// Headers contains additional headers to send with every runtime request.
 	Headers map[string]string
 
-	// RequestTimeout is the timeout applied to the underlying HTTP client.
+	// RequestTimeout is the client-level request timeout: it bounds single
+	// requests (List, Kill, SendStdin) and, for Start/ConnectToProcess, the
+	// wait for the command to start. Zero disables the single-request
+	// timeout; the wait for the command to start then still falls back to
+	// the 60s package default. See WithRequestTimeout for the full
+	// semantics.
 	RequestTimeout time.Duration
 
 	// CustomHTTPClient is a custom HTTP client to use for runtime requests.
@@ -174,7 +179,12 @@ func WithHeaders(headers map[string]string) Option {
 	}
 }
 
-// WithRequestTimeout sets the HTTP client timeout.
+// WithRequestTimeout sets the client-level request timeout. It bounds
+// single requests (List, Kill, SendStdin) — zero disables that timeout
+// (unbounded) — and, for Start/ConnectToProcess, the wait for the command
+// to start, where zero or negative falls back to the 60s package default:
+// Go has no value that disables that wait (see RunOpts.RequestTimeout to
+// override it per call).
 func WithRequestTimeout(d time.Duration) Option {
 	return func(c *Config) { c.RequestTimeout = d }
 }

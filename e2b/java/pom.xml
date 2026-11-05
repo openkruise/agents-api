@@ -265,6 +265,15 @@
             <artifactId>grpc-stub</artifactId>
             <version>${grpc.version}</version>
         </dependency>
+        <!-- The generated gRPC stubs reference javax.annotation.Generated,
+             removed from the JDK since 11; provided scope keeps the
+             modules compiling on modern JDKs while targeting 1.8. -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- Protobuf -->
         <dependency>
             <groupId>com.google.protobuf</groupId>

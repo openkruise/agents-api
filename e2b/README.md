@@ -108,7 +108,7 @@ Applied via `e2b.NewConnectionConfig(opts...)` or embedded in `Create/Connect` w
 | `WithAPIURL(url string)`              | **Highest priority**: directly overrides API base URL          |
 | `WithSandboxBaseURL(url string)`      | **Highest priority**: directly overrides sandbox envd base URL |
 | `WithCodeInterpreterPort(port int)`   | Code interpreter port, defaults to `49999`                     |
-| `WithRequestTimeout(d time.Duration)` | HTTP request timeout, defaults to 60s                          |
+| `WithRequestTimeout(d time.Duration)` | Timeout for single requests (list/kill/sendInput); also limits how long Start/ConnectToProcess wait for a command to start. Default 60s. 0 disables single-request timeouts — the wait for a command to start then still falls back to the 60s default |
 | `WithHTTPClient(client *http.Client)` | Custom HTTP client for API requests                            |
 
 #### Priority
@@ -282,7 +282,7 @@ Operate in-container processes via `sb.Commands`. Uses the envd `Process` gRPC s
 | `List(ctx) ([]ProcessInfo, error)`                          | List all running processes                                                  |
 | `Kill(ctx, pid uint32) (bool, error)`                       | Send SIGKILL to PID; returns `false, nil` if not found                      |
 | `SendStdin(ctx, pid uint32, data string) error`             | Write data to a process's stdin                                             |
-| `ConnectToProcess(ctx, pid uint32) (*CommandHandle, error)` | Reconnect to a running process, subscribe to output                         |
+| `ConnectToProcess(ctx, pid uint32, opts ...ConnectOpts) (*CommandHandle, error)` | Reconnect to a running process, subscribe to output (per-call options) |
 
 ### `RunOpts` Fields
 
@@ -291,14 +291,29 @@ type RunOpts struct {
 Envs       map[string]string // Process environment variables
 Cwd        string            // Working directory
 User       string            // Run as this user (must exist in the image, must not contain ':'); applies to Run/Start only; empty = default (root)
+Shell      string            // Shell program (default /bin/bash via `-l -c <cmd>`; set /bin/sh etc. when bash is unavailable)
 Stdin      bool // Allow writing via SendStdin
-Background bool // Background execution (reserved)
+RequestTimeout time.Duration // Time limit for waiting the command to start; once the command starts it is disarmed and does not limit the rest of the run. Zero = client default (60s); Go has no disable value — to relax the wait set it large (Java: requestTimeoutMs(0) disables the wait)
+Timeout    time.Duration // Whole-stream time limit (start request to end event). Zero = no limit (the official E2B SDK defaults to 60s; set it explicitly if wanted). On timeout the stream fails; the process keeps running
 OnStdout   func (string) // Streaming stdout callback (foreground)
 OnStderr   func (string) // Streaming stderr callback (foreground)
 }
 ```
 
-> Commands are executed via `/bin/bash -l -c <cmd>`, preserving the login environment.
+> Commands are executed via `<shell> -l -c <cmd>` (default shell `/bin/bash`), preserving the login environment.
+
+### `ConnectOpts` Fields
+
+`ConnectToProcess` supports the same two per-call limits as `Start`, configured via `ConnectOpts`:
+
+```go
+type ConnectOpts struct {
+RequestTimeout time.Duration // Time limit for waiting the connect start event; disarmed once it arrives. Zero = client default (60s); Go has no disable value (Java: requestTimeoutMs(0) disables the wait)
+Timeout        time.Duration // Whole connect-stream time limit (connect request to end event). Zero = no limit. On timeout the stream fails; the process keeps running
+}
+
+// Pass as optional trailing arguments: sb.Commands.ConnectToProcess(ctx, pid, runtime.ConnectOpts{Timeout: 30 * time.Second})
+```
 
 ### `CommandHandle`
 

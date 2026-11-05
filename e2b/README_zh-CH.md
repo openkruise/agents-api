@@ -104,7 +104,7 @@ func main() {
 | `WithAPIURL(url string)`              | **最高优先级**：直接覆盖 API base URL，绕过 Protocol/Domain 拼装 |
 | `WithSandboxBaseURL(url string)`      | **最高优先级**：直接覆盖 sandbox envd base URL              |
 | `WithCodeInterpreterPort(port int)`   | 代码解释器端口，默认 `49999`                              |
-| `WithRequestTimeout(d time.Duration)` | HTTP 请求超时，默认 60s                                  |
+| `WithRequestTimeout(d time.Duration)` | 单次请求（list/kill/sendInput）的超时；同时限制 Start/ConnectToProcess 等待命令启动的时长。默认 60s。0 禁用单次请求超时，等待命令启动则仍回退 60s 默认值                                  |
 | `WithHTTPClient(client *http.Client)` | 自定义 HTTP 客户端用于 API 请求                            |
 
 #### 优先级
@@ -276,7 +276,7 @@ fmt.Printf("总计: %d 个 sandbox\n", len(allSandboxes))
 | `List(ctx) ([]ProcessInfo, error)`                          | 列出所有运行中的进程                                   |
 | `Kill(ctx, pid uint32) (bool, error)`                       | 向指定 PID 发送 SIGKILL；进程已不存在返回 `false, nil`     |
 | `SendStdin(ctx, pid uint32, data string) error`             | 向指定进程的 stdin 写入数据                            |
-| `ConnectToProcess(ctx, pid uint32) (*CommandHandle, error)` | 重新连接到一个已运行的进程，订阅其后续输出                        |
+| `ConnectToProcess(ctx, pid uint32, opts ...ConnectOpts) (*CommandHandle, error)` | 重新连接到一个已运行的进程，订阅其后续输出（支持 per-call 选项）  |
 
 ### `RunOpts` 字段
 
@@ -285,14 +285,29 @@ type RunOpts struct {
 Envs       map[string]string // 进程环境变量
 Cwd        string            // 工作目录
 User       string            // 以该用户执行（镜像内须已存在，不含 ':'）；仅作用于 Run/Start；留空 = 默认（root）
+Shell      string            // Shell 程序（默认 /bin/bash，经 `-l -c <cmd>` 执行；镜像内无 bash 时可设 /bin/sh 等）
 Stdin      bool // 是否允许通过 SendStdin 写入
-Background bool // 后台执行（保留字段）
+RequestTimeout time.Duration // 等待命令启动的时间上限；命令启动后即解除，不限制后续运行与输出。零值 = 客户端默认（60 秒）；Go 无禁用值——要放宽等待请设大该值（Java：requestTimeoutMs(0) = 禁用）
+Timeout    time.Duration // 整条命令流的时间上限（发起 start 到结束事件）。零值 = 不限制（E2B 官方 SDK 默认 60 秒，需要请显式设置）。超时只断流报错，进程仍在沙箱中运行
 OnStdout   func (string) // 流式 stdout 回调（前台执行）
 OnStderr   func (string) // 流式 stderr 回调（前台执行）
 }
 ```
 
-> 命令统一通过 `/bin/bash -l -c <cmd>` 执行，保留登录环境。
+> 命令统一通过 `<shell> -l -c <cmd>` 执行（默认 shell 为 `/bin/bash`），保留登录环境。
+
+### `ConnectOpts` 字段
+
+`ConnectToProcess` 与 `Start` 一样支持两层 per-call 超时，由 `ConnectOpts` 配置：
+
+```go
+type ConnectOpts struct {
+RequestTimeout time.Duration // 等待 connect start event 的时间上限；事件到达即解除。零值 = 客户端默认（60 秒）；Go 无禁用值（Java：requestTimeoutMs(0) = 禁用）
+Timeout        time.Duration // 整条 connect 流的时间上限（发起 connect 到结束事件）。零值 = 不限制。超时只断流报错，进程仍在沙箱中运行
+}
+
+// 以可选尾参传入：sb.Commands.ConnectToProcess(ctx, pid, runtime.ConnectOpts{Timeout: 30 * time.Second})
+```
 
 ### `CommandHandle`
 

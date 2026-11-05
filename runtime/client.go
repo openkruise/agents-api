@@ -42,12 +42,13 @@ func NewWithConfig(sandboxID string, cfg *Config) *Client {
 
 	fsRPC := filesystemconnect.NewFilesystemClient(httpClient, runtimeURL)
 	procRPC := processconnect.NewProcessClient(httpClient, runtimeURL)
+	procStreamRPC := processconnect.NewProcessClient(streamingClient, runtimeURL)
 
 	codeInterpreterURL := cfg.CodeInterpreterURL(sandboxID)
 	codeInterpreterHeaders := cfg.CodeInterpreterHeaders(sandboxID)
 
 	return &Client{
-		Commands:        NewCommands(procRPC, headers),
+		Commands:        NewCommandsWithStreaming(procRPC, procStreamRPC, headers, cfg.RequestTimeout),
 		Files:           NewFilesystem(fsRPC, httpClient, streamingClient, runtimeURL, headers),
 		CodeInterpreter: NewCodeInterpreter(httpClient, streamingClient, codeInterpreterURL, codeInterpreterHeaders),
 		sandboxID:       sandboxID,

@@ -1,8 +1,11 @@
 package runtime
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/openkruise/agents-api/runtime/envd/process"
@@ -43,21 +46,52 @@ type CommandHandle struct {
 	stdout     strings.Builder
 	stderr     strings.Builder
 	result     *CommandResult
+	// timeout records the per-call overall stream timeout (RunOpts.Timeout
+	// or ConnectOpts.Timeout) set by the constructor paths; zero for handles
+	// without one. Wait uses it to attribute a context.DeadlineExceeded
+	// stream error to the user-facing option name.
+	timeout time.Duration
 
 	startStream   *connect.ServerStreamForClient[process.StartResponse]
 	connectStream *connect.ServerStreamForClient[process.ConnectResponse]
+	// cancelStream releases the child context the output stream (Start or
+	// Connect) runs on. It is invoked when the handle is finished with
+	// (Wait completion or Disconnect). Nil for handles constructed directly
+	// without one.
+	cancelStream func()
 }
 
-// NewCommandHandle creates a CommandHandle from a Start stream.
+// withTimeout records the per-call overall stream timeout (RunOpts.Timeout
+// on the Start path, ConnectOpts.Timeout on the Connect path) for error
+// attribution in Wait; it distinguishes the per-call deadline from other
+// stream errors.
+func (h *CommandHandle) withTimeout(d time.Duration) *CommandHandle {
+	h.timeout = d
+	return h
+}
+
+// withCancelStream records the function releasing the child context
+// behind a Connect stream; used by ConnectToProcess so that Wait
+// completion or Disconnect releases that context like the Start path.
+func (h *CommandHandle) withCancelStream(cancel func()) *CommandHandle {
+	h.cancelStream = cancel
+	return h
+}
+
+// NewCommandHandle creates a CommandHandle from a Start stream. cancelStream
+// releases the child context behind the stream; it is invoked when the handle
+// is finished with (Wait completion or Disconnect).
 func NewCommandHandle(
 	pid uint32,
 	stream *connect.ServerStreamForClient[process.StartResponse],
 	handleKill func() bool,
+	cancelStream func(),
 ) *CommandHandle {
 	return &CommandHandle{
-		pid:         pid,
-		startStream: stream,
-		handleKill:  handleKill,
+		pid:          pid,
+		startStream:  stream,
+		handleKill:   handleKill,
+		cancelStream: cancelStream,
 	}
 }
 
@@ -93,6 +127,7 @@ func (h *CommandHandle) Wait(onStdout func(string), onStderr func(string)) (*Com
 
 func (h *CommandHandle) waitStartStream(onStdout, onStderr func(string)) (*CommandResult, error) {
 	defer h.startStream.Close()
+	defer h.releaseStream()
 
 	for h.startStream.Receive() {
 		msg := h.startStream.Msg()
@@ -129,6 +164,15 @@ func (h *CommandHandle) waitStartStream(onStdout, onStderr func(string)) (*Comma
 	}
 
 	if err := h.startStream.Err(); err != nil {
+		// Known limitation: if the caller's own context deadline expires,
+		// the propagated error is also DeadlineExceeded and gets attributed
+		// to RunOpts.Timeout here (the handle does not keep the caller's
+		// context to distinguish the two, unlike the Start path). Only
+		// observable when both a per-call timeout and a caller deadline are
+		// in play and the latter expires.
+		if h.timeout > 0 && errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("timed out after %s (RunOpts.Timeout; the process may still be running in the sandbox)", h.timeout)
+		}
 		return nil, fmt.Errorf("stream error: %w", err)
 	}
 
@@ -150,6 +194,7 @@ func (h *CommandHandle) waitStartStream(onStdout, onStderr func(string)) (*Comma
 
 func (h *CommandHandle) waitConnectStream(onStdout, onStderr func(string)) (*CommandResult, error) {
 	defer h.connectStream.Close()
+	defer h.releaseStream()
 
 	for h.connectStream.Receive() {
 		msg := h.connectStream.Msg()
@@ -186,6 +231,13 @@ func (h *CommandHandle) waitConnectStream(onStdout, onStderr func(string)) (*Com
 	}
 
 	if err := h.connectStream.Err(); err != nil {
+		// Known limitation (mirror of the Start path): if the caller's own
+		// context deadline expires, the propagated DeadlineExceeded is
+		// attributed to the per-call timeout here too. This path only runs for
+		// a connect handle, so the message always names ConnectOpts.Timeout.
+		if h.timeout > 0 && errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("timed out after %s (ConnectOpts.Timeout; the process may still be running in the sandbox)", h.timeout)
+		}
 		return nil, fmt.Errorf("stream error: %w", err)
 	}
 
@@ -205,9 +257,19 @@ func (h *CommandHandle) waitConnectStream(onStdout, onStderr func(string)) (*Com
 	return h.result, nil
 }
 
+// releaseStream cancels the child context the output stream runs on, so the
+// resources behind the stream are released once the handle is finished with.
+// It is idempotent and safe to call on handles without a child context.
+func (h *CommandHandle) releaseStream() {
+	if h.cancelStream != nil {
+		h.cancelStream()
+	}
+}
+
 // Disconnect disconnects from the command without killing it.
 // You can reconnect using Commands.ConnectToProcess.
 func (h *CommandHandle) Disconnect() {
+	h.releaseStream()
 	if h.startStream != nil {
 		h.startStream.Close()
 	}
