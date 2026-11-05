@@ -1,5 +1,9 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+# setuptools>=77 implements PEP 639: SPDX license expressions in [project]
+# and the accompanying metadata validation. The license text itself stays in
+# the repository root LICENSE; builds from this subdirectory cannot reach it,
+# so the distribution metadata carries the license as an expression only.
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,12 +11,11 @@ name = "kruise-agents"
 version = "0.1.0"
 description = "Customized E2B SDK patch that converts the native E2B protocol to the OpenKruise Agents private protocol"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "Apache-2.0"
 requires-python = ">=3.9,<4.0"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
