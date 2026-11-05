@@ -351,11 +351,11 @@ func (c *Commands) Start(ctx context.Context, cmd string, opts ...RunOpts) (*Com
 	// Kill decouples from the stream context: after a timeout or cancel
 	// cuts the stream (or the caller's context dies), killing the process
 	// must still work — kill stays an explicit, independent operation in
-	// the official E2B contract. WithoutCancel strips the deadline but
-	// also all context values (trace spans, context-carried credentials);
-	// auth is unaffected because the headers come from c.headers, but
-	// tracing through the kill RPC is lost — accepted for now, since the
-	// alternative would couple the kill to the dying stream context.
+	// the official E2B contract. WithoutCancel drops the deadline and
+	// cancellation but keeps the parent's values (its Value delegates to
+	// the parent), so trace spans and context-carried credentials still
+	// reach the kill RPC; only the cancellation/deadline is shed, which is
+	// what lets the kill outlive a stream that was already cut.
 	return NewCommandHandle(pid, stream, func() bool {
 		killed, _ := c.Kill(context.WithoutCancel(ctx), pid)
 		return killed
@@ -512,11 +512,11 @@ func (c *Commands) ConnectToProcess(ctx context.Context, pid uint32, opts ...Con
 	// Kill decouples from the stream context: after a timeout or cancel
 	// cuts the stream (or the caller's context dies), killing the process
 	// must still work — kill stays an explicit, independent operation in
-	// the official E2B contract. WithoutCancel strips the deadline but
-	// also all context values (trace spans, context-carried credentials);
-	// auth is unaffected because the headers come from c.headers, but
-	// tracing through the kill RPC is lost — accepted for now, since the
-	// alternative would couple the kill to the dying stream context.
+	// the official E2B contract. WithoutCancel drops the deadline and
+	// cancellation but keeps the parent's values (its Value delegates to
+	// the parent), so trace spans and context-carried credentials still
+	// reach the kill RPC; only the cancellation/deadline is shed, which is
+	// what lets the kill outlive a stream that was already cut.
 	return NewCommandHandleFromConnect(actualPid, stream, func() bool {
 		killed, _ := c.Kill(context.WithoutCancel(ctx), actualPid)
 		return killed

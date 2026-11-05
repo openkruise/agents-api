@@ -20,7 +20,10 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
   command stream ends without an end event, it previously returned the
   partial output silently; it now throws a `SandboxException` describing
   the truncation (canceled, failed, or ended without an end event). This
-  matches the official E2B `wait()` contract. Consumers relying on partial
+  matches the official E2B `wait()` contract. The foreground
+  `Commands.run(String)` and `Commands.run(String, RunOptions)` overloads
+  delegate to `waitForCompletion()`, so they propagate the same
+  `SandboxException`. Consumers relying on partial
   results from broken streams must handle the exception.
 - **Java — `CommandHandle.waitForCompletion()` now throws
   `CommandExitException` on non-zero exit codes** (`runtime/java
@@ -30,8 +33,12 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
   repository returns `CommandExitError`. The Java side previously
   returned the result for any completed command. The exception carries
   the full result (stdout, stderr, exit code) via getters, matching the
-  Go shape. Consumers reading the exit code from the returned result
-  must catch the exception instead.
+  Go shape. The foreground `Commands.run(String)` and
+  `Commands.run(String, RunOptions)` overloads delegate to
+  `waitForCompletion()`, so they throw `CommandExitException` on a
+  non-zero exit as well. Consumers reading the exit code from the
+  returned result — including from `run()` — must catch the exception
+  instead.
 - **Go — `runtime.NewCommandHandle` gains a `cancelStream func()`
   parameter** (`runtime/command_handle.go`). The exported constructor went
   from three to four parameters so the handle can release the child
@@ -100,7 +107,7 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
 
 - Go: `Commands.Start` and `Commands.ConnectToProcess` now run on the
   streaming client (see `Commands.StreamRPC` in Added). Previously both
-  used the unary client, whose overall HTTP timeout cut any long-running
+  used the single-request client, whose overall HTTP timeout cut any long-running
   command stream or connect subscription at the client-level request
   timeout (60s by default) — a command producing output for longer than
   that failed with a stream error even though the process kept running
@@ -128,28 +135,37 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
   claim on a data frame threw the misleading sticky `Command ended
   without an end event`, discarding the real end event. Now the claim and
   the synthetic code are written under a lock shared with the end-event
-  branch: a kill racing the final end event either loses cleanly (returns
-  false and keeps the real exit code) or wins cleanly (a real end event
-  arriving afterwards still overwrites the synthetic code). The claim
-  does not cancel the stream: a blocked wait is released by the next
-  frame or the stream end — normally envd's end event for the killed
-  process, whose real exit code (e.g. 137) wins and throws
-  `CommandExitException` like any non-zero end event. The synthetic -1
-  is returned only when the stream ends with no end event while the
-  claim is active — the one case where a stream that ended without an
-  end event does not fail loudly; if the stream never yields another
-  frame (envd stall or crash, a dropped connection), the blocked wait
-  stays blocked unless `timeoutMs` bounds it. Only one of N concurrent
-  kill() calls returns true, and a failed kill RPC rolls the claim
-  back so the handle stays usable for a retry (an `Error` thrown in
-  the same window rolls back too). A kill that finds no process to
+  branch: a kill racing the final end event resolves deterministically.
+  If the end event is processed first, kill() returns false and the real
+  exit code is kept; if the kill claims first, a real end event still
+  processed before the stream is released overwrites the synthetic code.
+  The claim does not cancel the stream: a blocked wait is released
+  the next time its read loop checks the claim, and it returns the
+  synthetic -1 whenever it exits on the claim without having processed an
+  end event — whether it broke on a non-end (e.g. data) frame while the
+  claim was active, in which case a later end event is never read because
+  the stream is closed on exit, or the stream ended with no end event (the
+  one case where a stream that ended without an end event does not fail
+  loudly). A real end event (e.g. exit code 137) wins, and throws
+  `CommandExitException` like any non-zero end event, only when it is
+  actually processed before the stream is released. If the stream never
+  yields another frame (envd stall or crash, a dropped connection), the
+  blocked wait stays blocked unless `timeoutMs` bounds it. Only one of N
+  concurrent kill() calls returns true, and a failed kill RPC rolls the
+  claim back (an `Error` thrown in the same window rolls back too). The
+  rollback restores the completion state so the kill RPC can be retried,
+  but it does not reopen the output stream: a concurrent waiter may have
+  consumed a data frame while the RPC was in flight, observed the claim,
+  and closed the stream before the failure, so a fresh
+  `waitForCompletion()` after such a rollback is not guaranteed to be
+  usable. A kill that finds no process to
   signal (envd's 404) now surfaces as an `IllegalStateException`
   ("Process <pid> not found; no signal was sent") and rolls the claim
   back instead of silently claiming completion. This reports the same
   real outcome the Go `handleKill` does, but not with the same calling
   contract: Go's `CommandHandle.Kill()` returns `false` and leaves the
   handle untouched, while Java throws so the caller cannot miss it, and
-  rolls the claim back so the handle stays usable for a retry. Once the
+  rolls the claim back so the kill can be retried. Once the
   kill RPC settles successfully the claim is permanent, and a
   `waitForCompletion()` returning from
   the kill-then-wait fast path now releases the output stream instead
@@ -160,8 +176,9 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
   The Java claim mainly changes what a `waitForCompletion()` call made
   after `kill()` sees — it returns the synthetic -1 immediately from
   the entry fast path instead of waiting for envd's end event; a wait
-  already blocked when the claim lands is normally still released by
-  that end event and reports the real code.
+  already blocked when the claim lands returns the synthetic -1 unless
+  the real end event happens to be the next frame it processes before
+  the stream is released.
 - Go/Java: timeout messages now name the source of the timeout
   (per-call option vs client-level fallback), and a caller's own
   context deadline expiring is no longer misattributed to
@@ -183,7 +200,7 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
   exactly once on every failure path (previously each error branch closed
   manually and an unexpected exception could have left the connection
   open).
-- Java: canceled request-watchdog tasks are now removed from the shared
+- Java: canceled request-timeout tasks are now removed from the shared
   scheduler's delay queue immediately (remove-on-cancel) instead of
   lingering until their original delay expires, each one pinning the
   captured OkHttp call — and through it the request/response — against
@@ -215,7 +232,7 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
   `getTrailerError()` and `getLastError()` as default methods — existing
   external implementors need no change; an implementation that does not
   track errors degrades gracefully to the "no end event" message.)
-- Java: the watchdog and overall-timeout errors thrown while opening a
+- Java: the startup-wait and overall-timeout errors thrown while opening a
   Start/Connect stream now carry the underlying OkHttp `IOException` as
   their cause, preserving the original exception for diagnostics; the
   message text is unchanged.
@@ -258,7 +275,6 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
   unaffected (strings preserve the raw bytes and the buffer is only
   interpreted as a whole). A future fix would carry an incremental
   `java.nio.charset.CharsetDecoder` across frames.
-
 - Go: when `RunOpts.Timeout` is set and the caller's own context deadline
   expires first during `Wait`, the propagated `DeadlineExceeded` is
   misattributed to `RunOpts.Timeout` (the `Start` path guards against this
@@ -272,13 +288,6 @@ this file. The format is based on [Keep a Changelog](https://keepachangelog.com/
   side tracks a `disconnected` flag and fails with the explicit
   `Command stream disconnected; the process may still be running in the
   sandbox`. A future fix would add the same flag to the Go handle.
-- Go: the `kill()` closure behind `CommandHandle.Kill()` detaches the
-  context via `context.WithoutCancel` so the RPC survives stream
-  cancellation. `WithoutCancel` also strips all context values, so
-  trace spans propagated through the context do not reach the kill
-  RPC — the signal is still delivered (auth headers come from the
-  client, not the context). A future fix would snapshot and re-attach
-  the values on the detached context.
 - The streaming client does not yet send the official SDK's
   `Keepalive-Ping-Interval` header. Without periodic keepalive frames, an
   idle output stream (a long-running command producing no output) may be

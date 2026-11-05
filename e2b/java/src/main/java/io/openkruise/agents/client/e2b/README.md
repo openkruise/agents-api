@@ -120,8 +120,8 @@ executed through `<shell> -l -c <cmd>` (default shell `/bin/bash`, configurable 
 
 | Method                                          | Description                                                          |
 |-------------------------------------------------|----------------------------------------------------------------------|
-| `run(String cmd)`                               | **Foreground**: start command and wait, returns `CommandResult`      |
-| `run(String cmd, RunOptions options)`           | Foreground with options                                              |
+| `run(String cmd)`                               | **Foreground**: start command and wait, returns `CommandResult`; throws `CommandExitException` on a non-zero exit, `SandboxException` on a truncated stream      |
+| `run(String cmd, RunOptions options)`           | Foreground with options (same return value and exceptions)                                              |
 | `runBackground(String cmd, RunOptions options)` | **Background**: returns `CommandHandle`, caller decides when to wait |
 | `list()`                                        | List all running processes, returns `List<ProcessInfo>`              |
 | `kill(int pid)`                                 | Send SIGKILL to the given PID                                        |
@@ -172,7 +172,7 @@ Returned by `runBackground()` / `connect()`, implements `AutoCloseable`:
 |-----------------------|-------------------------------------------------|
 | `getPid()`            | Returns process PID                             |
 | `isCompleted()`       | Whether the process has completed               |
-| `waitForCompletion()` | Block until completion, returns `CommandResult`; throws `CommandExitException` (carrying the result) when the exit code is non-zero |
+| `waitForCompletion()` | Block until completion, returns `CommandResult`; throws `CommandExitException` (carrying the result) when the exit code is non-zero, `SandboxException` on a truncated stream |
 | `kill()`              | Kill the process; throws `IllegalStateException` when envd reports it is already gone (no signal sent, the completion claim is rolled back) |
 | `disconnect()`        | Stop reading output without killing the process; a blocked `waitForCompletion()` fails with an exception |
 | `close()`             | Close stream and underlying resources           |

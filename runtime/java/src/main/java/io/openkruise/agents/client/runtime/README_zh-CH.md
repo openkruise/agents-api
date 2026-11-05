@@ -185,8 +185,8 @@ try (RuntimeClient client = RuntimeClient.create("sandbox-id", config)) {
 
 | 方法                                              | 说明                                    |
 |-------------------------------------------------|---------------------------------------|
-| `run(String cmd)`                               | **前台执行**：启动命令并等待完成，返回 `CommandResult` |
-| `run(String cmd, RunOptions options)`           | 前台执行（带选项）                             |
+| `run(String cmd)`                               | **前台执行**：启动命令并等待完成，返回 `CommandResult`；非零退出抛 `CommandExitException`，流被截断抛 `SandboxException` |
+| `run(String cmd, RunOptions options)`           | 前台执行（带选项，返回值与异常同上）                             |
 | `runBackground(String cmd, RunOptions options)` | **后台启动**：返回 `CommandHandle`，调用方决定何时等待 |
 | `list()`                                        | 列出所有运行中的进程，返回 `List<ProcessInfo>`     |
 | `kill(int pid)`                                 | 向指定 PID 发送 SIGKILL                    |
@@ -237,7 +237,7 @@ ConnectOptions opts = new ConnectOptions()
 |-----------------------|---------------------------|
 | `getPid()`            | 返回进程 PID                  |
 | `isCompleted()`       | 是否已完成                     |
-| `waitForCompletion()` | 阻塞等待结束，返回 `CommandResult`；退出码非零时抛出 `CommandExitException`（携带完整结果） |
+| `waitForCompletion()` | 阻塞等待结束，返回 `CommandResult`；退出码非零时抛出 `CommandExitException`（携带完整结果），流被截断时抛出 `SandboxException` |
 | `kill()`              | 终止进程；当 envd 报告进程已不存在时抛出 `IllegalStateException`（未发出信号，完成 claim 会回滚） |
 | `disconnect()`        | 停止读取输出、不终止进程；阻塞中的 `waitForCompletion()` 会以异常失败 |
 | `close()`             | 关闭流和底层 HTTP 资源            |

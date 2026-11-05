@@ -367,7 +367,7 @@ public class Commands {
     /** Kill action for CommandHandle: sends SIGKILL, surfacing envd's
      * "process not found" (HTTP 404, kill returning false) as an
      * IllegalStateException so CommandHandle.kill rolls its completion
-     * claim back and the handle stays usable for a retry — the same real
+     * claim back and lets the kill be retried — the same real
      * outcome the Go handleKill reports with its boolean. Called lazily
      * when the handle's kill() runs, never at construction time. */
     private void killOrThrow(int pid) {

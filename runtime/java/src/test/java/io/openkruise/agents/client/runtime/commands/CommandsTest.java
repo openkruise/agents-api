@@ -786,8 +786,8 @@ public class CommandsTest {
     @Test(timeout = 15000)
     public void failedKillRollsBackCompletionClaim() throws Exception {
         // The kill RPC runs outside the state lock; when it throws, the
-        // completion claim is rolled back so the handle stays usable for a
-        // retry (previously the claim would have stuck, making a later
+        // completion claim is rolled back so the kill can be retried
+        // (previously the claim would have stuck, making a later
         // waitForCompletion() return the synthetic -1 even though no kill
         // ever reached the sandbox).
         try (MockEnvd envd = MockEnvd.start((server, exchange, path) ->
@@ -814,7 +814,7 @@ public class CommandsTest {
         // claiming completion with no kill delivered (and a wait on a
         // silent stream then stayed blocked forever). The kill action now
         // surfaces it, and the handle's kill() rolls the claim back so the
-        // handle stays usable — mirroring the Go handleKill's real
+        // kill can be retried — mirroring the Go handleKill's real
         // boolean.
         try (MockEnvd envd = MockEnvd.start((server, exchange, path) ->
             server.respondThenBlock(exchange, dataFrame(startEvent(42))))) {
