@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"annotations","claimTimeout","createOnNoStock","dynamicVolumesMount","envVars","inplaceUpdate","labels","replicas","reserveFailedSandbox","runtimes","shutdownTime","skipInitRuntime","templateName","ttlAfterCompleted","waitReadyTimeout"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"annotations","autoPausePolicy","claimTimeout","createOnNoStock","dynamicVolumesMount","envVars","inplaceUpdate","labels","pauseTime","probes","replicas","reserveFailedSandbox","runtimes","shutdownTime","skipInitRuntime","templateName","ttlAfterCompleted","waitReadyTimeout"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxClaimSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -20,6 +20,25 @@ public class SandboxClaimSpec implements io.fabric8.kubernetes.api.model.Kuberne
 
     public void setAnnotations(java.util.Map<java.lang.String, String> annotations) {
         this.annotations = annotations;
+    }
+
+    /**
+     * AutoPausePolicy is copied onto the claimed Sandbox at claim time, replacing
+     * any pool default. Probe-driven rules must name probes declared on the
+     * target SandboxSet or in probes below. Omitted or nil leaves the Sandbox
+     * autoPausePolicy unchanged.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("autoPausePolicy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("AutoPausePolicy is copied onto the claimed Sandbox at claim time, replacing\nany pool default. Probe-driven rules must name probes declared on the\ntarget SandboxSet or in probes below. Omitted or nil leaves the Sandbox\nautoPausePolicy unchanged.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxclaimspec.AutoPausePolicy autoPausePolicy;
+
+    public io.openkruise.agents.client.v2.models.sandboxclaimspec.AutoPausePolicy getAutoPausePolicy() {
+        return autoPausePolicy;
+    }
+
+    public void setAutoPausePolicy(io.openkruise.agents.client.v2.models.sandboxclaimspec.AutoPausePolicy autoPausePolicy) {
+        this.autoPausePolicy = autoPausePolicy;
     }
 
     /**
@@ -124,6 +143,49 @@ public class SandboxClaimSpec implements io.fabric8.kubernetes.api.model.Kuberne
     }
 
     /**
+     * PauseTime specifies the absolute time when the sandbox should be paused.
+     * This is written to spec.pauseTime on the Sandbox at claim time.
+     * If either pauseTime or shutdownTime is set, both Sandbox deadline fields are
+     * written from this Claim: a nil side clears that Sandbox field.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("pauseTime")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PauseTime specifies the absolute time when the sandbox should be paused.\nThis is written to spec.pauseTime on the Sandbox at claim time.\nIf either pauseTime or shutdownTime is set, both Sandbox deadline fields are\nwritten from this Claim: a nil side clears that Sandbox field.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.time.ZonedDateTime pauseTime;
+
+    @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssVV")
+    public java.time.ZonedDateTime getPauseTime() {
+        return pauseTime;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[XXX][VV]")
+    public void setPauseTime(java.time.ZonedDateTime pauseTime) {
+        this.pauseTime = pauseTime;
+    }
+
+    /**
+     * Probes are merged by name onto the claimed Sandbox at claim time: a
+     * probe with the same name replaces the pool version, and new names are
+     * appended. Omitted or empty leaves the Sandbox probes unchanged. The merge
+     * with the target SandboxSet must stay within 16 probes and pass SandboxSet
+     * probe validation; otherwise the Claim completes with reason InvalidClaimSpec.
+     * Candidate reuse, feature gates, and the virtual-kubelet recycle limit are
+     * described in the SandboxClaim auto-pause proposal.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("probes")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Probes are merged by name onto the claimed Sandbox at claim time: a\nprobe with the same name replaces the pool version, and new names are\nappended. Omitted or empty leaves the Sandbox probes unchanged. The merge\nwith the target SandboxSet must stay within 16 probes and pass SandboxSet\nprobe validation; otherwise the Claim completes with reason InvalidClaimSpec.\nCandidate reuse, feature gates, and the virtual-kubelet recycle limit are\ndescribed in the SandboxClaim auto-pause proposal.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.sandboxclaimspec.Probes> probes;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.sandboxclaimspec.Probes> getProbes() {
+        return probes;
+    }
+
+    public void setProbes(java.util.List<io.openkruise.agents.client.v2.models.sandboxclaimspec.Probes> probes) {
+        this.probes = probes;
+    }
+
+    /**
      * Replicas specifies how many sandboxes to claim (default: 1)
      * For batch claiming support
      * This field is immutable once set
@@ -175,11 +237,13 @@ public class SandboxClaimSpec implements io.fabric8.kubernetes.api.model.Kuberne
     }
 
     /**
-     * ShutdownTime specifies the absolute time when the sandbox should be shut down
-     * This will be set as spec.shutdownTime (absolute time) on the Sandbox
+     * ShutdownTime specifies the absolute time when the sandbox should be shut down.
+     * This is written to spec.shutdownTime on the Sandbox at claim time.
+     * If either pauseTime or shutdownTime is set, both Sandbox deadline fields are
+     * written from this Claim: a nil side clears that Sandbox field.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("shutdownTime")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ShutdownTime specifies the absolute time when the sandbox should be shut down\nThis will be set as spec.shutdownTime (absolute time) on the Sandbox")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ShutdownTime specifies the absolute time when the sandbox should be shut down.\nThis is written to spec.shutdownTime on the Sandbox at claim time.\nIf either pauseTime or shutdownTime is set, both Sandbox deadline fields are\nwritten from this Claim: a nil side clears that Sandbox field.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.time.ZonedDateTime shutdownTime;
 

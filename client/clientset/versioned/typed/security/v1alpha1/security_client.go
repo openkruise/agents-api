@@ -30,6 +30,9 @@ type SecurityV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	AgentAuthenticationConfigsGetter
 	AgentIdentitiesGetter
+	AgentRolesGetter
+	AgentRoleBindingsGetter
+	CredentialProvidersGetter
 }
 
 // SecurityV1alpha1Client is used to interact with features provided by the security group.
@@ -43,6 +46,18 @@ func (c *SecurityV1alpha1Client) AgentAuthenticationConfigs(namespace string) Ag
 
 func (c *SecurityV1alpha1Client) AgentIdentities(namespace string) AgentIdentityInterface {
 	return newAgentIdentities(c, namespace)
+}
+
+func (c *SecurityV1alpha1Client) AgentRoles(namespace string) AgentRoleInterface {
+	return newAgentRoles(c, namespace)
+}
+
+func (c *SecurityV1alpha1Client) AgentRoleBindings(namespace string) AgentRoleBindingInterface {
+	return newAgentRoleBindings(c, namespace)
+}
+
+func (c *SecurityV1alpha1Client) CredentialProviders(namespace string) CredentialProviderInterface {
+	return newCredentialProviders(c, namespace)
 }
 
 // NewForConfig creates a new SecurityV1alpha1Client for the given config.

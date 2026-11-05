@@ -84,6 +84,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Security().V1alpha1().AgentAuthenticationConfigs().Informer()}, nil
 	case securityv1alpha1.SchemeGroupVersion.WithResource("agentidentities"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Security().V1alpha1().AgentIdentities().Informer()}, nil
+	case securityv1alpha1.SchemeGroupVersion.WithResource("agentroles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Security().V1alpha1().AgentRoles().Informer()}, nil
+	case securityv1alpha1.SchemeGroupVersion.WithResource("agentrolebindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Security().V1alpha1().AgentRoleBindings().Informer()}, nil
+	case securityv1alpha1.SchemeGroupVersion.WithResource("credentialproviders"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Security().V1alpha1().CredentialProviders().Informer()}, nil
 
 	}
 

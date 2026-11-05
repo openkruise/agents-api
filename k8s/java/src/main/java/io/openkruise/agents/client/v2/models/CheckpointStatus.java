@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"checkpointId","checkpointLocation","completionTime","message","observedGeneration","phase","podTemplateDelta"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"checkpointId","checkpointLocation","completionTime","conditions","message","observedGeneration","phase","podTemplateDelta"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class CheckpointStatus implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -53,6 +53,22 @@ public class CheckpointStatus implements io.fabric8.kubernetes.api.model.Kuberne
     @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[XXX][VV]")
     public void setCompletionTime(java.time.ZonedDateTime completionTime) {
         this.completionTime = completionTime;
+    }
+
+    /**
+     * Conditions represent the latest available observations of the checkpoint.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("conditions")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Conditions represent the latest available observations of the checkpoint.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.checkpointstatus.Conditions> conditions;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.checkpointstatus.Conditions> getConditions() {
+        return conditions;
+    }
+
+    public void setConditions(java.util.List<io.openkruise.agents.client.v2.models.checkpointstatus.Conditions> conditions) {
+        this.conditions = conditions;
     }
 
     /**

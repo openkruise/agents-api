@@ -99,8 +99,8 @@ download_github_dir() {
 
     local count=0
     for filename in ${file_list}; do
-        # Filter by extension if specified
-        if [[ -n "${file_ext}" && "${filename}" != *"${file_ext}" ]]; then
+        # Filter by extension and exclude tests tied to the source repository.
+        if [[ ( -n "${file_ext}" && "${filename}" != *"${file_ext}" ) || "${filename}" == *_test.go ]]; then
             continue
         fi
 
@@ -184,6 +184,9 @@ if [[ "${UPDATE_TYPES}" == "true" ]]; then
 
     patch_genclient_marker "${SECURITY_TYPES_LOCAL_DIR}/agentidentity_types.go" "AgentIdentity"
     patch_genclient_marker "${SECURITY_TYPES_LOCAL_DIR}/agentauthenticationconfig_types.go" "AgentAuthenticationConfig"
+    patch_genclient_marker "${SECURITY_TYPES_LOCAL_DIR}/agentrole_types.go" "AgentRole"
+    patch_genclient_marker "${SECURITY_TYPES_LOCAL_DIR}/agentrolebinding_types.go" "AgentRoleBinding"
+    patch_genclient_marker "${SECURITY_TYPES_LOCAL_DIR}/credentialprovider_types.go" "CredentialProvider"
     patch_groupversion_helpers "${SECURITY_TYPES_LOCAL_DIR}/groupversion_info.go"
 fi
 
