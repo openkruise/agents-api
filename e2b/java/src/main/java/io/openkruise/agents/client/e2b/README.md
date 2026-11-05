@@ -114,14 +114,14 @@ Sandbox sandbox=api.create("code-interpreter");
 ## 2. Command Execution (Commands)
 
 Operate on processes inside the container via `sandbox.commands`. Built on OkHttp + Connect Protocol; commands are
-executed through `/bin/bash -l -c <cmd>`.
+executed through `<shell> -l -c <cmd>` (default shell `/bin/bash`, configurable via `RunOptions.shell()`).
 
 ### Methods
 
 | Method                                          | Description                                                          |
 |-------------------------------------------------|----------------------------------------------------------------------|
-| `run(String cmd)`                               | **Foreground**: start command and wait, returns `CommandResult`      |
-| `run(String cmd, RunOptions options)`           | Foreground with options                                              |
+| `run(String cmd)`                               | **Foreground**: start command and wait, returns `CommandResult`; throws `CommandExitException` on a non-zero exit, `SandboxException` on a truncated stream      |
+| `run(String cmd, RunOptions options)`           | Foreground with options (same return value and exceptions)                                              |
 | `runBackground(String cmd, RunOptions options)` | **Background**: returns `CommandHandle`, caller decides when to wait |
 | `list()`                                        | List all running processes, returns `List<ProcessInfo>`              |
 | `kill(int pid)`                                 | Send SIGKILL to the given PID                                        |
@@ -129,6 +129,7 @@ executed through `/bin/bash -l -c <cmd>`.
 | `sendSignal(int pid, Signal signal)`            | Send a signal to the given process                                   |
 | `closeStdin(int pid)`                           | Close stdin of the given process                                     |
 | `connect(int pid)`                              | Reconnect to a running process, subscribe to its subsequent output   |
+| `connect(int pid, ConnectOptions options)`      | Reconnect with per-call options (the same two limits as Start)        |
 
 ### RunOptions
 
@@ -136,17 +137,32 @@ executed through `/bin/bash -l -c <cmd>`.
 RunOptions opts=new RunOptions()
     .envs(Map.of("LANG","C"))               // Environment variables
     .cwd("/tmp")                              // Working directory
+    .user("nobody")                           // Run as this user (must exist in the image, must not contain ':'); applies to run/runBackground only; unset = default (root)
+    .requestTimeoutMs(3000)                   // Time limit (ms) for waiting the command to start; disarmed once the command starts. 0 disables the wait (Go: no disable value). Unset = client default (60s)
+    .timeoutMs(60000)                         // Whole-stream time limit (ms): connect handshake to end event. Zero or unset = no limit (the official E2B SDK defaults to 60s; set it explicitly if you want that limit). On timeout the stream fails; the process keeps running
     .onStdout(line->System.out.print(line)) // Streaming stdout callback
     .onStderr(line->System.err.print(line));// Streaming stderr callback
 ```
 
+### ConnectOptions
+
+`connect` supports the same two per-call limits as `start`, configured via
+`ConnectOptions` in `connect(int pid, ConnectOptions)`:
+
+```java
+ConnectOptions opts = new ConnectOptions()
+    .requestTimeoutMs(3000)                   // Time limit (ms) for waiting for the connect start event; disarmed once it arrives. 0 disables the wait (Go: no disable value). Unset = client default (60s)
+    .timeoutMs(60000)                         // Whole connect-stream time limit (ms). Zero or unset = no limit. On timeout the stream fails; the process keeps running
+```
+
 ### CommandResult
 
-| Field      | Type     | Description     |
-|------------|----------|-----------------|
-| `stdout`   | `String` | Standard output |
-| `stderr`   | `String` | Standard error  |
-| `exitCode` | `int`    | Exit code       |
+| Field      | Type     | Description                                                             |
+|------------|----------|-------------------------------------------------------------------------|
+| `stdout`   | `String` | Standard output                                                         |
+| `stderr`   | `String` | Standard error                                                          |
+| `exitCode` | `int`    | Exit code                                                               |
+| `error`    | `String` | Server-side error message from the end event (e.g. a spawn failure); empty when the process exited normally |
 
 ### CommandHandle
 
@@ -156,8 +172,9 @@ Returned by `runBackground()` / `connect()`, implements `AutoCloseable`:
 |-----------------------|-------------------------------------------------|
 | `getPid()`            | Returns process PID                             |
 | `isCompleted()`       | Whether the process has completed               |
-| `waitForCompletion()` | Block until completion, returns `CommandResult` |
-| `kill()`              | Kill the process                                |
+| `waitForCompletion()` | Block until completion, returns `CommandResult`; throws `CommandExitException` (carrying the result) when the exit code is non-zero, `SandboxException` on a truncated stream |
+| `kill()`              | Kill the process; throws `IllegalStateException` when envd reports it is already gone (no signal sent, the completion claim is rolled back) |
+| `disconnect()`        | Stop reading output without killing the process; a blocked `waitForCompletion()` fails with an exception |
 | `close()`             | Close stream and underlying resources           |
 
 ### Examples
@@ -171,11 +188,12 @@ CommandResult res=sandbox.commands.run("pwd");
     CommandResult res2=sandbox.commands.run("ls -la /tmp",
     new RunOptions().cwd("/tmp").onStdout(System.out::print));
 
-    // Background + manual kill
-    CommandHandle handle=sandbox.commands.runBackground("sleep 60",new RunOptions());
-    System.out.println("pid = "+handle.getPid());
-    handle.kill();
-    handle.close();
+    // Background + manual kill — try-with-resources releases the stream even
+    // when kill() throws because the process is already gone
+    try (CommandHandle handle=sandbox.commands.runBackground("sleep 60",new RunOptions())) {
+        System.out.println("pid = "+handle.getPid());
+        handle.kill();
+    }
 
     // List processes
     List<ProcessInfo> procs=sandbox.commands.list();
@@ -467,7 +485,7 @@ Connection behavior is determined by two orthogonal dimensions: **Scheme** and *
 | `.protocol(Protocol)`           | Routing protocol, default `Protocol.NATIVE`                            |
 | `.apiURL(String)`               | **Highest priority**: directly overrides API base URL                  |
 | `.sandboxBaseURL(String)`       | **Highest priority**: directly overrides sandbox envd base URL         |
-| `.requestTimeoutMs(long)`       | HTTP request timeout (ms), default 60000                               |
+| `.requestTimeoutMs(long)`       | Timeout for single requests (list/kill/sendInput); also limits how long Start/ConnectToProcess wait for a command to start. 0 disables; default 60000 |
 | `.port(int)`                    | envd port, default 49983                                               |
 | `.codeInterpreterPort(int)`     | Code interpreter port, default 49999                                   |
 | `.debug(boolean)`               | Debug mode; kill/setTimeout skip actual calls                          |

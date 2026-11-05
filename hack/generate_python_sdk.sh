@@ -81,6 +81,7 @@ for crd_file in "${CRD_SOURCE_DIR}"/*.yaml; do
         --input "${schema_json}" \
         --output "${output_model}" \
         --input-file-type jsonschema \
+        --output-model-type pydantic_v2.BaseModel \
         --target-python-version 3.11 \
         --use-schema-description \
         --use-field-description \

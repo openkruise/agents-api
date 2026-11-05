@@ -111,14 +111,14 @@ Sandbox sandbox=api.create("code-interpreter");
 
 ## 二、命令执行（Commands）
 
-通过 `sandbox.commands` 操作容器内进程。底层基于 OkHttp + Connect Protocol，命令统一通过 `/bin/bash -l -c <cmd>` 执行。
+通过 `sandbox.commands` 操作容器内进程。底层基于 OkHttp + Connect Protocol，命令统一通过 `<shell> -l -c <cmd>` 执行（默认 shell 为 `/bin/bash`，可经 `RunOptions.shell()` 覆盖）。
 
 ### 方法一览
 
 | 方法                                              | 说明                                    |
 |-------------------------------------------------|---------------------------------------|
-| `run(String cmd)`                               | **前台执行**：启动命令并等待完成，返回 `CommandResult` |
-| `run(String cmd, RunOptions options)`           | 前台执行（带选项）                             |
+| `run(String cmd)`                               | **前台执行**：启动命令并等待完成，返回 `CommandResult`；非零退出抛 `CommandExitException`，流被截断抛 `SandboxException` |
+| `run(String cmd, RunOptions options)`           | 前台执行（带选项，返回值与异常同上）                             |
 | `runBackground(String cmd, RunOptions options)` | **后台启动**：返回 `CommandHandle`，调用方决定何时等待 |
 | `list()`                                        | 列出所有运行中的进程，返回 `List<ProcessInfo>`     |
 | `kill(int pid)`                                 | 向指定 PID 发送 SIGKILL                    |
@@ -126,6 +126,7 @@ Sandbox sandbox=api.create("code-interpreter");
 | `sendSignal(int pid, Signal signal)`            | 向指定进程发送信号                             |
 | `closeStdin(int pid)`                           | 关闭指定进程的 stdin                         |
 | `connect(int pid)`                              | 重新连接到已运行的进程，订阅其后续输出                   |
+| `connect(int pid, ConnectOptions options)`      | 重连（带 per-call 选项，与 Start 相同的两层超时）        |
 
 ### RunOptions
 
@@ -133,17 +134,32 @@ Sandbox sandbox=api.create("code-interpreter");
 RunOptions opts=new RunOptions()
     .envs(Map.of("LANG","C"))               // 环境变量
     .cwd("/tmp")                              // 工作目录
+    .user("nobody")                           // 以该用户执行（镜像内须已存在，不含 ':'）；仅作用于 run/runBackground；不设置 = 默认（root）
+    .requestTimeoutMs(3000)                   // 等待命令启动的时间上限（毫秒）；命令启动后即解除。0 = 禁用该等待（Go：无禁用值）。不设置 = 客户端默认（60 秒）
+    .timeoutMs(60000)                         // 整条命令流的时间上限（毫秒）：连接握手到结束事件。0 或不设置 = 不限制（E2B 官方 SDK 默认 60 秒，需要限制请显式设置）。超时只断流报错，进程仍在沙箱中运行
     .onStdout(line->System.out.print(line)) // 流式 stdout 回调
     .onStderr(line->System.err.print(line));// 流式 stderr 回调
 ```
 
+### ConnectOptions
+
+`connect` 与 `start` 一样支持两层 per-call 超时，由
+`connect(int pid, ConnectOptions)` 的 `ConnectOptions` 配置：
+
+```java
+ConnectOptions opts = new ConnectOptions()
+    .requestTimeoutMs(3000)                   // 等待 connect start event 的时间上限（毫秒）；事件到达即解除。0 = 禁用该等待（Go：无禁用值）。不设置 = 客户端默认（60 秒）
+    .timeoutMs(60000)                         // 整条 connect 流的时间上限（毫秒）。0 或不设置 = 不限制。超时只断流报错，进程仍在沙箱中运行
+```
+
 ### CommandResult
 
-| 字段         | 类型       | 说明   |
-|------------|----------|------|
-| `stdout`   | `String` | 标准输出 |
-| `stderr`   | `String` | 标准错误 |
-| `exitCode` | `int`    | 退出码  |
+| 字段         | 类型       | 说明                                    |
+|------------|----------|---------------------------------------|
+| `stdout`   | `String` | 标准输出                                |
+| `stderr`   | `String` | 标准错误                                |
+| `exitCode` | `int`    | 退出码                                 |
+| `error`    | `String` | 结束事件携带的服务端错误消息（如 spawn 失败）；正常退出为空 |
 
 ### CommandHandle
 
@@ -153,8 +169,9 @@ RunOptions opts=new RunOptions()
 |-----------------------|---------------------------|
 | `getPid()`            | 返回进程 PID                  |
 | `isCompleted()`       | 是否已完成                     |
-| `waitForCompletion()` | 阻塞等待结束，返回 `CommandResult` |
-| `kill()`              | 终止进程                      |
+| `waitForCompletion()` | 阻塞等待结束，返回 `CommandResult`；退出码非零时抛出 `CommandExitException`（携带完整结果），流被截断时抛出 `SandboxException` |
+| `kill()`              | 终止进程；当 envd 报告进程已不存在时抛出 `IllegalStateException`（未发出信号，完成 claim 会回滚） |
+| `disconnect()`        | 停止读取输出、不终止进程；阻塞中的 `waitForCompletion()` 会以异常失败 |
 | `close()`             | 关闭流和底层资源                  |
 
 ### 示例
@@ -168,11 +185,12 @@ CommandResult res=sandbox.commands.run("pwd");
     CommandResult res2=sandbox.commands.run("ls -la /tmp",
     new RunOptions().cwd("/tmp").onStdout(System.out::print));
 
-    // 后台启动 + 主动 Kill
-    CommandHandle handle=sandbox.commands.runBackground("sleep 60",new RunOptions());
-    System.out.println("pid = "+handle.getPid());
-    handle.kill();
-    handle.close();
+    // 后台启动 + 主动 Kill —— try-with-resources 保证流一定被释放，
+    // 即使进程已不存在导致 kill() 抛异常
+    try (CommandHandle handle=sandbox.commands.runBackground("sleep 60",new RunOptions())) {
+        System.out.println("pid = "+handle.getPid());
+        handle.kill();
+    }
 
     // 列出进程
     List<ProcessInfo> procs=sandbox.commands.list();
@@ -460,7 +478,7 @@ Execution result=sandbox.codeInterpreter.runCode("print('Hello from Python!')");
 | `.protocol(Protocol)`           | 路由协议，默认 `Protocol.NATIVE`                 |
 | `.apiURL(String)`               | **最高优先级**：直接覆盖 API base URL               |
 | `.sandboxBaseURL(String)`       | **最高优先级**：直接覆盖 sandbox envd base URL      |
-| `.requestTimeoutMs(long)`       | HTTP 请求超时（毫秒），默认 60000                    |
+| `.requestTimeoutMs(long)`       | 单次请求（list/kill/sendInput）的超时（毫秒）；同时限制 Start/ConnectToProcess 等待命令启动的时长。0 = 禁用；默认 60000 |
 | `.port(int)`                    | envd 端口，默认 49983                          |
 | `.codeInterpreterPort(int)`     | 代码解释器端口，默认 49999                          |
 | `.debug(boolean)`               | 调试模式，kill/setTimeout 跳过实际调用               |

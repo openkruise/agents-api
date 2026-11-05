@@ -22,6 +22,8 @@ import (
 	clientset "github.com/openkruise/agents-api/client/clientset/versioned"
 	agentsv1alpha1 "github.com/openkruise/agents-api/client/clientset/versioned/typed/agents/v1alpha1"
 	fakeagentsv1alpha1 "github.com/openkruise/agents-api/client/clientset/versioned/typed/agents/v1alpha1/fake"
+	securityv1alpha1 "github.com/openkruise/agents-api/client/clientset/versioned/typed/security/v1alpha1"
+	fakesecurityv1alpha1 "github.com/openkruise/agents-api/client/clientset/versioned/typed/security/v1alpha1/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -102,4 +104,9 @@ var (
 // AgentsV1alpha1 retrieves the AgentsV1alpha1Client
 func (c *Clientset) AgentsV1alpha1() agentsv1alpha1.AgentsV1alpha1Interface {
 	return &fakeagentsv1alpha1.FakeAgentsV1alpha1{Fake: &c.Fake}
+}
+
+// SecurityV1alpha1 retrieves the SecurityV1alpha1Client
+func (c *Clientset) SecurityV1alpha1() securityv1alpha1.SecurityV1alpha1Interface {
+	return &fakesecurityv1alpha1.FakeSecurityV1alpha1{Fake: &c.Fake}
 }

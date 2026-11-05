@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","pauseStrategy","persistentContents","probes","runtimes","template","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","backend","buildOptions","lifecycle","pauseStrategy","persistentContents","probes","runtimes","template","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxTemplateSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -22,6 +22,77 @@ public class SandboxTemplateSpec implements io.fabric8.kubernetes.api.model.Kube
 
     public void setAutoPausePolicy(io.openkruise.agents.client.v2.models.sandboxtemplatespec.AutoPausePolicy autoPausePolicy) {
         this.autoPausePolicy = autoPausePolicy;
+    }
+
+    public enum Backend {
+
+        @com.fasterxml.jackson.annotation.JsonProperty("k8s")
+        K8S("k8s");
+
+        java.lang.String value;
+
+        Backend(java.lang.String value) {
+            this.value = value;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonValue()
+        public java.lang.String getValue() {
+            return value;
+        }
+    }
+
+    /**
+     * Backend selects the build backend. The public value "k8s" maps to the
+     * internal sandboxcr backend. Once written, the backend cannot change.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("backend")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Backend selects the build backend. The public value \"k8s\" maps to the\ninternal sandboxcr backend. Once written, the backend cannot change.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private Backend backend = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"k8s\"", Backend.class);
+
+    public Backend getBackend() {
+        return backend;
+    }
+
+    public void setBackend(Backend backend) {
+        this.backend = backend;
+    }
+
+    /**
+     * BuildOptions is the declarative snapshot of the Template Build request.
+     * It is populated by a build entry and consumed by the SandboxTemplate
+     * controller. Logical Template admission keeps it immutable after the
+     * build input is accepted.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("buildOptions")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("BuildOptions is the declarative snapshot of the Template Build request.\nIt is populated by a build entry and consumed by the SandboxTemplate\ncontroller. Logical Template admission keeps it immutable after the\nbuild input is accepted.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxtemplatespec.BuildOptions buildOptions;
+
+    public io.openkruise.agents.client.v2.models.sandboxtemplatespec.BuildOptions getBuildOptions() {
+        return buildOptions;
+    }
+
+    public void setBuildOptions(io.openkruise.agents.client.v2.models.sandboxtemplatespec.BuildOptions buildOptions) {
+        this.buildOptions = buildOptions;
+    }
+
+    /**
+     * Lifecycle stores pause/resume hooks for direct checkpoint/clone use. When
+     * referenced by a SandboxSet, SandboxSetSpec.Lifecycle remains authoritative.
+     * Upgrade hooks remain instance policy and are not allowed here.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("lifecycle")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Lifecycle stores pause/resume hooks for direct checkpoint/clone use. When\nreferenced by a SandboxSet, SandboxSetSpec.Lifecycle remains authoritative.\nUpgrade hooks remain instance policy and are not allowed here.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxtemplatespec.Lifecycle lifecycle;
+
+    public io.openkruise.agents.client.v2.models.sandboxtemplatespec.Lifecycle getLifecycle() {
+        return lifecycle;
+    }
+
+    public void setLifecycle(io.openkruise.agents.client.v2.models.sandboxtemplatespec.Lifecycle lifecycle) {
+        this.lifecycle = lifecycle;
     }
 
     /**

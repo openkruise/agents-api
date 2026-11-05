@@ -1,10 +1,12 @@
 package io.openkruise.agents.client.runtime.utils;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -103,7 +105,24 @@ public class ConnectStreamReader<T extends Message> implements Iterator<T>, Mess
             return;
         }
         String trailerJson = new String(payload, StandardCharsets.UTF_8);
-        // Connect Protocol trailer: {"error":{"code":"...","message":"..."}}
+        // Connect Protocol trailer: {"error":{"code":"...","message":"..."}}.
+        // Extract the server's message instead of handing the raw JSON to
+        // the user; a payload that fails to parse (or carries no
+        // error.message) falls back to the raw trailer text so no error is
+        // ever swallowed.
+        try {
+            JsonObject error = JsonParser.parseString(trailerJson)
+                .getAsJsonObject().getAsJsonObject("error");
+            if (error != null) {
+                JsonElement message = error.get("message");
+                if (message != null) {
+                    trailerError = message.getAsString();
+                    return;
+                }
+            }
+        } catch (RuntimeException ignored) {
+            // Not the expected JSON shape — fall through to the raw text.
+        }
         if (trailerJson.contains("\"error\"")) {
             trailerError = trailerJson;
         }
@@ -124,6 +143,7 @@ public class ConnectStreamReader<T extends Message> implements Iterator<T>, Mess
     /**
      * Error message from trailer frame, available after hasNext() returns false.
      */
+    @Override
     public String getTrailerError() {
         return trailerError;
     }
@@ -131,6 +151,7 @@ public class ConnectStreamReader<T extends Message> implements Iterator<T>, Mess
     /**
      * If hasNext() returns false due to an IO exception, this method can retrieve it.
      */
+    @Override
     public IOException getLastError() {
         return lastError;
     }

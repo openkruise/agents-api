@@ -36,10 +36,39 @@ type SandboxClaimSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="replicas is immutable"
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// ShutdownTime specifies the absolute time when the sandbox should be shut down
-	// This will be set as spec.shutdownTime (absolute time) on the Sandbox
+	// ShutdownTime specifies the absolute time when the sandbox should be shut down.
+	// This is written to spec.shutdownTime on the Sandbox at claim time.
+	// If either pauseTime or shutdownTime is set, both Sandbox deadline fields are
+	// written from this Claim: a nil side clears that Sandbox field.
 	// +optional
 	ShutdownTime *metav1.Time `json:"shutdownTime,omitempty"`
+
+	// PauseTime specifies the absolute time when the sandbox should be paused.
+	// This is written to spec.pauseTime on the Sandbox at claim time.
+	// If either pauseTime or shutdownTime is set, both Sandbox deadline fields are
+	// written from this Claim: a nil side clears that Sandbox field.
+	// +optional
+	PauseTime *metav1.Time `json:"pauseTime,omitempty"`
+
+	// AutoPausePolicy is copied onto the claimed Sandbox at claim time, replacing
+	// any pool default. Probe-driven rules must name probes declared on the
+	// target SandboxSet or in probes below. Omitted or nil leaves the Sandbox
+	// autoPausePolicy unchanged.
+	// +optional
+	AutoPausePolicy *AutoPausePolicy `json:"autoPausePolicy,omitempty"`
+
+	// Probes are merged by name onto the claimed Sandbox at claim time: a
+	// probe with the same name replaces the pool version, and new names are
+	// appended. Omitted or empty leaves the Sandbox probes unchanged. The merge
+	// with the target SandboxSet must stay within 16 probes and pass SandboxSet
+	// probe validation; otherwise the Claim completes with reason InvalidClaimSpec.
+	// Candidate reuse, feature gates, and the virtual-kubelet recycle limit are
+	// described in the SandboxClaim auto-pause proposal.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=16
+	Probes []Probe `json:"probes,omitempty"`
 
 	// ClaimTimeout specifies the maximum duration to wait for claiming sandboxes
 	// If the timeout is reached, the claim will be marked as Completed regardless of

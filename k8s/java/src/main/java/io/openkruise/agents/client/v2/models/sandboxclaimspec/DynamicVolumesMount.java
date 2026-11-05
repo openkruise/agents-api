@@ -5,7 +5,14 @@ package io.openkruise.agents.client.v2.models.sandboxclaimspec;
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class DynamicVolumesMount implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
+    /**
+     * Attributes contains provider-specific values copied into the CSI
+     * NodePublishVolumeRequest VolumeContext for this mount. Values are persisted
+     * in Sandbox and Checkpoint annotations, so callers must not include credentials.
+     * The keys path, authType, and the csi.storage.k8s.io/ prefix are reserved.
+     */
     @com.fasterxml.jackson.annotation.JsonProperty("attributes")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Attributes contains provider-specific values copied into the CSI\nNodePublishVolumeRequest VolumeContext for this mount. Values are persisted\nin Sandbox and Checkpoint annotations, so callers must not include credentials.\nThe keys path, authType, and the csi.storage.k8s.io/ prefix are reserved.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.Map<java.lang.String, String> attributes;
 

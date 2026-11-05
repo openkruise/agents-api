@@ -10,7 +10,7 @@ operations) APIs.
 <dependency>
     <groupId>io.openkruise</groupId>
     <artifactId>agents-client-e2b</artifactId>
-    <version>0.1.0</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
@@ -51,6 +51,7 @@ try (sandbox) {
 
 - [Lifecycle Management](src/main/java/io/openkruise/agents/client/examples/SandboxApiManagerExample.java)
 - [Commands](src/main/java/io/openkruise/agents/client/examples/SandboxCommandsExample.java)
+- [Run as User](src/main/java/io/openkruise/agents/client/examples/SandboxRunAsUserExample.java)
 - [Files](src/main/java/io/openkruise/agents/client/examples/SandboxFilesExample.java)
 - [Code Interpreter](src/main/java/io/openkruise/agents/client/examples/SandboxCodeInterpreterExample.java)
 

@@ -4,7 +4,7 @@
     <groupId>io.openkruise</groupId>
     <artifactId>agents-client-e2b</artifactId>
     <packaging>jar</packaging>
-    <version>0.1.0</version>
+    <version>0.6.0</version>
     <name>agents-client-e2b</name>
     <description>Java E2B management client for Agents</description>
     <url>https://github.com/openkruise/agents-api</url>
@@ -264,6 +264,15 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
             <version>${grpc.version}</version>
+        </dependency>
+        <!-- The generated gRPC stubs reference javax.annotation.Generated,
+             removed from the JDK since 11; provided scope keeps the
+             modules compiling on modern JDKs while targeting 1.8. -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+            <scope>provided</scope>
         </dependency>
         <!-- Protobuf -->
         <dependency>

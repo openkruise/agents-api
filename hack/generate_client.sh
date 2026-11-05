@@ -28,6 +28,12 @@ set -e
 TMP_DIR=$(mktemp -d)
 mkdir -p "${TMP_DIR}"/src/github.com/openkruise/agents-api
 cp -r ./{agents,hack,vendor,go.mod,.git} "${TMP_DIR}"/src/github.com/openkruise/agents-api/
+# security/ holds the security.agents.kruise.io group types and only exists
+# after hack/update_upstream.sh has synced them; guard so --skip-update runs
+# on a fresh checkout don't fail on the missing directory.
+if [[ -d ./security ]]; then
+    cp -r ./security "${TMP_DIR}"/src/github.com/openkruise/agents-api/
+fi
 
 chmod +x "${TMP_DIR}"/src/github.com/openkruise/agents-api/vendor/k8s.io/code-generator/generate-internal-groups.sh
 echo "tmp_dir: ${TMP_DIR}"
