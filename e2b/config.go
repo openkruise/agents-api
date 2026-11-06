@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -206,6 +207,23 @@ func (c *ConnectionConfig) GetAPIURL() string {
 		return fmt.Sprintf("%s://%s/kruise/api", scheme, c.Domain)
 	}
 	return fmt.Sprintf("%s://api.%s", scheme, c.Domain)
+}
+
+// TrafficAPIBase returns the management API base used for traffic access
+// token refreshes. The upstream sandbox-manager registers the refresh
+// endpoint only under its /kruise/api prefix (never on the native
+// https://api.<domain> path), so — mirroring the Python patch, whose api_url
+// always carries the /kruise/api prefix — this base is constant across
+// routing protocols: {scheme}://{domain}/kruise/api. An explicit
+// WithAPIURL override wins as-is (it is the escape hatch for proxies and
+// port-forwarding; point it at a URL that serves the refresh path), with a
+// trailing slash trimmed so the refresh path never contains a double slash
+// (mirroring the Python patch, which rstrips "/" from config.api_url).
+func (c *ConnectionConfig) TrafficAPIBase() string {
+	if c.APIURL != "" {
+		return strings.TrimRight(c.APIURL, "/")
+	}
+	return fmt.Sprintf("%s://%s/kruise/api", c.getScheme(), c.Domain)
 }
 
 // GetSandboxURL returns the envd API URL for a given sandbox.

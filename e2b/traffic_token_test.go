@@ -826,6 +826,80 @@ func TestSandboxApiRefreshTrafficAccessTokenCustomHeaders(t *testing.T) {
 	}
 }
 
+// TestSandboxApiRefreshTrafficAccessTokenURL pins the refresh URL to the
+// upstream's single registered form: the endpoint exists only under the
+// /kruise/api prefix, so both routing protocols must target
+// {scheme}://{domain}/kruise/api/sandboxes/{id}/traffic-access-token
+// (native https://api.<domain> would 404), while an explicit WithAPIURL
+// override still wins as-is.
+func TestSandboxApiRefreshTrafficAccessTokenURL(t *testing.T) {
+	var mu sync.Mutex
+	paths := []string{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		paths = append(paths, r.URL.Path)
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"trafficAccessToken":"","trafficAccessTokenExpiration":""}`))
+	}))
+	t.Cleanup(server.Close)
+
+	// Base is derived from Domain, so point Domain at the test server
+	// ("127.0.0.1:port") and force http; the response is invalid, but only
+	// the requested path matters here.
+	host := strings.TrimPrefix(server.URL, "http://")
+	tests := []struct {
+		name string
+		opts []ConnectionConfigOption
+		want string
+	}{
+		{
+			name: "native protocol (default) still uses the kruise prefix",
+			opts: nil,
+			want: "/kruise/api/sandboxes/sbx-1/traffic-access-token",
+		},
+		{
+			name: "private protocol keeps the kruise prefix",
+			opts: []ConnectionConfigOption{WithProtocol(ProtocolPrivate)},
+			want: "/kruise/api/sandboxes/sbx-1/traffic-access-token",
+		},
+		{
+			name: "explicit APIURL override wins as-is",
+			opts: []ConnectionConfigOption{WithAPIURL(server.URL + "/custom/base")},
+			want: "/custom/base/sandboxes/sbx-1/traffic-access-token",
+		},
+		{
+			name: "trailing slash in APIURL override is trimmed",
+			opts: []ConnectionConfigOption{WithAPIURL(server.URL + "/custom/base/")},
+			want: "/custom/base/sandboxes/sbx-1/traffic-access-token",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mu.Lock()
+			paths = nil
+			mu.Unlock()
+
+			opts := append([]ConnectionConfigOption{
+				WithDomain(host), WithScheme("http"), WithAPIKey("test-key"),
+			}, tc.opts...)
+			api := NewSandboxApi(NewConnectionConfig(opts...))
+			// The stub response fails validation; the URL assertion below is
+			// the actual subject of this test.
+			_, _ = api.RefreshTrafficAccessToken(context.Background(), "sbx-1")
+
+			mu.Lock()
+			defer mu.Unlock()
+			if len(paths) != 1 {
+				t.Fatalf("refresh calls = %d, want 1", len(paths))
+			}
+			if paths[0] != tc.want {
+				t.Errorf("refresh path = %q, want %q", paths[0], tc.want)
+			}
+		})
+	}
+}
+
 func TestSandboxDataPlaneHeaderInjection(t *testing.T) {
 	now := float64(time.Now().Unix())
 	first := tokenWithValidity(now, 3600)

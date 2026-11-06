@@ -322,17 +322,23 @@ func (s *SandboxApi) ConnectSandbox(ctx context.Context, sandboxID string, timeo
 // RefreshTrafficAccessToken fetches a fresh traffic access token for a
 // sandbox from the management API:
 //
-//	POST {apiURL}/sandboxes/{sandboxID}/traffic-access-token
+//	POST {trafficAPIBase}/sandboxes/{sandboxID}/traffic-access-token
+//
+// The upstream sandbox-manager registers this endpoint only under its
+// /kruise/api prefix (not on the native https://api.<domain> path), so the
+// base is resolved via TrafficAPIBase — constant {scheme}://{domain}/kruise/api
+// across routing protocols, mirroring the Python patch — instead of the
+// protocol-dependent GetAPIURL. An explicit WithAPIURL override still wins.
 //
 // This endpoint is hand-written against the shared APIClient (the OpenAPI
-// generator does not emit it), so it reuses the same base URL, HTTP client
-// and X-API-Key authentication as every other management call. On failure
+// generator does not emit it), so it reuses the same HTTP client and
+// X-API-Key authentication as every other management call. On failure
 // the response body is not surfaced (to avoid leaking server error details
 // into client logs); the status code and Retry-After delay are preserved in
 // a *TrafficAccessTokenRefreshError instead.
 func (s *SandboxApi) RefreshTrafficAccessToken(ctx context.Context, sandboxID string) (*TrafficAccessToken, error) {
 	refreshURL := fmt.Sprintf("%s/sandboxes/%s/traffic-access-token",
-		s.config.GetAPIURL(), url.PathEscape(sandboxID))
+		s.config.TrafficAPIBase(), url.PathEscape(sandboxID))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, refreshURL, nil)
 	if err != nil {

@@ -319,6 +319,11 @@ traffic header, no refresh, and `RefreshTrafficAccessToken` returns an error.
 > The low-level `SandboxApi.RefreshTrafficAccessToken(ctx, sandboxID)` POSTs
 > `/sandboxes/{sandboxID}/traffic-access-token` and returns the raw
 > `*TrafficAccessToken{Token, ExpiresAt}`; the `Sandbox`-level machinery above is the recommended entry point.
+> The upstream sandbox-manager registers this endpoint **only** under its `/kruise/api` prefix, so the SDK always
+> targets `{scheme}://{domain}/kruise/api/sandboxes/{sandboxID}/traffic-access-token`, regardless of the routing
+> protocol (`ProtocolNative` included) — mirroring the Python patch, whose derived `api_url` always carries the
+> prefix. An explicit `WithAPIURL` override still wins as-is; point it at a base that serves the refresh path
+> (proxies, port-forwarding).
 
 ### Verifying against a JWT-enabled gateway
 

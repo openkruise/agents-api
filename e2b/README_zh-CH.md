@@ -312,6 +312,10 @@ sb2, err := e2b.Connect(ctx, id,
 > 底层 `SandboxApi.RefreshTrafficAccessToken(ctx, sandboxID)` POST
 > `/sandboxes/{sandboxID}/traffic-access-token` 并返回原始的
 > `*TrafficAccessToken{Token, ExpiresAt}`；推荐使用上面 `Sandbox` 层的封装。
+> 上游 sandbox-manager 将该端点**仅**注册在 `/kruise/api` 前缀下，因此 SDK 恒定请求
+> `{scheme}://{domain}/kruise/api/sandboxes/{sandboxID}/traffic-access-token`，与路由协议无关（默认的
+> `ProtocolNative` 也一样）——对齐 Python 补丁（其推导出的 `api_url` 本身自带该前缀）。显式的
+> `WithAPIURL` 覆盖仍然原样优先（代理、端口转发场景请指向能服务该刷新路径的 base）。
 
 ### 对接启用 JWT 的网关做端到端验证
 
