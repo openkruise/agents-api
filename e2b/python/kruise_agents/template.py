@@ -4,6 +4,12 @@ Create a logical Template and poll its Build::
 
     build = Template.build(name="runtime", spec=...)
     build.wait_until_ready()
+
+Fetch, list, and delete Templates::
+
+    Template.get("runtime")
+    Template.list()
+    Template.delete("runtime")
 """
 
 from __future__ import annotations
@@ -23,6 +29,7 @@ from .models import (
     SandboxTemplateStatus,
     TemplateBackend,
     TemplateBuild,
+    TemplateProjection,
 )
 
 # Transient polling failures (gateway errors / connection resets) are retried
@@ -54,6 +61,46 @@ class Template:
 
         response = effective_client.request("POST", "/templates", body=body)
         return TemplateBuildHandle._from_response(name, response, effective_client)
+
+    @staticmethod
+    def get(name: str, *, client: Optional[KruiseClient] = None) -> TemplateProjection:
+        """Fetch one Template by name.
+
+        Raises :class:`kruise_agents.errors.NotFoundError` when the name does
+        not exist in the caller's namespace — or exists but belongs to another
+        caller's Space.
+        """
+
+        effective_client = client or default_client()
+        response = effective_client.request("GET", f"/templates/{quote(name, safe='')}")
+        return TemplateProjection.model_validate(response)
+
+    @staticmethod
+    def list(*, client: Optional[KruiseClient] = None) -> list[TemplateProjection]:
+        """List the Templates visible to the caller's API key.
+
+        The server returns the namespace's k8s-backed templates plus the
+        Substrate templates bound to the caller's Space; other callers'
+        Substrate templates are filtered out server-side.
+        """
+
+        effective_client = client or default_client()
+        response = effective_client.request("GET", "/templates")
+        items = response if isinstance(response, list) else []
+        return [TemplateProjection.model_validate(item) for item in items]
+
+    @staticmethod
+    def delete(name: str, *, client: Optional[KruiseClient] = None) -> None:
+        """Delete a Template and cascade its backend artifact.
+
+        A missing name (or one bound to another caller's Space) is an
+        idempotent success. Raises
+        :class:`kruise_agents.errors.ConflictError` when a SandboxSet still
+        references the Template.
+        """
+
+        effective_client = client or default_client()
+        effective_client.request("DELETE", f"/templates/{quote(name, safe='')}")
 
 
 class TemplateBuildHandle(TemplateBuild):

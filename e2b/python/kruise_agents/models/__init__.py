@@ -12,6 +12,7 @@ from .template import (
     TemplateArtifactRef,
     TemplateBackend,
     TemplateBuild,
+    TemplateProjection,
 )
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "TemplateArtifactRef",
     "TemplateBackend",
     "TemplateBuild",
+    "TemplateProjection",
 ]

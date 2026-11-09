@@ -96,3 +96,20 @@ class TemplateBuild(BaseModel):
     status: Optional[SandboxTemplatePhase] = None
     artifact: Optional[TemplateArtifactRef] = None
     message: Optional[str] = None
+
+
+class TemplateProjection(BaseModel):
+    """A Template as the resource API returns it: the flat spec echo plus the
+    controller-converged Build status.
+
+    ``spec`` and ``options`` are raw passthrough JSON — the same shapes the
+    create request carried; ``status`` is typed.
+    """
+
+    model_config = {**camel_config, "extra": "allow"}
+
+    name: str
+    backend: Optional[str] = None
+    spec: Optional[dict[str, Any]] = None
+    options: Optional[dict[str, Any]] = None
+    status: Optional[SandboxTemplateStatus] = None

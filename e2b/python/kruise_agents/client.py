@@ -76,8 +76,10 @@ class KruiseClient:
         body: Optional[dict[str, Any]] = None,
         *,
         timeout: Optional[float] = None,
-    ) -> dict[str, Any]:
-        """Send a request under the resource API prefix and return the JSON body.
+    ) -> dict[str, Any] | list[Any]:
+        """Send a request under the resource API prefix and return the JSON
+        body — an object for single-resource endpoints, an array for list
+        endpoints.
 
         Raises a :class:`kruise_agents.errors.KruiseApiError` subclass for
         non-2xx responses.
@@ -94,15 +96,19 @@ class KruiseClient:
                 for phase, value in self._client.timeout.as_dict().items()
             })
         response = self._client.request(method, url, json=body, headers=headers, **request_options)
-        payload: Optional[dict[str, Any]] = None
+        payload: Optional[dict[str, Any] | list[Any]] = None
         raw_body: Optional[str] = None
         try:
             payload = response.json()
         except ValueError:
             raw_body = response.text[:512] if response.text else None
         if response.status_code >= 300:
-            raise api_error_from_response(response.status_code, payload, raw_body)
-        return payload if isinstance(payload, dict) else {}
+            raise api_error_from_response(response.status_code, payload if isinstance(payload, dict) else None, raw_body)
+        if isinstance(payload, dict):
+            return payload
+        if isinstance(payload, list):
+            return payload
+        return {}
 
     def close(self) -> None:
         self._client.close()

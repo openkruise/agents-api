@@ -426,3 +426,112 @@ class TestTemplateBuild:
         )
         build.wait_until_ready(timeout=1, interval=0)
         assert seen_paths[-1].endswith("/templates/a%3Ab%2Fc")
+
+
+class TestTemplateResourceOperations:
+    """GET / DELETE / list operations against the resource API."""
+
+    def test_get_returns_projection(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "GET"
+            return httpx.Response(
+                200,
+                json={
+                    "name": "rt",
+                    "backend": "substrate",
+                    "spec": {"containers": [{"name": "main", "image": "example/runtime@sha256:abc"}]},
+                    "status": {"phase": "Ready", "artifactRef": {"backend": "substrate", "actorTemplateName": "rt"}},
+                },
+            )
+
+        projection = Template.get("rt", client=make_sdk_client(handler))
+        assert projection.name == "rt"
+        assert projection.backend == "substrate"
+        assert projection.spec is not None and projection.spec["containers"][0]["name"] == "main"
+        assert projection.options is None
+        assert projection.status is not None and projection.status.phase is not None
+        assert projection.status.phase.value == "Ready"
+        assert projection.status.artifact_ref is not None
+        assert projection.status.artifact_ref.actor_template_name == "rt"
+
+    def test_get_options_passthrough(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={"name": "rt", "backend": "k8s", "options": {"checkpoint": True}},
+            )
+
+        projection = Template.get("rt", client=make_sdk_client(handler))
+        assert projection.options == {"checkpoint": True}
+
+    def test_get_not_found(self):
+        from kruise_agents import NotFoundError
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(404, json={"message": "resource not found: rt"})
+
+        with pytest.raises(NotFoundError):
+            Template.get("rt", client=make_sdk_client(handler))
+
+    def test_list_returns_projections(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "GET"
+            assert request.url.path == f"{API_PREFIX}/templates"
+            return httpx.Response(
+                200,
+                json=[
+                    {"name": "mine", "backend": "substrate", "status": {"phase": "Ready"}},
+                    {"name": "shared", "backend": "k8s"},
+                ],
+            )
+
+        templates = Template.list(client=make_sdk_client(handler))
+        assert [t.name for t in templates] == ["mine", "shared"]
+        assert templates[0].status is not None and templates[0].status.phase is not None
+        assert templates[1].status is None
+
+    def test_list_empty(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=[])
+
+        assert Template.list(client=make_sdk_client(handler)) == []
+
+    def test_list_tolerates_null_body(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=b"null")
+
+        assert Template.list(client=make_sdk_client(handler)) == []
+
+    def test_delete_returns_none_on_204(self):
+        seen = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append((request.method, request.url.raw_path.decode()))
+            return httpx.Response(204)
+
+        assert Template.delete("rt", client=make_sdk_client(handler)) is None
+        assert seen == [("DELETE", f"{API_PREFIX}/templates/rt")]
+
+    def test_delete_conflict_on_reference(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(409, json={"message": "template is referenced by sandboxsets"})
+
+        with pytest.raises(ConflictError):
+            Template.delete("rt", client=make_sdk_client(handler))
+
+    def test_get_and_delete_url_encode_names(self):
+        seen_paths = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen_paths.append(request.url.raw_path.decode())
+            if request.method == "GET":
+                return httpx.Response(200, json={"name": "a:b/c"})
+            return httpx.Response(204)
+
+        client = make_sdk_client(handler)
+        Template.get("a:b/c", client=client)
+        Template.delete("a:b/c", client=client)
+        assert seen_paths == [
+            f"{API_PREFIX}/templates/a%3Ab%2Fc",
+            f"{API_PREFIX}/templates/a%3Ab%2Fc",
+        ]

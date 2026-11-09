@@ -85,6 +85,24 @@ snapshot. A Ready Build exposes its artifact through
 reaches Failed, `WaitTimeoutError` when the deadline expires, and retries
 transient 502/503/504 polls with backoff.
 
+### Get, list, and delete Templates
+
+```python
+from kruise_agents import Template
+
+projection = Template.get("code-interpreter-v2")  # raises NotFoundError if absent
+
+for template in Template.list():  # templates visible to this API key
+    print(template.name, template.backend, template.status.phase if template.status else None)
+
+Template.delete("code-interpreter-v2")  # ConflictError while a SandboxSet references it
+```
+
+The server scopes both reads and the delete to the caller's API key:
+Substrate templates are only visible (and deletable) to the key that created
+them, while k8s-backed templates are visible to every caller of the
+namespace. `Template.delete()` is idempotent for a missing name.
+
 ## Problem Statement
 
 The E2B SDK requests the backend using the following protocol:
