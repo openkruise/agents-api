@@ -211,25 +211,16 @@ class TestTemplateBuild:
         assert spec["terminationGracePeriodSeconds"] == 30
 
     def test_wait_until_ready_polling(self, monkeypatch):
-        phases = iter(["Building", "Building", "Ready"])
+        phases = iter(["Pending", "Building", "Ready"])
         requests_seen = []
 
         def handler(request: httpx.Request) -> httpx.Response:
             requests_seen.append(str(request.url))
             phase = next(phases)
-            return httpx.Response(
-                200,
-                json={
-                    "name": "rt",
-                    "status": {
-                        "phase": phase,
-                        "artifactRef": {
-                            "backend": "substrate",
-                            "actorTemplateName": "rt",
-                        },
-                    },
-                },
-            )
+            status = {"phase": phase}
+            if phase == "Ready":
+                status["artifacts"] = [{"type": "ActorTemplate", "name": "rt"}]
+            return httpx.Response(200, json={"name": "rt", "status": status})
 
         def fast_sleep(_seconds: float) -> None:
             return None
@@ -440,7 +431,7 @@ class TestTemplateResourceOperations:
                     "name": "rt",
                     "backend": "substrate",
                     "spec": {"containers": [{"name": "main", "image": "example/runtime@sha256:abc"}]},
-                    "status": {"phase": "Ready", "artifactRef": {"backend": "substrate", "actorTemplateName": "rt"}},
+                    "status": {"phase": "Ready", "artifacts": [{"type": "ActorTemplate", "name": "rt"}]},
                 },
             )
 

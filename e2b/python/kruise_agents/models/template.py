@@ -51,9 +51,19 @@ class SandboxTemplateSpec(BaseModel):
 class SandboxTemplatePhase(str, Enum):
     """Lifecycle phase reported in ``SandboxTemplate.status``."""
 
+    PENDING = "Pending"
     BUILDING = "Building"
     READY = "Ready"
     FAILED = "Failed"
+
+
+class TemplateCheckpointRef(BaseModel):
+    """Reference to the checkpoint object backing a k8s artifact."""
+
+    model_config = camel_config
+
+    name: str
+    namespace: Optional[str] = None
 
 
 class TemplateArtifactRef(BaseModel):
@@ -66,7 +76,17 @@ class TemplateArtifactRef(BaseModel):
     model_config = camel_config
 
     backend: str
+    checkpoint_ref: Optional[TemplateCheckpointRef] = None
     actor_template_name: Optional[str] = None
+
+
+class SandboxTemplateArtifact(BaseModel):
+    """One immutable artifact reference of the current Build, by type."""
+
+    model_config = camel_config
+
+    type: str
+    name: str
 
 
 class SandboxTemplateStatus(BaseModel):
@@ -77,11 +97,26 @@ class SandboxTemplateStatus(BaseModel):
 
     observed_generation: Optional[int] = None
     phase: Optional[SandboxTemplatePhase] = None
-    artifact_ref: Optional[TemplateArtifactRef] = None
+    artifacts: Optional[list[SandboxTemplateArtifact]] = None
     message: Optional[str] = None
     start_time: Optional[str] = None
     ready_time: Optional[str] = None
     conditions: Optional[list[dict[str, Any]]] = None
+
+    @property
+    def artifact_ref(self) -> Optional[TemplateArtifactRef]:
+        """The artifact reference derived from the typed artifact list.
+
+        An ``ActorTemplate`` artifact is a substrate build; a ``Checkpoint``
+        artifact is a k8s build. Templates without artifacts (Pending or
+        rejected builds) have none.
+        """
+        for artifact in self.artifacts or []:
+            if artifact.type == "ActorTemplate":
+                return TemplateArtifactRef(backend="substrate", actor_template_name=artifact.name)
+            if artifact.type == "Checkpoint":
+                return TemplateArtifactRef(backend="k8s", checkpoint_ref=TemplateCheckpointRef(name=artifact.name))
+        return None
 
 
 class TemplateBuild(BaseModel):

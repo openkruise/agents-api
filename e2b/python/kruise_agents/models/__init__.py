@@ -6,21 +6,25 @@ as raw Kubernetes JSON (see :mod:`kruise_agents.models.template`).
 """
 
 from .template import (
+    SandboxTemplateArtifact,
     SandboxTemplatePhase,
     SandboxTemplateSpec,
     SandboxTemplateStatus,
     TemplateArtifactRef,
     TemplateBackend,
     TemplateBuild,
+    TemplateCheckpointRef,
     TemplateProjection,
 )
 
 __all__ = [
+    "SandboxTemplateArtifact",
     "SandboxTemplatePhase",
     "SandboxTemplateSpec",
     "SandboxTemplateStatus",
     "TemplateArtifactRef",
     "TemplateBackend",
     "TemplateBuild",
+    "TemplateCheckpointRef",
     "TemplateProjection",
 ]
