@@ -27,11 +27,11 @@ public class Tls implements io.fabric8.kubernetes.api.model.KubernetesResource {
      * Action is required and has no default. Deny rejects the connection;
      * it does not promise an HTTP response or a specific TLS alert.
      * Passthrough forwards without decryption or HTTP rule processing.
-     * Both actions stop further TLS rule selection.
+     * Both actions stop further TLS rule selection and skip TCPRules.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("action")
     @io.fabric8.generator.annotation.Required()
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Action is required and has no default. Deny rejects the connection;\nit does not promise an HTTP response or a specific TLS alert.\nPassthrough forwards without decryption or HTTP rule processing.\nBoth actions stop further TLS rule selection.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Action is required and has no default. Deny rejects the connection;\nit does not promise an HTTP response or a specific TLS alert.\nPassthrough forwards without decryption or HTTP rule processing.\nBoth actions stop further TLS rule selection and skip TCPRules.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Action action;
 
