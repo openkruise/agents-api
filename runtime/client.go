@@ -37,6 +37,14 @@ func NewWithConfig(sandboxID string, cfg *Config) *Client {
 	}
 	httpClient := cfg.HTTPClient()
 	streamingClient := cfg.StreamingHTTPClient()
+	if cfg.TrafficTokenProvider != nil {
+		// Wrap the Transport so every data-plane request (connect RPC, raw
+		// HTTP, streaming) carries a fresh traffic access token. The
+		// wrapping copies the clients, never the shared originals, so a
+		// custom client can safely be reused across sandboxes.
+		httpClient = withTrafficToken(httpClient, cfg.TrafficTokenProvider)
+		streamingClient = withTrafficToken(streamingClient, cfg.TrafficTokenProvider)
+	}
 	runtimeURL := cfg.SandboxURL(sandboxID)
 	headers := cfg.SandboxHeaders(sandboxID)
 

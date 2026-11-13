@@ -27,3 +27,6 @@ jobs:
 
       - name: Run go vet
         run: make vet
+
+      - name: Run unit tests
+        run: go test ./e2b/... ./runtime/... -count=1 -race
