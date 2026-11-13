@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","inputs","priority","rules","selector"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","inputs","priority","rules","selector","tcpRules"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SecurityProfileSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -62,10 +62,10 @@ public class SecurityProfileSpec implements io.fabric8.kubernetes.api.model.Kube
      * Rules is the ordered rule chain. TLS selection uses the first matching
      * rule; HTTP processing accumulates matching HTTP rules until a terminal
      * action. Rules from matching profiles are combined in profile evaluation
-     * order. An empty list preserves the existing default traffic behavior.
+     * order. Requests without a terminal decision continue to TCPRules.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("rules")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Rules is the ordered rule chain. TLS selection uses the first matching\nrule; HTTP processing accumulates matching HTTP rules until a terminal\naction. Rules from matching profiles are combined in profile evaluation\norder. An empty list preserves the existing default traffic behavior.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Rules is the ordered rule chain. TLS selection uses the first matching\nrule; HTTP processing accumulates matching HTTP rules until a terminal\naction. Rules from matching profiles are combined in profile evaluation\norder. Requests without a terminal decision continue to TCPRules.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.Rules> rules;
 
@@ -93,6 +93,49 @@ public class SecurityProfileSpec implements io.fabric8.kubernetes.api.model.Kube
 
     public void setSelector(io.openkruise.agents.client.v2.models.securityprofilespec.Selector selector) {
         this.selector = selector;
+    }
+
+    /**
+     * TCPRules authorizes forwarding destinations at the egress gateway.
+     * Applicable profiles contribute rules in the same priority order as Rules.
+     * Evaluation proceeds as follows:
+     *
+     * 1. Evaluate application Rules when the protocol permits. HTTP Bypass or
+     *    Block and explicit TLS Passthrough or Deny are terminal and skip TCPRules.
+     * 2. Otherwise, evaluate TCPRules in order. The first matching rule's Allow
+     *    or Deny ends TCP evaluation across all applicable profiles.
+     * 3. If no TCP rule matches, including when the chain is empty, allow.
+     *
+     * HTTP uses the resolved forwarding IP and port. Unmatched TLS (including
+     * missing SNI), raw TCP, and sniffing timeouts use the original destination.
+     * TLS termination followed by non-HTTP traffic also uses the original
+     * destination. Non-terminal HTTP actions, such as header or token changes,
+     * do not skip TCPRules. TrafficPolicy remains independently enforced at the
+     * sandbox side, including ingress and UDP; TCPRules does not replace it.
+     * For example, in an IPv4 deployment:
+     *
+     *     tcpRules:
+     *     - name: allow-database
+     *       match:
+     *       - cidrs: ["10.20.0.0/16"]
+     *         ports: [5432]
+     *       action: Allow
+     *     - name: deny-other-ipv4
+     *       match:
+     *       - cidrs: ["0.0.0.0/0"]
+     *       action: Deny
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("tcpRules")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("TCPRules authorizes forwarding destinations at the egress gateway.\nApplicable profiles contribute rules in the same priority order as Rules.\nEvaluation proceeds as follows:\n\n1. Evaluate application Rules when the protocol permits. HTTP Bypass or\n   Block and explicit TLS Passthrough or Deny are terminal and skip TCPRules.\n2. Otherwise, evaluate TCPRules in order. The first matching rule's Allow\n   or Deny ends TCP evaluation across all applicable profiles.\n3. If no TCP rule matches, including when the chain is empty, allow.\n\nHTTP uses the resolved forwarding IP and port. Unmatched TLS (including\nmissing SNI), raw TCP, and sniffing timeouts use the original destination.\nTLS termination followed by non-HTTP traffic also uses the original\ndestination. Non-terminal HTTP actions, such as header or token changes,\ndo not skip TCPRules. TrafficPolicy remains independently enforced at the\nsandbox side, including ingress and UDP; TCPRules does not replace it.\nFor example, in an IPv4 deployment:\n\n    tcpRules:\n    - name: allow-database\n      match:\n      - cidrs: [\"10.20.0.0/16\"]\n        ports: [5432]\n      action: Allow\n    - name: deny-other-ipv4\n      match:\n      - cidrs: [\"0.0.0.0/0\"]\n      action: Deny")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.TcpRules> tcpRules;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.TcpRules> getTcpRules() {
+        return tcpRules;
+    }
+
+    public void setTcpRules(java.util.List<io.openkruise.agents.client.v2.models.securityprofilespec.TcpRules> tcpRules) {
+        this.tcpRules = tcpRules;
     }
 }
 

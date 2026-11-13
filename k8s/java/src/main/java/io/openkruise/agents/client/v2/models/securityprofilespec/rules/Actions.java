@@ -42,10 +42,11 @@ public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResour
 
     /**
      * Bypass forwards the request and skips all remaining actions and rules
-     * across matching profiles. False is equivalent to omission.
+     * across matching profiles, including TCPRules. Independent platform
+     * authorization still applies. False is equivalent to omission.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("bypass")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Bypass forwards the request and skips all remaining actions and rules\nacross matching profiles. False is equivalent to omission.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Bypass forwards the request and skips all remaining actions and rules\nacross matching profiles, including TCPRules. Independent platform\nauthorization still applies. False is equivalent to omission.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Boolean bypass;
 

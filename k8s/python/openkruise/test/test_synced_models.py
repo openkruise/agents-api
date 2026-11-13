@@ -1,14 +1,15 @@
 import pytest
-
 from agents.models import (
     AgentRole,
     AgentRoleBinding,
     CredentialProvider,
+    GlobalSecurityProfile,
     Sandbox,
     SandboxClaim,
     SandboxTemplate,
     SecurityProfile,
 )
+from pydantic import ValidationError
 
 
 @pytest.mark.parametrize(
@@ -131,3 +132,41 @@ from agents.models import (
 def test_synced_fields_round_trip(model, payload):
     resource = model.model_validate(payload)
     assert resource.model_dump(mode="json", exclude_unset=True) == payload
+
+
+@pytest.mark.parametrize("model", [SecurityProfile, GlobalSecurityProfile])
+def test_tcp_rules_round_trip(model):
+    payload = {
+        "spec": {
+            "selector": {},
+            "tcpRules": [
+                {
+                    "name": "allow-host",
+                    "match": [
+                        {"cidrs": ["140.205.162.5", "2001:db8::1"], "ports": [443]}
+                    ],
+                    "action": "Allow",
+                },
+                {
+                    "name": "deny-other",
+                    "match": [{"cidrs": ["0.0.0.0/0", "::/0"]}],
+                    "action": "Deny",
+                },
+            ],
+        }
+    }
+    resource = model.model_validate(payload)
+    assert resource.model_dump(mode="json", exclude_unset=True) == payload
+
+
+@pytest.mark.parametrize("model", [SecurityProfile, GlobalSecurityProfile])
+def test_tcp_rules_reject_lowercase_action(model):
+    with pytest.raises(ValidationError):
+        model.model_validate(
+            {
+                "spec": {
+                    "selector": {},
+                    "tcpRules": [{"name": "deny", "match": [{}], "action": "deny"}],
+                }
+            }
+        )
