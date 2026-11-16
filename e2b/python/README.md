@@ -178,3 +178,112 @@ To exercise a specific SDK combination, pin either version:
 the repository root. CI (`.github/workflows/test-e2b-python.yaml`) runs the
 suite against every e2b version in the supported range on each pull request.
 
+
+
+## Custom Template API (P7)
+
+This is an additive protocol entrypoint, **not** E2B's `Template` build DSL.
+Install the workload model extra without renaming the existing package:
+
+```bash
+pip install -e '.[custom-template]'
+```
+
+```python
+from openkruise_agents import Sandbox, Template, patch_e2b
+
+# Existing E2B_DOMAIN / E2B_API_KEY initialization, with an explicit team key.
+# Native E2B-format keys can use kruise_agents.keys.encode_for_e2b_sdk.
+patch_e2b(https=False, validate_key=False)  # Plaintext local deployment only.
+template = Template.build(
+    name=name, spec=spec,
+    metadata={"labels": {"project": "analysis"},
+              "annotations": {"description": "Python workload"}},
+)
+template.wait_until_ready(timeout=120, interval=2)
+# Ready is definition-only: pool creation or inventory may still be pending.
+sandbox = Sandbox.create(template=template.id)
+```
+
+`examples/custom_template.py` runs the complete workflow, warm-pool options, and
+teardown (`sandbox.kill()` then `Template.delete(name)`). A failed POST may need
+explicit name cleanup after inspecting the error; do not delete a pre-existing
+Claim merely because build returned 409.
+Examples are opt-in and require a real deployment; unit tests use mock HTTP only.
+
+### Routing and connections
+
+The custom SDK derives an origin from the **final existing** E2B API URL:
+keep HTTP/HTTPS and hostname, replace the port with internal `8081`, and remove
+path, query, and fragment. IPv6 is supported. For example,
+`https://example.com:8443/kruise/api` becomes `https://example.com:8081/v1/templates`.
+Userinfo URLs are rejected. This does **not** mutate `E2B_API_URL`, install the
+legacy patch implicitly, or change any instance/data-plane route.
+
+Template requests reuse E2B authentication, headers, proxy, TLS verification,
+and transport construction. Existing auth/timeout/header/proxy options may be
+passed to operations; no public client, custom URL, port, namespace, or new
+connection setting is added. A handle retains the connection snapshot for wait.
+The old `kruise_agents` package and the native E2B/Sandbox entrypoints remain
+unchanged. Workload models use the optional Kubernetes dependency, not a cluster
+client; importing or serializing them does not load kubeconfig.
+
+The deployment must actually expose port 8081. HTTPS requires TLS on that
+frontend port. A Service/Ingress mapping 443 to backend 8081 does not alone make
+`host:8081` reachable. There is no fallback to `/kruise/api` or a guessed gateway
+path. Backend Service/TLS rollout and live acceptance belong to P8.
+
+### Inputs and results
+
+- Optional top-level `metadata` accepts a dictionary with `labels` and/or
+  `annotations` string maps only, not native ObjectMeta. Unknown fields, null
+  maps/values, non-string entries and keys under `agents.kruise.io` (including
+  subdomains) are rejected. Omitted/UNSET metadata is not sent; `None` sends null.
+  The backend validates Kubernetes syntax and annotation size, including space
+  for internal creation markers. Standard `app.kubernetes.io/name` is supported.
+- Business metadata is copied onto native Claim/version/SandboxSet roots, then
+  onto inventory/cold Sandbox roots only for verified custom companion pools.
+  It is not injected into PodTemplate/Pod, PVC, Checkpoint or PoolAutoscaler.
+  Non-companion inheritance is unchanged. Existing consumption request metadata
+  may override matching business keys; no new selector-label lock is introduced.
+  Configure any business labels required by existing deployment label filters
+  explicitly; template management LIST itself still has no filter parameter.
+
+- `SandboxTemplateSpec` accepts the complete native `kubernetes.client.V1PodSpec`
+  via `pod_spec`, or `containers` plus native PodSpec keyword fields. Sandbox
+  policy includes runtimes, PVC templates, persistence, pause strategy, named
+  probes, auto-pause rules, and lifecycle hooks. The HTTP spec is flat.
+- Models in `openkruise_agents.models` cover warm pool, autoscaler bounds, full
+  capacity/cron policy and scaling rules. Standard container/volume/security
+  fields use native Kubernetes model types, not a reduced image/CPU-only DSL.
+- PVC input supports `metadata.name`/`spec` only. Kubernetes itself supports
+  labels/annotations, but current backend PVC materialization does not propagate
+  those fields; the API rejects them rather than accepting ineffective settings.
+- `UNSET` omits a field, `None` emits null, and zero/False are preserved. Disabled
+  pools must omit size/autoscaler (including explicit zero/null). Omitted/null/
+  empty warmPool enables a default size-zero pool. Empty autoscaler is not a
+  valid automatic declaration; validation errors are returned by the backend.
+- Results contain `name`, `id` (wire `templateId`), `status`, and optional failure
+  `message`, plus business `metadata` (an empty dictionary when omitted by an older server). No internal identity/creation/controller keys are returned; polling refreshes metadata alongside status. An empty Claim has `id=None`, `status="Unknown"` and is queryable,
+  but cannot be waited on. GET may return `Failed` as normal data.
+- `wait_until_ready` pins the original version ID, never follows another version
+  under that name, and shares one monotonic budget across requests/sleeps. It
+  caps HTTP phase timeouts by the remaining budget and rejects late success.
+  `Ready` succeeds; `Failed`/`Deleting`, auth failures and backend-confirmed 404
+  terminate. Temporary transport/backend errors are retried within the budget.
+  Expiry raises `TemplateWaitTimeout` without cancelling/deleting resources.
+- DELETE accepts a name and succeeds only on empty 204. There is no background
+  retry of POST/DELETE: timeout/503 can leave partial creation or durable cleanup.
+  Do **not** recreate an uncertainly deleted name and then replay its old DELETE;
+  name-only deletion cannot distinguish same-name new Claims.
+- API errors expose HTTP `status_code`, `message`, and optional `request_id`.
+  Malformed success responses raise `TemplateProtocolError`; failed/deleting
+  wait results raise `TemplateStateError`. Native HTTP transport errors remain
+  available to callers of non-wait operations.
+
+Run SDK tests without any cluster access:
+
+```bash
+pip install -e '.[dev,custom-template]'
+pytest tests/test_custom_template.py tests/test_keys.py tests/test_patch_e2b.py tests/test_traffic_token.py
+```

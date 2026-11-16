@@ -30,6 +30,9 @@ dependencies = [
 "Bug Tracker" = "https://github.com/openkruise/agents-api/issues"
 
 [project.optional-dependencies]
+custom-template = [
+    "kubernetes>=35.0,<38.0",
+]
 traffic-token-refresh = [
     "e2b>=2.35.0,<2.38.0",
     "e2b-code-interpreter>=2.9.0,<2.10.0",
@@ -44,7 +47,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["kruise_agents*"]
+include = ["kruise_agents*", "openkruise_agents*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
