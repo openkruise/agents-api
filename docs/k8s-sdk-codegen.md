@@ -50,14 +50,14 @@ hack/update_upstream.sh          ← Pull latest CRD YAML + Go type definitions
 | Tool       | Purpose                          |
 |------------|----------------------------------|
 | curl       | Fetch upstream files from GitHub |
-| Go 1.25.0+ | Run code generation scripts      |
+| Go 1.26.0+ | Run code generation scripts      |
 
 ### Go SDK
 
 | Tool                  | Version | Description                                     |
 |-----------------------|---------|-------------------------------------------------|
-| Go                    | 1.25.0+ | Run code generation scripts                     |
-| k8s.io/code-generator | v0.35.0 | Generate clientset/informers/listers (vendored) |
+| Go                    | 1.26.0+ | Run code generation scripts                     |
+| k8s.io/code-generator | v0.37.2 | Generate clientset/informers/listers (vendored) |
 
 ### Java SDK
 

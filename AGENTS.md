@@ -57,16 +57,16 @@ agents-api/
 
 ## Tech Stack
 
-- **Language**: Go 1.25.0
+- **Language**: Go 1.26.0
 - **Module**: `github.com/openkruise/agents-api`
 - **Core Dependencies**:
-  - `k8s.io/api`, `k8s.io/apimachinery`, `k8s.io/client-go` v0.35.0
-  - `k8s.io/code-generator` v0.35.0
-  - `k8s.io/kube-openapi` v0.0.0-20250910181357-589584f1c912
-  - `sigs.k8s.io/controller-runtime` v0.21.0
+  - `k8s.io/api`, `k8s.io/apimachinery`, `k8s.io/client-go` v0.37.2
+  - `k8s.io/code-generator` v0.37.2
+  - `k8s.io/kube-openapi` v0.0.0-20260721132016-d427ff9ee9ad
+  - `sigs.k8s.io/controller-runtime` v0.25.2
   - `connectrpc.com/connect` v1.19.2
   - `github.com/go-bindata/go-bindata` v3.1.2
-  - `google.golang.org/protobuf` v1.36.9
+  - `google.golang.org/protobuf` v1.36.12
 - **Code Generation Tools**:
   - `controller-gen` v0.18.0 (downloaded to `./bin/`)
   - `openapi-gen` (version derived from go.mod)
