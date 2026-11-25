@@ -46,6 +46,8 @@ type Interface interface {
 	SandboxUpdateOps() SandboxUpdateOpsInformer
 	// SecurityProfiles returns a SecurityProfileInformer.
 	SecurityProfiles() SecurityProfileInformer
+	// SessionServices returns a SessionServiceInformer.
+	SessionServices() SessionServiceInformer
 	// TrafficPolicies returns a TrafficPolicyInformer.
 	TrafficPolicies() TrafficPolicyInformer
 }
@@ -114,6 +116,11 @@ func (v *version) SandboxUpdateOps() SandboxUpdateOpsInformer {
 // SecurityProfiles returns a SecurityProfileInformer.
 func (v *version) SecurityProfiles() SecurityProfileInformer {
 	return &securityProfileInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// SessionServices returns a SessionServiceInformer.
+func (v *version) SessionServices() SessionServiceInformer {
+	return &sessionServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // TrafficPolicies returns a TrafficPolicyInformer.

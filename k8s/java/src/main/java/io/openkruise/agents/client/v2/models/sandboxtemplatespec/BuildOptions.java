@@ -1,9 +1,25 @@
 package io.openkruise.agents.client.v2.models.sandboxtemplatespec;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"fromTemplate","readyCommand","startCommand","steps"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"checkpoint","fromTemplate","imageAcceleration","readyCommand","startCommand","steps"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class BuildOptions implements io.fabric8.kubernetes.api.model.KubernetesResource {
+
+    /**
+     * Checkpoint captures the completed build as a restorable artifact.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("checkpoint")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Checkpoint captures the completed build as a restorable artifact.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxtemplatespec.buildoptions.Checkpoint checkpoint;
+
+    public io.openkruise.agents.client.v2.models.sandboxtemplatespec.buildoptions.Checkpoint getCheckpoint() {
+        return checkpoint;
+    }
+
+    public void setCheckpoint(io.openkruise.agents.client.v2.models.sandboxtemplatespec.buildoptions.Checkpoint checkpoint) {
+        this.checkpoint = checkpoint;
+    }
 
     /**
      * FromTemplate names an existing logical Template used as the build base.
@@ -19,6 +35,22 @@ public class BuildOptions implements io.fabric8.kubernetes.api.model.KubernetesR
 
     public void setFromTemplate(String fromTemplate) {
         this.fromTemplate = fromTemplate;
+    }
+
+    /**
+     * ImageAcceleration requests best-effort image pre-warming.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("imageAcceleration")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("ImageAcceleration requests best-effort image pre-warming.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sandboxtemplatespec.buildoptions.ImageAcceleration imageAcceleration;
+
+    public io.openkruise.agents.client.v2.models.sandboxtemplatespec.buildoptions.ImageAcceleration getImageAcceleration() {
+        return imageAcceleration;
+    }
+
+    public void setImageAcceleration(io.openkruise.agents.client.v2.models.sandboxtemplatespec.buildoptions.ImageAcceleration imageAcceleration) {
+        this.imageAcceleration = imageAcceleration;
     }
 
     /**
@@ -54,10 +86,10 @@ public class BuildOptions implements io.fabric8.kubernetes.api.model.KubernetesR
     }
 
     /**
-     * Steps is the ordered provisioning command sequence.
+     * Steps is the ordered provisioning sequence.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("steps")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Steps is the ordered provisioning command sequence.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Steps is the ordered provisioning sequence.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private java.util.List<io.openkruise.agents.client.v2.models.sandboxtemplatespec.buildoptions.Steps> steps;
 

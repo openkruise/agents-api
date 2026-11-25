@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","lifecycle","pauseStrategy","persistentContents","probes","replicas","runtimes","scaleStrategy","template","templateRef","updateStrategy","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","lifecycle","pauseStrategy","persistentContents","probes","replicas","runtimes","scaleStrategy","startupMode","template","templateRef","updateStrategy","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxSetSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -146,6 +146,45 @@ public class SandboxSetSpec implements io.fabric8.kubernetes.api.model.Kubernete
 
     public void setScaleStrategy(io.openkruise.agents.client.v2.models.sandboxsetspec.ScaleStrategy scaleStrategy) {
         this.scaleStrategy = scaleStrategy;
+    }
+
+    public enum StartupMode {
+
+        @com.fasterxml.jackson.annotation.JsonProperty("Immediate")
+        IMMEDIATE("Immediate"), @com.fasterxml.jackson.annotation.JsonProperty("Deferred")
+        DEFERRED("Deferred");
+
+        java.lang.String value;
+
+        StartupMode(java.lang.String value) {
+            this.value = value;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonValue()
+        public java.lang.String getValue() {
+            return value;
+        }
+    }
+
+    /**
+     * StartupMode controls whether sandboxes created from this SandboxSet have
+     * their main container command wrapped by run_with_envs.sh, so the main
+     * process starts only after the claim-time envVars, the optional claim
+     * command, and a readiness signal are delivered. It is copied verbatim onto
+     * each created Sandbox and is part of the update revision hash, so changing
+     * it triggers a rolling update of already-created pool sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("startupMode")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("StartupMode controls whether sandboxes created from this SandboxSet have\ntheir main container command wrapped by run_with_envs.sh, so the main\nprocess starts only after the claim-time envVars, the optional claim\ncommand, and a readiness signal are delivered. It is copied verbatim onto\neach created Sandbox and is part of the update revision hash, so changing\nit triggers a rolling update of already-created pool sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private StartupMode startupMode = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"Immediate\"", StartupMode.class);
+
+    public StartupMode getStartupMode() {
+        return startupMode;
+    }
+
+    public void setStartupMode(StartupMode startupMode) {
+        this.startupMode = startupMode;
     }
 
     /**

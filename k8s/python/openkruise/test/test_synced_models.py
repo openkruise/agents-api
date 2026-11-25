@@ -6,6 +6,7 @@ from agents.models import (
     GlobalSecurityProfile,
     Sandbox,
     SandboxClaim,
+    SandboxSet,
     SandboxTemplate,
     SecurityProfile,
 )
@@ -99,16 +100,24 @@ from pydantic import ValidationError
                     "buildOptions": {
                         "steps": [
                             {
-                                "command": "echo ready",
-                                "cwd": "/app",
-                                "env": {"MODE": "test"},
+                                "command": {
+                                    "command": "echo ready",
+                                    "cwd": "/app",
+                                    "env": {"MODE": "test"},
+                                },
                             }
                         ]
                     },
                 },
                 "status": {
                     "phase": "Ready",
-                    "artifacts": [{"type": "Checkpoint", "name": "snapshot"}],
+                    "artifacts": [
+                        {
+                            "type": "Checkpoint",
+                            "name": "snapshot",
+                            "value": "snapshot-id",
+                        }
+                    ],
                 },
             },
         ),
@@ -130,6 +139,37 @@ from pydantic import ValidationError
     ],
 )
 def test_synced_fields_round_trip(model, payload):
+    resource = model.model_validate(payload)
+    assert resource.model_dump(mode="json", exclude_unset=True) == payload
+
+
+@pytest.mark.parametrize("model", [Sandbox, SandboxSet, SandboxTemplate])
+@pytest.mark.parametrize("mode", ["Immediate", "Deferred"])
+def test_startup_mode_round_trip(model, mode):
+    payload = {"spec": {"startupMode": mode}}
+    if model is SandboxSet:
+        payload["spec"]["replicas"] = 1
+    resource = model.model_validate(payload)
+    assert resource.model_dump(mode="json", exclude_unset=True) == payload
+
+
+@pytest.mark.parametrize("model", [SecurityProfile, GlobalSecurityProfile])
+def test_proxy_action_round_trip(model):
+    payload = {
+        "spec": {
+            "selector": {},
+            "rules": [
+                {
+                    "name": "proxy",
+                        "match": [{"domains": ["example.com"]}],
+                    "actions": {
+                        "proxy": {"url": "https://proxy.example:443"},
+                        "bypass": False,
+                    },
+                }
+            ],
+        }
+    }
     resource = model.model_validate(payload)
     assert resource.model_dump(mode="json", exclude_unset=True) == payload
 

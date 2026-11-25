@@ -40,4 +40,6 @@ type SandboxUpdateOpsExpansion interface{}
 
 type SecurityProfileExpansion interface{}
 
+type SessionServiceExpansion interface{}
+
 type TrafficPolicyExpansion interface{}

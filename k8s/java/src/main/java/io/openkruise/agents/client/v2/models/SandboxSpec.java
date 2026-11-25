@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","lifecycle","pauseStrategy","pauseTime","paused","persistentContents","probes","runtimes","shutdownTime","template","templateRef","upgradePolicy","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","lifecycle","pauseStrategy","pauseTime","paused","persistentContents","probes","runtimes","shutdownTime","startupMode","template","templateRef","upgradePolicy","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -167,6 +167,46 @@ public class SandboxSpec implements io.fabric8.kubernetes.api.model.KubernetesRe
     @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[XXX][VV]")
     public void setShutdownTime(java.time.ZonedDateTime shutdownTime) {
         this.shutdownTime = shutdownTime;
+    }
+
+    public enum StartupMode {
+
+        @com.fasterxml.jackson.annotation.JsonProperty("Immediate")
+        IMMEDIATE("Immediate"), @com.fasterxml.jackson.annotation.JsonProperty("Deferred")
+        DEFERRED("Deferred");
+
+        java.lang.String value;
+
+        StartupMode(java.lang.String value) {
+            this.value = value;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonValue()
+        public java.lang.String getValue() {
+            return value;
+        }
+    }
+
+    /**
+     * StartupMode controls whether the sandbox main container command is
+     * wrapped by run_with_envs.sh. When Deferred, the main process is held
+     * until the claim-time envVars, the optional claim command, and a readiness
+     * signal are in place, then executed with those inputs. When Immediate
+     * (default), the main process starts immediately, exactly as before. It is
+     * copied verbatim from the owning SandboxSet and is read-only for the
+     * sandbox controller.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("startupMode")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("StartupMode controls whether the sandbox main container command is\nwrapped by run_with_envs.sh. When Deferred, the main process is held\nuntil the claim-time envVars, the optional claim command, and a readiness\nsignal are in place, then executed with those inputs. When Immediate\n(default), the main process starts immediately, exactly as before. It is\ncopied verbatim from the owning SandboxSet and is read-only for the\nsandbox controller.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private StartupMode startupMode = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"Immediate\"", StartupMode.class);
+
+    public StartupMode getStartupMode() {
+        return startupMode;
+    }
+
+    public void setStartupMode(StartupMode startupMode) {
+        this.startupMode = startupMode;
     }
 
     /**
