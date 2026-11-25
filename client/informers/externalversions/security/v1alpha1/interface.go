@@ -25,15 +25,15 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// AgentAuthenticationConfigs returns a AgentAuthenticationConfigInformer.
-	AgentAuthenticationConfigs() AgentAuthenticationConfigInformer
+	AgentAuthenticationConfigs() TypedAgentAuthenticationConfigInformer
 	// AgentIdentities returns a AgentIdentityInformer.
-	AgentIdentities() AgentIdentityInformer
+	AgentIdentities() TypedAgentIdentityInformer
 	// AgentRoles returns a AgentRoleInformer.
-	AgentRoles() AgentRoleInformer
+	AgentRoles() TypedAgentRoleInformer
 	// AgentRoleBindings returns a AgentRoleBindingInformer.
-	AgentRoleBindings() AgentRoleBindingInformer
+	AgentRoleBindings() TypedAgentRoleBindingInformer
 	// CredentialProviders returns a CredentialProviderInformer.
-	CredentialProviders() CredentialProviderInformer
+	CredentialProviders() TypedCredentialProviderInformer
 }
 
 type version struct {
@@ -47,27 +47,27 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// AgentAuthenticationConfigs returns a AgentAuthenticationConfigInformer.
-func (v *version) AgentAuthenticationConfigs() AgentAuthenticationConfigInformer {
+// AgentAuthenticationConfigs returns a TypedAgentAuthenticationConfigInformer.
+func (v *version) AgentAuthenticationConfigs() TypedAgentAuthenticationConfigInformer {
 	return &agentAuthenticationConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// AgentIdentities returns a AgentIdentityInformer.
-func (v *version) AgentIdentities() AgentIdentityInformer {
+// AgentIdentities returns a TypedAgentIdentityInformer.
+func (v *version) AgentIdentities() TypedAgentIdentityInformer {
 	return &agentIdentityInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// AgentRoles returns a AgentRoleInformer.
-func (v *version) AgentRoles() AgentRoleInformer {
+// AgentRoles returns a TypedAgentRoleInformer.
+func (v *version) AgentRoles() TypedAgentRoleInformer {
 	return &agentRoleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// AgentRoleBindings returns a AgentRoleBindingInformer.
-func (v *version) AgentRoleBindings() AgentRoleBindingInformer {
+// AgentRoleBindings returns a TypedAgentRoleBindingInformer.
+func (v *version) AgentRoleBindings() TypedAgentRoleBindingInformer {
 	return &agentRoleBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// CredentialProviders returns a CredentialProviderInformer.
-func (v *version) CredentialProviders() CredentialProviderInformer {
+// CredentialProviders returns a TypedCredentialProviderInformer.
+func (v *version) CredentialProviders() TypedCredentialProviderInformer {
 	return &credentialProviderInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

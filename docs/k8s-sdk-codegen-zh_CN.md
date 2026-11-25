@@ -49,14 +49,14 @@ hack/update_upstream.sh          ← 拉取最新 CRD YAML + Go 类型定义
 | 工具         | 用途              |
 |------------|-----------------|
 | curl       | 从 GitHub 拉取上游文件 |
-| Go 1.25.0+ | 运行代码生成脚本        |
+| Go 1.26.0+ | 运行代码生成脚本        |
 
 ### Go SDK
 
 | 工具                    | 版本要求    | 说明                                       |
 |-----------------------|---------|------------------------------------------|
-| Go                    | 1.25.0+ | 运行代码生成脚本                                 |
-| k8s.io/code-generator | v0.35.0 | 生成 clientset/informers/listers（已 vendor） |
+| Go                    | 1.26.0+ | 运行代码生成脚本                                 |
+| k8s.io/code-generator | v0.37.2 | 生成 clientset/informers/listers（已 vendor） |
 
 ### Java SDK
 

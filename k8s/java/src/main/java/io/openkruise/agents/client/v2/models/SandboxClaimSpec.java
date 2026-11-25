@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"annotations","autoPausePolicy","claimTimeout","createOnNoStock","dynamicVolumesMount","envVars","inplaceUpdate","labels","pauseTime","probes","replicas","reserveFailedSandbox","runtimes","shutdownTime","skipInitRuntime","templateName","ttlAfterCompleted","waitReadyTimeout"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"annotations","autoPausePolicy","claimTimeout","command","createOnNoStock","dynamicVolumesMount","envVars","inplaceUpdate","labels","pauseTime","probes","replicas","reserveFailedSandbox","runtimes","shutdownTime","skipInitRuntime","templateName","ttlAfterCompleted","waitReadyTimeout"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxClaimSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -57,6 +57,26 @@ public class SandboxClaimSpec implements io.fabric8.kubernetes.api.model.Kuberne
 
     public void setClaimTimeout(String claimTimeout) {
         this.claimTimeout = claimTimeout;
+    }
+
+    /**
+     * Command overrides the main container command for the sandboxes claimed by
+     * this SandboxClaim. The value is the complete argv and is executed directly
+     * without a shell. It takes precedence over the wrapped template command.
+     * Only valid when the target SandboxSet uses startupMode: Deferred.
+     * This field is immutable once set.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("command")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Command overrides the main container command for the sandboxes claimed by\nthis SandboxClaim. The value is the complete argv and is executed directly\nwithout a shell. It takes precedence over the wrapped template command.\nOnly valid when the target SandboxSet uses startupMode: Deferred.\nThis field is immutable once set.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<String> command;
+
+    public java.util.List<String> getCommand() {
+        return command;
+    }
+
+    public void setCommand(java.util.List<String> command) {
+        this.command = command;
     }
 
     /**

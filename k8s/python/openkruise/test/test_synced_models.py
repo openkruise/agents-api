@@ -99,16 +99,20 @@ from pydantic import ValidationError
                     "buildOptions": {
                         "steps": [
                             {
-                                "command": "echo ready",
-                                "cwd": "/app",
-                                "env": {"MODE": "test"},
+                                "command": {
+                                    "command": "echo ready",
+                                    "cwd": "/app",
+                                    "env": {"MODE": "test"},
+                                }
                             }
                         ]
                     },
                 },
                 "status": {
                     "phase": "Ready",
-                    "artifacts": [{"type": "Checkpoint", "name": "snapshot"}],
+                    "artifacts": [
+                        {"type": "Checkpoint", "name": "snapshot", "value": "checkpoint-7f3a"}
+                    ],
                 },
             },
         ),
