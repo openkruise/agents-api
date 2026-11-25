@@ -1,7 +1,13 @@
-# Customized E2B SDK patch
+# kruise-agents Python SDK
 
-This Python library patches the E2B client, converting the native E2B protocol to the OpenKruise Agents private
-protocol, thereby simplifying sandbox-manager deployment.
+Two layers in one package:
+
+1. **Template resource management** — build and poll logical Templates through
+   sandbox-manager's resource API at `/agents.kruise.io/v1alpha1`. End users
+   never hold Kubernetes credentials.
+2. **E2B compatibility patches** — monkey patches that convert the native E2B
+   protocol to the OpenKruise Agents private protocol, simplifying
+   sandbox-manager deployment.
 
 ## Installation
 
@@ -20,6 +26,82 @@ git clone https://github.com/openkruise/agents-api.git
 cd e2b/python
 pip install -e .
 ```
+
+## Template Resource SDK
+
+Manage logical Templates (build + poll) through sandbox-manager's resource
+management API. The server authenticates the `X-API-Key` header and maps the
+key's team to a namespace, so no Kubernetes credentials are needed. Requires
+a sandbox-manager deployment that serves the resource management API (the
+Template build feature).
+
+The SDK reuses the E2B environment variables (`E2B_API_KEY`, `E2B_API_URL`)
+and targets the same origin. That origin must route
+`/agents.kruise.io/v1alpha1` to sandbox-manager. If a gateway only exposes
+`/kruise/api`, configure `KruiseClient(base_url=...)` with a directly
+accessible sandbox-manager origin.
+
+### Build a Template on substrate
+
+```python
+from kruise_agents import Template
+from kruise_agents.models import SandboxTemplateSpec
+
+build = Template.build(
+    name="code-interpreter-v2",
+    spec=SandboxTemplateSpec(
+        containers=[
+            {
+                "name": "runtime",
+                "image": "example/runtime@sha256:<digest>",
+                "command": ["python", "-m", "runtime.server"],
+                "resources": {
+                    "limits": {"cpu": "2", "memory": "4Gi"},
+                },
+            }
+        ],
+    ),
+)
+build.wait_until_ready()  # polls GET /templates/{name} until Ready
+```
+
+Kubernetes workload fields are raw passthrough: pass the exact JSON shapes
+the Kubernetes API accepts (`containers`, `volumes`, `initContainers`,
+scheduling, security, ...) and they serialize verbatim. The SDK never models
+or drifts from the Kubernetes schema; the server embeds a full `v1.PodSpec`
+and validates it. Build responses are typed; all Template spec fields
+are raw JSON.
+
+`Template.build()` defaults to `TemplateBackend.SUBSTRATE` and sends
+`"backend": "substrate"`. Pass `TemplateBackend.KUBERNETES` or
+`TemplateBackend.SUBSTRATE` to select explicitly. Passing `backend=None`
+omits the field and leaves the choice to the server.
+
+The substrate backend requires digest-pinned images and builds a golden
+snapshot. A Ready Build exposes its artifact through
+`build.artifact.actor_template_name`.
+
+`wait_until_ready()` raises `TemplateBuildFailedError` when the Build
+reaches Failed, `WaitTimeoutError` when the deadline expires, and retries
+transient 502/503/504 polls with backoff.
+
+### Get, list, and delete Templates
+
+```python
+from kruise_agents import Template
+
+projection = Template.get("code-interpreter-v2")  # raises NotFoundError if absent
+
+for template in Template.list():  # templates visible to this API key
+    print(template.name, template.backend, template.status.phase if template.status else None)
+
+Template.delete("code-interpreter-v2")  # ConflictError while a SandboxSet references it
+```
+
+The server scopes both reads and the delete to the caller's API key:
+Substrate templates are only visible (and deletable) to the key that created
+them, while k8s-backed templates are visible to every caller of the
+namespace. `Template.delete()` is idempotent for a missing name.
 
 ## Problem Statement
 
@@ -46,8 +128,9 @@ increasing user costs, but also making it difficult to automate the setup of an 
 Requirements:
 
 - Python 3.9 or newer
-- `e2b>=2.8.0`
-- `e2b-code-interpreter>=2.4.1`
+- `pydantic>=2.0`, `httpx>=0.27` (resource SDK, installed automatically)
+- `e2b>=2.8.0`, `e2b-code-interpreter>=2.4.1` (compatibility patches,
+  installed automatically)
 
 ```python
 from kruise_agents.patch_e2b import patch_e2b
