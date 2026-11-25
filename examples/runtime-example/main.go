@@ -17,9 +17,10 @@ const (
 	// Defaults can be overridden via environment variables so a prebuilt
 	// binary can be pointed at any environment without recompiling:
 	//
-	//	SANDBOX_NAME -> sandboxName
-	//	NAMESPACE    -> namespace
-	//	GATEWAY_URL  -> gatewayUrl
+	//	SANDBOX_NAME         -> sandboxName
+	//	NAMESPACE            -> namespace
+	//	GATEWAY_URL          -> gatewayUrl
+	//	TRAFFIC_ACCESS_TOKEN -> traffic token for JWT-auth sandboxes
 	defaultSandboxName = "openclaw-advanced-k8s-sbs-lght9"
 	defaultNamespace   = "default"
 	defaultGatewayURL  = "127.0.0.1:7788"
@@ -46,9 +47,24 @@ func main() {
 
 	// Build a runtime client directly from the K8s Sandbox CR.
 	// NewFromK8s automatically resolves sandboxID and runtimeToken.
-	c, err := runtime.NewFromK8s(ctx, namespace, sandboxName,
+	opts := []runtime.Option{
 		runtime.WithDomain(gatewayUrl),
-	)
+	}
+
+	// Sandboxes created with metadata
+	// "security.agents.kruise.io/enable-jwt-auth=true" require a short-lived
+	// Traffic JWT on every data-plane request. When TRAFFIC_ACCESS_TOKEN is
+	// set it is attached as that token; unset (the default) sends no traffic
+	// header. Real deployments usually refresh the token in the provider
+	// (or use the e2b package, which wires the refresh automatically).
+	if trafficToken := os.Getenv("TRAFFIC_ACCESS_TOKEN"); trafficToken != "" {
+		fmt.Println("Traffic JWT auth: enabled (TRAFFIC_ACCESS_TOKEN is set)")
+		opts = append(opts, runtime.WithTrafficTokenProvider(
+			func(context.Context) (string, error) { return trafficToken, nil },
+		))
+	}
+
+	c, err := runtime.NewFromK8s(ctx, namespace, sandboxName, opts...)
 	if err != nil {
 		fmt.Printf("    Error creating runtime client: %v\n", err)
 		return
