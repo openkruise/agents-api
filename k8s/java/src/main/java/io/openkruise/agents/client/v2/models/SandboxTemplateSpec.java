@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","backend","buildOptions","lifecycle","pauseStrategy","persistentContents","probes","runtimes","template","volumeClaimTemplates"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","backend","buildOptions","lifecycle","pauseStrategy","persistentContents","probes","runtimes","startupMode","template","volumeClaimTemplates"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class SandboxTemplateSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -59,13 +59,10 @@ public class SandboxTemplateSpec implements io.fabric8.kubernetes.api.model.Kube
     }
 
     /**
-     * BuildOptions is the declarative snapshot of the Template Build request.
-     * It is populated by a build entry and consumed by the SandboxTemplate
-     * controller. Logical Template admission keeps it immutable after the
-     * build input is accepted.
+     * BuildOptions stores the accepted build recipe; admission freezes finalized Versions.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("buildOptions")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("BuildOptions is the declarative snapshot of the Template Build request.\nIt is populated by a build entry and consumed by the SandboxTemplate\ncontroller. Logical Template admission keeps it immutable after the\nbuild input is accepted.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("BuildOptions stores the accepted build recipe; admission freezes finalized Versions.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.sandboxtemplatespec.BuildOptions buildOptions;
 
@@ -163,6 +160,44 @@ public class SandboxTemplateSpec implements io.fabric8.kubernetes.api.model.Kube
 
     public void setRuntimes(java.util.List<io.openkruise.agents.client.v2.models.sandboxtemplatespec.Runtimes> runtimes) {
         this.runtimes = runtimes;
+    }
+
+    public enum StartupMode {
+
+        @com.fasterxml.jackson.annotation.JsonProperty("Immediate")
+        IMMEDIATE("Immediate"), @com.fasterxml.jackson.annotation.JsonProperty("Deferred")
+        DEFERRED("Deferred");
+
+        java.lang.String value;
+
+        StartupMode(java.lang.String value) {
+            this.value = value;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonValue()
+        public java.lang.String getValue() {
+            return value;
+        }
+    }
+
+    /**
+     * StartupMode controls whether sandboxes created from this template have
+     * their main container command wrapped by run_with_envs.sh (claim-time
+     * envVars/command + deferred main-process start). It is only informational
+     * when a SandboxSet uses spec.templateRef: SandboxSetSpec.StartupMode always
+     * takes precedence and is what actually reaches created Sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("startupMode")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("StartupMode controls whether sandboxes created from this template have\ntheir main container command wrapped by run_with_envs.sh (claim-time\nenvVars/command + deferred main-process start). It is only informational\nwhen a SandboxSet uses spec.templateRef: SandboxSetSpec.StartupMode always\ntakes precedence and is what actually reaches created Sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private StartupMode startupMode = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"Immediate\"", StartupMode.class);
+
+    public StartupMode getStartupMode() {
+        return startupMode;
+    }
+
+    public void setStartupMode(StartupMode startupMode) {
+        this.startupMode = startupMode;
     }
 
     /**

@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models.securityprofilespec.rules;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","block","bypass","headerManipulation","httpCallout","mcpToolPolicy","tls","tokenTransformation"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"audit","block","bypass","headerManipulation","httpCallout","mcpToolPolicy","proxy","tls","tokenTransformation"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -123,6 +123,26 @@ public class Actions implements io.fabric8.kubernetes.api.model.KubernetesResour
 
     public void setMcpToolPolicy(io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.McpToolPolicy mcpToolPolicy) {
         this.mcpToolPolicy = mcpToolPolicy;
+    }
+
+    /**
+     * Proxy selects an unauthenticated upstream proxy for normal HTTP/HTTPS
+     * requests. The first executed Proxy wins without terminating evaluation;
+     * later denials still prevent forwarding. If none executes, existing
+     * forwarding and security semantics apply. Explicit client proxy requests,
+     * client CONNECT tunnels, and Sandbox inline rules are not supported.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("proxy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Proxy selects an unauthenticated upstream proxy for normal HTTP/HTTPS\nrequests. The first executed Proxy wins without terminating evaluation;\nlater denials still prevent forwarding. If none executes, existing\nforwarding and security semantics apply. Explicit client proxy requests,\nclient CONNECT tunnels, and Sandbox inline rules are not supported.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.Proxy proxy;
+
+    public io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.Proxy getProxy() {
+        return proxy;
+    }
+
+    public void setProxy(io.openkruise.agents.client.v2.models.securityprofilespec.rules.actions.Proxy proxy) {
+        this.proxy = proxy;
     }
 
     /**

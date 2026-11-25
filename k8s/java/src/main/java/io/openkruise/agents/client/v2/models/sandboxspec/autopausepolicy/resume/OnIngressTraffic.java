@@ -1,7 +1,7 @@
 package io.openkruise.agents.client.v2.models.sandboxspec.autopausepolicy.resume;
 
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({"pauseTimeout"})
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"pauseTimeout","requestMatches"})
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class OnIngressTraffic implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
@@ -30,6 +30,33 @@ public class OnIngressTraffic implements io.fabric8.kubernetes.api.model.Kuberne
 
     public void setPauseTimeout(String pauseTimeout) {
         this.pauseTimeout = pauseTimeout;
+    }
+
+    /**
+     * RequestMatches restricts which inbound requests may wake the paused
+     * sandbox. When empty, every authenticated request addressed to the
+     * sandbox wakes it. When set, a request wakes the sandbox if it
+     * satisfies any entry; a request that satisfies none is rejected the
+     * same way as for a sandbox without wake-on-traffic, and the sandbox
+     * stays paused. Requests to a Running sandbox are never filtered.
+     *
+     * For example, one entry matching sec-fetch-mode=navigate limits wake
+     * from browsers to page navigations, so script-initiated reconnects from
+     * a page left open in the background do not keep waking the sandbox; a
+     * second entry matching a custom header lets SDK or webhook clients that
+     * send it still wake the sandbox.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("requestMatches")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("RequestMatches restricts which inbound requests may wake the paused\nsandbox. When empty, every authenticated request addressed to the\nsandbox wakes it. When set, a request wakes the sandbox if it\nsatisfies any entry; a request that satisfies none is rejected the\nsame way as for a sandbox without wake-on-traffic, and the sandbox\nstays paused. Requests to a Running sandbox are never filtered.\n\nFor example, one entry matching sec-fetch-mode=navigate limits wake\nfrom browsers to page navigations, so script-initiated reconnects from\na page left open in the background do not keep waking the sandbox; a\nsecond entry matching a custom header lets SDK or webhook clients that\nsend it still wake the sandbox.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.sandboxspec.autopausepolicy.resume.oningresstraffic.RequestMatches> requestMatches;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.sandboxspec.autopausepolicy.resume.oningresstraffic.RequestMatches> getRequestMatches() {
+        return requestMatches;
+    }
+
+    public void setRequestMatches(java.util.List<io.openkruise.agents.client.v2.models.sandboxspec.autopausepolicy.resume.oningresstraffic.RequestMatches> requestMatches) {
+        this.requestMatches = requestMatches;
     }
 }
 

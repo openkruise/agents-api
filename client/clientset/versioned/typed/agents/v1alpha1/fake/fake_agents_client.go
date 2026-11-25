@@ -72,6 +72,10 @@ func (c *FakeAgentsV1alpha1) SecurityProfiles(namespace string) v1alpha1.Securit
 	return newFakeSecurityProfiles(c, namespace)
 }
 
+func (c *FakeAgentsV1alpha1) SessionServices(namespace string) v1alpha1.SessionServiceInterface {
+	return newFakeSessionServices(c, namespace)
+}
+
 func (c *FakeAgentsV1alpha1) TrafficPolicies(namespace string) v1alpha1.TrafficPolicyInterface {
 	return newFakeTrafficPolicies(c, namespace)
 }

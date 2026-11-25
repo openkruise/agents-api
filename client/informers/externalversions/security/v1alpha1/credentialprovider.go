@@ -28,16 +28,45 @@ import (
 	agentsapisecurityv1alpha1 "github.com/openkruise/agents-api/security/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 )
 
 // CredentialProviderInformer provides access to a shared informer and lister for
-// CredentialProviders.
+// CredentialProviders. Prefer using the type-safe variant (see [TypedCredentialProviderInformer]).
 type CredentialProviderInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() securityv1alpha1.CredentialProviderLister
 }
+
+// TypedCredentialProviderInformer provides access to a shared informer and lister for
+// CredentialProviders, including the type-safe TypedInformer variant.
+// It is a superset of CredentialProviderInformer.
+type TypedCredentialProviderInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() CredentialProviderIndexInformer
+	Lister() securityv1alpha1.CredentialProviderLister
+}
+
+// CredentialProviderIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type CredentialProviderIndexInformer cache.TypedSharedIndexInformer[*agentsapisecurityv1alpha1.CredentialProvider]
+
+// CredentialProviderHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for CredentialProvider.
+type CredentialProviderHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*agentsapisecurityv1alpha1.CredentialProvider]
+
+// CredentialProviderDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for CredentialProvider.
+type CredentialProviderDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*agentsapisecurityv1alpha1.CredentialProvider]
+
+// CredentialProviderFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for CredentialProvider.
+type CredentialProviderFilteringHandler = cache.TypedFilteringResourceEventHandler[*agentsapisecurityv1alpha1.CredentialProvider]
+
+// CredentialProviderIndexers is a specialization of [cache.TypedIndexers] for CredentialProvider.
+type CredentialProviderIndexers = cache.TypedIndexers[*agentsapisecurityv1alpha1.CredentialProvider]
+
+// DeletedCredentialProvider is a specialization of [cache.DeletedObject] for CredentialProvider.
+type DeletedCredentialProvider = cache.DeletedObject[*agentsapisecurityv1alpha1.CredentialProvider]
 
 type credentialProviderInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -48,55 +77,132 @@ type credentialProviderInformer struct {
 // NewCredentialProviderInformer constructs a new informer for CredentialProvider type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedCredentialProviderInformer]).
 func NewCredentialProviderInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredCredentialProviderInformer(client, namespace, resyncPeriod, indexers, nil)
+	return NewCredentialProviderInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedCredentialProviderInformer constructs a new informer for CredentialProvider type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedCredentialProviderInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers CredentialProviderIndexers) CredentialProviderIndexInformer {
+	return NewTypedCredentialProviderInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredCredentialProviderInformer constructs a new informer for CredentialProvider type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredCredentialProviderInformer]).
 func NewFilteredCredentialProviderInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return cache.NewSharedIndexInformer(
+	return NewTypedCredentialProviderInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredCredentialProviderInformer constructs a new informer for CredentialProvider type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredCredentialProviderInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers CredentialProviderIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) CredentialProviderIndexInformer {
+	return NewTypedCredentialProviderInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
+}
+
+// NewCredentialProviderInformerWithOptions constructs a new informer for CredentialProvider type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedCredentialProviderInformerWithOptions]).
+func NewCredentialProviderInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedCredentialProviderInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedCredentialProviderInformerWithOptions constructs a new informer for CredentialProvider type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedCredentialProviderInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) CredentialProviderIndexInformer {
+	gvr := schema.GroupVersionResource{Group: "security", Version: "v1alpha1", Resource: "credentialproviders"}
+	identifier := options.InformerName.WithResource(gvr)
+	tweakListOptions := options.TweakListOptions
+	return cache.NewTypedSharedIndexInformer[*agentsapisecurityv1alpha1.CredentialProvider](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
-			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.SecurityV1alpha1().CredentialProviders(namespace).List(context.Background(), options)
+				return client.SecurityV1alpha1().CredentialProviders(namespace).List(context.Background(), opts)
 			},
-			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(opts v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.SecurityV1alpha1().CredentialProviders(namespace).Watch(context.Background(), options)
+				return client.SecurityV1alpha1().CredentialProviders(namespace).Watch(context.Background(), opts)
 			},
-			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
+			ListWithContextFunc: func(ctx context.Context, opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.SecurityV1alpha1().CredentialProviders(namespace).List(ctx, options)
+				return client.SecurityV1alpha1().CredentialProviders(namespace).List(ctx, opts)
 			},
-			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
+			WatchFuncWithContext: func(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.SecurityV1alpha1().CredentialProviders(namespace).Watch(ctx, options)
+				return client.SecurityV1alpha1().CredentialProviders(namespace).Watch(ctx, opts)
 			},
 		}, client),
 		&agentsapisecurityv1alpha1.CredentialProvider{},
-		resyncPeriod,
-		indexers,
-	)
+		cache.SharedIndexInformerOptions{
+			ResyncPeriod: options.ResyncPeriod,
+			Indexers:     options.Indexers,
+			Identifier:   identifier,
+		},
+	))
 }
 
 func (f *credentialProviderInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredCredentialProviderInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewTypedCredentialProviderInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *credentialProviderInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&agentsapisecurityv1alpha1.CredentialProvider{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *credentialProviderInformer) TypedInformer() CredentialProviderIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*agentsapisecurityv1alpha1.CredentialProvider](f.factory.InformerFor(&agentsapisecurityv1alpha1.CredentialProvider{}, f.defaultInformer))
 }
 
 func (f *credentialProviderInformer) Lister() securityv1alpha1.CredentialProviderLister {
 	return securityv1alpha1.NewCredentialProviderLister(f.Informer().GetIndexer())
+}
+
+// ToTypedCredentialProviderInformer converts an untyped informer into a TypedCredentialProviderInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *CredentialProvider. If that is not the case, calling type-safe methods of the returned
+// TypedCredentialProviderInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedCredentialProviderInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedCredentialProviderInformer(informer CredentialProviderInformer) TypedCredentialProviderInformer {
+	if informer, ok := informer.(TypedCredentialProviderInformer); ok {
+		return informer
+	}
+	return &credentialProviderTypedInformerAdapter{informer}
+}
+
+type credentialProviderTypedInformerAdapter struct {
+	CredentialProviderInformer
+}
+
+func (a *credentialProviderTypedInformerAdapter) TypedInformer() CredentialProviderIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*agentsapisecurityv1alpha1.CredentialProvider](a.Informer())
+}
+
+// ToCredentialProviderIndexInformer converts an untyped informer into a CredentialProviderIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *CredentialProvider. If that is not the case, calling type-safe methods of the returned
+// CredentialProviderIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a CredentialProviderIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToCredentialProviderIndexInformer(informer cache.SharedIndexInformer) CredentialProviderIndexInformer {
+	if informer, ok := informer.(CredentialProviderIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*agentsapisecurityv1alpha1.CredentialProvider](informer)
 }

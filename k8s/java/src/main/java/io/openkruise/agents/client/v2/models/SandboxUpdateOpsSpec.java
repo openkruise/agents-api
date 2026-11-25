@@ -6,10 +6,18 @@ package io.openkruise.agents.client.v2.models;
 public class SandboxUpdateOpsSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
 
     /**
-     * Lifecycle defines pre/post upgrade hooks to set on each sandbox during upgrade.
+     * Lifecycle defines lifecycle hooks to set on each sandbox. Specified
+     * prePause / postResume hooks replace the sandbox's fields; unset ones are
+     * preserved. Without a template patch or upgrade hooks, pause/resume hooks
+     * update configuration only, preserving the upgrade policy and hooks.
+     * Nonempty patches already matching an unclaimed Running or Paused sandbox
+     * update hooks without Pod replacement; matching targets are skipped from
+     * replica counters. Upgrading sandboxes retain recovery and accounting.
+     * Except for pause/resume-only requests, preUpgrade / postUpgrade are
+     * replaced, clearing either upgrade hook when it is not specified.
      */
     @com.fasterxml.jackson.annotation.JsonProperty("lifecycle")
-    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Lifecycle defines pre/post upgrade hooks to set on each sandbox during upgrade.")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Lifecycle defines lifecycle hooks to set on each sandbox. Specified\nprePause / postResume hooks replace the sandbox's fields; unset ones are\npreserved. Without a template patch or upgrade hooks, pause/resume hooks\nupdate configuration only, preserving the upgrade policy and hooks.\nNonempty patches already matching an unclaimed Running or Paused sandbox\nupdate hooks without Pod replacement; matching targets are skipped from\nreplica counters. Upgrading sandboxes retain recovery and accounting.\nExcept for pause/resume-only requests, preUpgrade / postUpgrade are\nreplaced, clearing either upgrade hook when it is not specified.")
     @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private io.openkruise.agents.client.v2.models.sandboxupdateopsspec.Lifecycle lifecycle;
 

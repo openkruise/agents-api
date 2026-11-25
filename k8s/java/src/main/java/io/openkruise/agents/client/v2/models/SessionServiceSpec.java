@@ -1,0 +1,302 @@
+package io.openkruise.agents.client.v2.models;
+
+@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({"autoPausePolicy","backend","buildOptions","lifecycle","pauseStrategy","persistentContents","ports","probes","replicas","runtimes","sessionPolicy","startupMode","template","updateStrategy","volumeClaimTemplates"})
+@com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
+public class SessionServiceSpec implements io.fabric8.kubernetes.api.model.KubernetesResource {
+
+    /**
+     * AutoPausePolicy defines the pause/resume decision rules for sandboxes
+     * created from this template. It is only informational when a SandboxSet uses
+     * spec.templateRef: SandboxSetSpec.AutoPausePolicy always takes precedence and
+     * is what actually reaches created Sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("autoPausePolicy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("AutoPausePolicy defines the pause/resume decision rules for sandboxes\ncreated from this template. It is only informational when a SandboxSet uses\nspec.templateRef: SandboxSetSpec.AutoPausePolicy always takes precedence and\nis what actually reaches created Sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sessionservicespec.AutoPausePolicy autoPausePolicy;
+
+    public io.openkruise.agents.client.v2.models.sessionservicespec.AutoPausePolicy getAutoPausePolicy() {
+        return autoPausePolicy;
+    }
+
+    public void setAutoPausePolicy(io.openkruise.agents.client.v2.models.sessionservicespec.AutoPausePolicy autoPausePolicy) {
+        this.autoPausePolicy = autoPausePolicy;
+    }
+
+    public enum Backend {
+
+        @com.fasterxml.jackson.annotation.JsonProperty("k8s")
+        K8S("k8s");
+
+        java.lang.String value;
+
+        Backend(java.lang.String value) {
+            this.value = value;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonValue()
+        public java.lang.String getValue() {
+            return value;
+        }
+    }
+
+    /**
+     * Backend selects the build backend. The public value "k8s" maps to the
+     * internal sandboxcr backend. Once written, the backend cannot change.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("backend")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Backend selects the build backend. The public value \"k8s\" maps to the\ninternal sandboxcr backend. Once written, the backend cannot change.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private Backend backend = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"k8s\"", Backend.class);
+
+    public Backend getBackend() {
+        return backend;
+    }
+
+    public void setBackend(Backend backend) {
+        this.backend = backend;
+    }
+
+    /**
+     * BuildOptions stores the accepted build recipe; admission freezes finalized Versions.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("buildOptions")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("BuildOptions stores the accepted build recipe; admission freezes finalized Versions.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sessionservicespec.BuildOptions buildOptions;
+
+    public io.openkruise.agents.client.v2.models.sessionservicespec.BuildOptions getBuildOptions() {
+        return buildOptions;
+    }
+
+    public void setBuildOptions(io.openkruise.agents.client.v2.models.sessionservicespec.BuildOptions buildOptions) {
+        this.buildOptions = buildOptions;
+    }
+
+    /**
+     * Lifecycle stores pause/resume hooks for direct checkpoint/clone use. When
+     * referenced by a SandboxSet, SandboxSetSpec.Lifecycle remains authoritative.
+     * Upgrade hooks remain instance policy and are not allowed here.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("lifecycle")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Lifecycle stores pause/resume hooks for direct checkpoint/clone use. When\nreferenced by a SandboxSet, SandboxSetSpec.Lifecycle remains authoritative.\nUpgrade hooks remain instance policy and are not allowed here.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sessionservicespec.Lifecycle lifecycle;
+
+    public io.openkruise.agents.client.v2.models.sessionservicespec.Lifecycle getLifecycle() {
+        return lifecycle;
+    }
+
+    public void setLifecycle(io.openkruise.agents.client.v2.models.sessionservicespec.Lifecycle lifecycle) {
+        this.lifecycle = lifecycle;
+    }
+
+    /**
+     * PauseStrategy configures how sandboxes created from this template are
+     * paused when their spec.paused is true. It is only informational when a
+     * SandboxSet uses spec.templateRef: SandboxSetSpec.PauseStrategy always
+     * takes precedence and is what actually reaches created Sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("pauseStrategy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PauseStrategy configures how sandboxes created from this template are\npaused when their spec.paused is true. It is only informational when a\nSandboxSet uses spec.templateRef: SandboxSetSpec.PauseStrategy always\ntakes precedence and is what actually reaches created Sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sessionservicespec.PauseStrategy pauseStrategy;
+
+    public io.openkruise.agents.client.v2.models.sessionservicespec.PauseStrategy getPauseStrategy() {
+        return pauseStrategy;
+    }
+
+    public void setPauseStrategy(io.openkruise.agents.client.v2.models.sessionservicespec.PauseStrategy pauseStrategy) {
+        this.pauseStrategy = pauseStrategy;
+    }
+
+    /**
+     * PersistentContents indicates resume pod with persistent content, Enum: ip, memory, filesystem
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("persistentContents")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("PersistentContents indicates resume pod with persistent content, Enum: ip, memory, filesystem")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<String> persistentContents;
+
+    public java.util.List<String> getPersistentContents() {
+        return persistentContents;
+    }
+
+    public void setPersistentContents(java.util.List<String> persistentContents) {
+        this.persistentContents = persistentContents;
+    }
+
+    /**
+     * Ports are the business ports exposed by the SessionService.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("ports")
+    @io.fabric8.generator.annotation.Required()
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Ports are the business ports exposed by the SessionService.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<Integer> ports;
+
+    public java.util.List<Integer> getPorts() {
+        return ports;
+    }
+
+    public void setPorts(java.util.List<Integer> ports) {
+        this.ports = ports;
+    }
+
+    /**
+     * Probes defines the named probes that sandboxes created from this template
+     * run while they are Running. It is only informational when a SandboxSet uses
+     * spec.templateRef: SandboxSetSpec.Probes always takes precedence and is what
+     * actually reaches created Sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("probes")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Probes defines the named probes that sandboxes created from this template\nrun while they are Running. It is only informational when a SandboxSet uses\nspec.templateRef: SandboxSetSpec.Probes always takes precedence and is what\nactually reaches created Sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.sessionservicespec.Probes> probes;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.sessionservicespec.Probes> getProbes() {
+        return probes;
+    }
+
+    public void setProbes(java.util.List<io.openkruise.agents.client.v2.models.sessionservicespec.Probes> probes) {
+        this.probes = probes;
+    }
+
+    /**
+     * Replicas counts effective members, including creating and paused members.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("replicas")
+    @io.fabric8.generator.annotation.Min(0.0)
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Replicas counts effective members, including creating and paused members.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private Integer replicas = 1;
+
+    public Integer getReplicas() {
+        return replicas;
+    }
+
+    public void setReplicas(Integer replicas) {
+        this.replicas = replicas;
+    }
+
+    /**
+     * Runtimes - Runtime configuration for sandbox object
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("runtimes")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Runtimes - Runtime configuration for sandbox object")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.openkruise.agents.client.v2.models.sessionservicespec.Runtimes> runtimes;
+
+    public java.util.List<io.openkruise.agents.client.v2.models.sessionservicespec.Runtimes> getRuntimes() {
+        return runtimes;
+    }
+
+    public void setRuntimes(java.util.List<io.openkruise.agents.client.v2.models.sessionservicespec.Runtimes> runtimes) {
+        this.runtimes = runtimes;
+    }
+
+    /**
+     * SessionPolicy declares Session affinity and capacity.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("sessionPolicy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("SessionPolicy declares Session affinity and capacity.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sessionservicespec.SessionPolicy sessionPolicy = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("{}", io.openkruise.agents.client.v2.models.sessionservicespec.SessionPolicy.class);
+
+    public io.openkruise.agents.client.v2.models.sessionservicespec.SessionPolicy getSessionPolicy() {
+        return sessionPolicy;
+    }
+
+    public void setSessionPolicy(io.openkruise.agents.client.v2.models.sessionservicespec.SessionPolicy sessionPolicy) {
+        this.sessionPolicy = sessionPolicy;
+    }
+
+    public enum StartupMode {
+
+        @com.fasterxml.jackson.annotation.JsonProperty("Immediate")
+        IMMEDIATE("Immediate"), @com.fasterxml.jackson.annotation.JsonProperty("Deferred")
+        DEFERRED("Deferred");
+
+        java.lang.String value;
+
+        StartupMode(java.lang.String value) {
+            this.value = value;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonValue()
+        public java.lang.String getValue() {
+            return value;
+        }
+    }
+
+    /**
+     * StartupMode controls whether sandboxes created from this template have
+     * their main container command wrapped by run_with_envs.sh (claim-time
+     * envVars/command + deferred main-process start). It is only informational
+     * when a SandboxSet uses spec.templateRef: SandboxSetSpec.StartupMode always
+     * takes precedence and is what actually reaches created Sandboxes.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("startupMode")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("StartupMode controls whether sandboxes created from this template have\ntheir main container command wrapped by run_with_envs.sh (claim-time\nenvVars/command + deferred main-process start). It is only informational\nwhen a SandboxSet uses spec.templateRef: SandboxSetSpec.StartupMode always\ntakes precedence and is what actually reaches created Sandboxes.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private StartupMode startupMode = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("\"Immediate\"", StartupMode.class);
+
+    public StartupMode getStartupMode() {
+        return startupMode;
+    }
+
+    public void setStartupMode(StartupMode startupMode) {
+        this.startupMode = startupMode;
+    }
+
+    /**
+     * Template describes the pods that will be created.
+     * Template is mutual exclusive with TemplateRef
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("template")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("Template describes the pods that will be created.\nTemplate is mutual exclusive with TemplateRef")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.fabric8.kubernetes.api.model.PodTemplateSpec template;
+
+    public io.fabric8.kubernetes.api.model.PodTemplateSpec getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(io.fabric8.kubernetes.api.model.PodTemplateSpec template) {
+        this.template = template;
+    }
+
+    /**
+     * UpdateStrategy controls create-before-delete rolling replacement.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("updateStrategy")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("UpdateStrategy controls create-before-delete rolling replacement.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private io.openkruise.agents.client.v2.models.sessionservicespec.UpdateStrategy updateStrategy = io.fabric8.kubernetes.client.utils.Serialization.unmarshal("{}", io.openkruise.agents.client.v2.models.sessionservicespec.UpdateStrategy.class);
+
+    public io.openkruise.agents.client.v2.models.sessionservicespec.UpdateStrategy getUpdateStrategy() {
+        return updateStrategy;
+    }
+
+    public void setUpdateStrategy(io.openkruise.agents.client.v2.models.sessionservicespec.UpdateStrategy updateStrategy) {
+        this.updateStrategy = updateStrategy;
+    }
+
+    /**
+     * VolumeClaimTemplates is a list of PVC templates to create for this Sandbox.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("volumeClaimTemplates")
+    @com.fasterxml.jackson.annotation.JsonPropertyDescription("VolumeClaimTemplates is a list of PVC templates to create for this Sandbox.")
+    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+    private java.util.List<io.fabric8.kubernetes.api.model.PersistentVolumeClaim> volumeClaimTemplates;
+
+    public java.util.List<io.fabric8.kubernetes.api.model.PersistentVolumeClaim> getVolumeClaimTemplates() {
+        return volumeClaimTemplates;
+    }
+
+    public void setVolumeClaimTemplates(java.util.List<io.fabric8.kubernetes.api.model.PersistentVolumeClaim> volumeClaimTemplates) {
+        this.volumeClaimTemplates = volumeClaimTemplates;
+    }
+}
+

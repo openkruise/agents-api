@@ -25,29 +25,31 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// Checkpoints returns a CheckpointInformer.
-	Checkpoints() CheckpointInformer
+	Checkpoints() TypedCheckpointInformer
 	// Commits returns a CommitInformer.
-	Commits() CommitInformer
+	Commits() TypedCommitInformer
 	// GlobalSecurityProfiles returns a GlobalSecurityProfileInformer.
-	GlobalSecurityProfiles() GlobalSecurityProfileInformer
+	GlobalSecurityProfiles() TypedGlobalSecurityProfileInformer
 	// GlobalTrafficPolicies returns a GlobalTrafficPolicyInformer.
-	GlobalTrafficPolicies() GlobalTrafficPolicyInformer
+	GlobalTrafficPolicies() TypedGlobalTrafficPolicyInformer
 	// PoolAutoscalers returns a PoolAutoscalerInformer.
-	PoolAutoscalers() PoolAutoscalerInformer
+	PoolAutoscalers() TypedPoolAutoscalerInformer
 	// Sandboxes returns a SandboxInformer.
-	Sandboxes() SandboxInformer
+	Sandboxes() TypedSandboxInformer
 	// SandboxClaims returns a SandboxClaimInformer.
-	SandboxClaims() SandboxClaimInformer
+	SandboxClaims() TypedSandboxClaimInformer
 	// SandboxSets returns a SandboxSetInformer.
-	SandboxSets() SandboxSetInformer
+	SandboxSets() TypedSandboxSetInformer
 	// SandboxTemplates returns a SandboxTemplateInformer.
-	SandboxTemplates() SandboxTemplateInformer
+	SandboxTemplates() TypedSandboxTemplateInformer
 	// SandboxUpdateOps returns a SandboxUpdateOpsInformer.
-	SandboxUpdateOps() SandboxUpdateOpsInformer
+	SandboxUpdateOps() TypedSandboxUpdateOpsInformer
 	// SecurityProfiles returns a SecurityProfileInformer.
-	SecurityProfiles() SecurityProfileInformer
+	SecurityProfiles() TypedSecurityProfileInformer
+	// SessionServices returns a SessionServiceInformer.
+	SessionServices() TypedSessionServiceInformer
 	// TrafficPolicies returns a TrafficPolicyInformer.
-	TrafficPolicies() TrafficPolicyInformer
+	TrafficPolicies() TypedTrafficPolicyInformer
 }
 
 type version struct {
@@ -61,62 +63,67 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Checkpoints returns a CheckpointInformer.
-func (v *version) Checkpoints() CheckpointInformer {
+// Checkpoints returns a TypedCheckpointInformer.
+func (v *version) Checkpoints() TypedCheckpointInformer {
 	return &checkpointInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Commits returns a CommitInformer.
-func (v *version) Commits() CommitInformer {
+// Commits returns a TypedCommitInformer.
+func (v *version) Commits() TypedCommitInformer {
 	return &commitInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// GlobalSecurityProfiles returns a GlobalSecurityProfileInformer.
-func (v *version) GlobalSecurityProfiles() GlobalSecurityProfileInformer {
+// GlobalSecurityProfiles returns a TypedGlobalSecurityProfileInformer.
+func (v *version) GlobalSecurityProfiles() TypedGlobalSecurityProfileInformer {
 	return &globalSecurityProfileInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// GlobalTrafficPolicies returns a GlobalTrafficPolicyInformer.
-func (v *version) GlobalTrafficPolicies() GlobalTrafficPolicyInformer {
+// GlobalTrafficPolicies returns a TypedGlobalTrafficPolicyInformer.
+func (v *version) GlobalTrafficPolicies() TypedGlobalTrafficPolicyInformer {
 	return &globalTrafficPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// PoolAutoscalers returns a PoolAutoscalerInformer.
-func (v *version) PoolAutoscalers() PoolAutoscalerInformer {
+// PoolAutoscalers returns a TypedPoolAutoscalerInformer.
+func (v *version) PoolAutoscalers() TypedPoolAutoscalerInformer {
 	return &poolAutoscalerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Sandboxes returns a SandboxInformer.
-func (v *version) Sandboxes() SandboxInformer {
+// Sandboxes returns a TypedSandboxInformer.
+func (v *version) Sandboxes() TypedSandboxInformer {
 	return &sandboxInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// SandboxClaims returns a SandboxClaimInformer.
-func (v *version) SandboxClaims() SandboxClaimInformer {
+// SandboxClaims returns a TypedSandboxClaimInformer.
+func (v *version) SandboxClaims() TypedSandboxClaimInformer {
 	return &sandboxClaimInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// SandboxSets returns a SandboxSetInformer.
-func (v *version) SandboxSets() SandboxSetInformer {
+// SandboxSets returns a TypedSandboxSetInformer.
+func (v *version) SandboxSets() TypedSandboxSetInformer {
 	return &sandboxSetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// SandboxTemplates returns a SandboxTemplateInformer.
-func (v *version) SandboxTemplates() SandboxTemplateInformer {
+// SandboxTemplates returns a TypedSandboxTemplateInformer.
+func (v *version) SandboxTemplates() TypedSandboxTemplateInformer {
 	return &sandboxTemplateInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// SandboxUpdateOps returns a SandboxUpdateOpsInformer.
-func (v *version) SandboxUpdateOps() SandboxUpdateOpsInformer {
+// SandboxUpdateOps returns a TypedSandboxUpdateOpsInformer.
+func (v *version) SandboxUpdateOps() TypedSandboxUpdateOpsInformer {
 	return &sandboxUpdateOpsInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// SecurityProfiles returns a SecurityProfileInformer.
-func (v *version) SecurityProfiles() SecurityProfileInformer {
+// SecurityProfiles returns a TypedSecurityProfileInformer.
+func (v *version) SecurityProfiles() TypedSecurityProfileInformer {
 	return &securityProfileInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// TrafficPolicies returns a TrafficPolicyInformer.
-func (v *version) TrafficPolicies() TrafficPolicyInformer {
+// SessionServices returns a TypedSessionServiceInformer.
+func (v *version) SessionServices() TypedSessionServiceInformer {
+	return &sessionServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// TrafficPolicies returns a TypedTrafficPolicyInformer.
+func (v *version) TrafficPolicies() TypedTrafficPolicyInformer {
 	return &trafficPolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

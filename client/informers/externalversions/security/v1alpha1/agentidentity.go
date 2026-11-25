@@ -28,16 +28,45 @@ import (
 	agentsapisecurityv1alpha1 "github.com/openkruise/agents-api/security/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 )
 
 // AgentIdentityInformer provides access to a shared informer and lister for
-// AgentIdentities.
+// AgentIdentities. Prefer using the type-safe variant (see [TypedAgentIdentityInformer]).
 type AgentIdentityInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() securityv1alpha1.AgentIdentityLister
 }
+
+// TypedAgentIdentityInformer provides access to a shared informer and lister for
+// AgentIdentities, including the type-safe TypedInformer variant.
+// It is a superset of AgentIdentityInformer.
+type TypedAgentIdentityInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() AgentIdentityIndexInformer
+	Lister() securityv1alpha1.AgentIdentityLister
+}
+
+// AgentIdentityIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type AgentIdentityIndexInformer cache.TypedSharedIndexInformer[*agentsapisecurityv1alpha1.AgentIdentity]
+
+// AgentIdentityHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for AgentIdentity.
+type AgentIdentityHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*agentsapisecurityv1alpha1.AgentIdentity]
+
+// AgentIdentityDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for AgentIdentity.
+type AgentIdentityDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*agentsapisecurityv1alpha1.AgentIdentity]
+
+// AgentIdentityFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for AgentIdentity.
+type AgentIdentityFilteringHandler = cache.TypedFilteringResourceEventHandler[*agentsapisecurityv1alpha1.AgentIdentity]
+
+// AgentIdentityIndexers is a specialization of [cache.TypedIndexers] for AgentIdentity.
+type AgentIdentityIndexers = cache.TypedIndexers[*agentsapisecurityv1alpha1.AgentIdentity]
+
+// DeletedAgentIdentity is a specialization of [cache.DeletedObject] for AgentIdentity.
+type DeletedAgentIdentity = cache.DeletedObject[*agentsapisecurityv1alpha1.AgentIdentity]
 
 type agentIdentityInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -48,55 +77,132 @@ type agentIdentityInformer struct {
 // NewAgentIdentityInformer constructs a new informer for AgentIdentity type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedAgentIdentityInformer]).
 func NewAgentIdentityInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredAgentIdentityInformer(client, namespace, resyncPeriod, indexers, nil)
+	return NewAgentIdentityInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedAgentIdentityInformer constructs a new informer for AgentIdentity type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedAgentIdentityInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers AgentIdentityIndexers) AgentIdentityIndexInformer {
+	return NewTypedAgentIdentityInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredAgentIdentityInformer constructs a new informer for AgentIdentity type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredAgentIdentityInformer]).
 func NewFilteredAgentIdentityInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return cache.NewSharedIndexInformer(
+	return NewTypedAgentIdentityInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredAgentIdentityInformer constructs a new informer for AgentIdentity type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredAgentIdentityInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers AgentIdentityIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) AgentIdentityIndexInformer {
+	return NewTypedAgentIdentityInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
+}
+
+// NewAgentIdentityInformerWithOptions constructs a new informer for AgentIdentity type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedAgentIdentityInformerWithOptions]).
+func NewAgentIdentityInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedAgentIdentityInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedAgentIdentityInformerWithOptions constructs a new informer for AgentIdentity type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedAgentIdentityInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) AgentIdentityIndexInformer {
+	gvr := schema.GroupVersionResource{Group: "security", Version: "v1alpha1", Resource: "agentidentitys"}
+	identifier := options.InformerName.WithResource(gvr)
+	tweakListOptions := options.TweakListOptions
+	return cache.NewTypedSharedIndexInformer[*agentsapisecurityv1alpha1.AgentIdentity](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
-			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.SecurityV1alpha1().AgentIdentities(namespace).List(context.Background(), options)
+				return client.SecurityV1alpha1().AgentIdentities(namespace).List(context.Background(), opts)
 			},
-			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(opts v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.SecurityV1alpha1().AgentIdentities(namespace).Watch(context.Background(), options)
+				return client.SecurityV1alpha1().AgentIdentities(namespace).Watch(context.Background(), opts)
 			},
-			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
+			ListWithContextFunc: func(ctx context.Context, opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.SecurityV1alpha1().AgentIdentities(namespace).List(ctx, options)
+				return client.SecurityV1alpha1().AgentIdentities(namespace).List(ctx, opts)
 			},
-			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
+			WatchFuncWithContext: func(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.SecurityV1alpha1().AgentIdentities(namespace).Watch(ctx, options)
+				return client.SecurityV1alpha1().AgentIdentities(namespace).Watch(ctx, opts)
 			},
 		}, client),
 		&agentsapisecurityv1alpha1.AgentIdentity{},
-		resyncPeriod,
-		indexers,
-	)
+		cache.SharedIndexInformerOptions{
+			ResyncPeriod: options.ResyncPeriod,
+			Indexers:     options.Indexers,
+			Identifier:   identifier,
+		},
+	))
 }
 
 func (f *agentIdentityInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredAgentIdentityInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewTypedAgentIdentityInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *agentIdentityInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&agentsapisecurityv1alpha1.AgentIdentity{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *agentIdentityInformer) TypedInformer() AgentIdentityIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*agentsapisecurityv1alpha1.AgentIdentity](f.factory.InformerFor(&agentsapisecurityv1alpha1.AgentIdentity{}, f.defaultInformer))
 }
 
 func (f *agentIdentityInformer) Lister() securityv1alpha1.AgentIdentityLister {
 	return securityv1alpha1.NewAgentIdentityLister(f.Informer().GetIndexer())
+}
+
+// ToTypedAgentIdentityInformer converts an untyped informer into a TypedAgentIdentityInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *AgentIdentity. If that is not the case, calling type-safe methods of the returned
+// TypedAgentIdentityInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedAgentIdentityInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedAgentIdentityInformer(informer AgentIdentityInformer) TypedAgentIdentityInformer {
+	if informer, ok := informer.(TypedAgentIdentityInformer); ok {
+		return informer
+	}
+	return &agentIdentityTypedInformerAdapter{informer}
+}
+
+type agentIdentityTypedInformerAdapter struct {
+	AgentIdentityInformer
+}
+
+func (a *agentIdentityTypedInformerAdapter) TypedInformer() AgentIdentityIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*agentsapisecurityv1alpha1.AgentIdentity](a.Informer())
+}
+
+// ToAgentIdentityIndexInformer converts an untyped informer into a AgentIdentityIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *AgentIdentity. If that is not the case, calling type-safe methods of the returned
+// AgentIdentityIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a AgentIdentityIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToAgentIdentityIndexInformer(informer cache.SharedIndexInformer) AgentIdentityIndexInformer {
+	if informer, ok := informer.(AgentIdentityIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*agentsapisecurityv1alpha1.AgentIdentity](informer)
 }
