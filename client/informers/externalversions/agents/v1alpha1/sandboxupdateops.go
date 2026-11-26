@@ -34,14 +34,14 @@ import (
 )
 
 // SandboxUpdateOpsInformer provides access to a shared informer and lister for
-// SandboxUpdateOps. Prefer using the type-safe variant (see [TypedSandboxUpdateOpsInformer]).
+// Sandboxupdateops. Prefer using the type-safe variant (see [TypedSandboxUpdateOpsInformer]).
 type SandboxUpdateOpsInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() agentsv1alpha1.SandboxUpdateOpsLister
 }
 
 // TypedSandboxUpdateOpsInformer provides access to a shared informer and lister for
-// SandboxUpdateOps, including the type-safe TypedInformer variant.
+// Sandboxupdateops, including the type-safe TypedInformer variant.
 // It is a superset of SandboxUpdateOpsInformer.
 type TypedSandboxUpdateOpsInformer interface {
 	Informer() cache.SharedIndexInformer
@@ -125,25 +125,25 @@ func NewTypedSandboxUpdateOpsInformerWithOptions(client versioned.Interface, nam
 				if tweakListOptions != nil {
 					tweakListOptions(&opts)
 				}
-				return client.AgentsV1alpha1().SandboxUpdateOps(namespace).List(context.Background(), opts)
+				return client.AgentsV1alpha1().Sandboxupdateops(namespace).List(context.Background(), opts)
 			},
 			WatchFunc: func(opts v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&opts)
 				}
-				return client.AgentsV1alpha1().SandboxUpdateOps(namespace).Watch(context.Background(), opts)
+				return client.AgentsV1alpha1().Sandboxupdateops(namespace).Watch(context.Background(), opts)
 			},
 			ListWithContextFunc: func(ctx context.Context, opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&opts)
 				}
-				return client.AgentsV1alpha1().SandboxUpdateOps(namespace).List(ctx, opts)
+				return client.AgentsV1alpha1().Sandboxupdateops(namespace).List(ctx, opts)
 			},
 			WatchFuncWithContext: func(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&opts)
 				}
-				return client.AgentsV1alpha1().SandboxUpdateOps(namespace).Watch(ctx, opts)
+				return client.AgentsV1alpha1().Sandboxupdateops(namespace).Watch(ctx, opts)
 			},
 		}, client),
 		&agentsapiagentsv1alpha1.SandboxUpdateOps{},

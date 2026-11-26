@@ -64,8 +64,8 @@ func (c *FakeAgentsV1alpha1) SandboxTemplates(namespace string) v1alpha1.Sandbox
 	return newFakeSandboxTemplates(c, namespace)
 }
 
-func (c *FakeAgentsV1alpha1) SandboxUpdateOps(namespace string) v1alpha1.SandboxUpdateOpsInterface {
-	return newFakeSandboxUpdateOps(c, namespace)
+func (c *FakeAgentsV1alpha1) Sandboxupdateops(namespace string) v1alpha1.SandboxUpdateOpsInterface {
+	return newFakeSandboxupdateops(c, namespace)
 }
 
 func (c *FakeAgentsV1alpha1) SecurityProfiles(namespace string) v1alpha1.SecurityProfileInterface {

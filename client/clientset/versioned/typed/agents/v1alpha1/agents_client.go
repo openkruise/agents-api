@@ -37,7 +37,7 @@ type AgentsV1alpha1Interface interface {
 	SandboxClaimsGetter
 	SandboxSetsGetter
 	SandboxTemplatesGetter
-	SandboxUpdateOpsGetter
+	SandboxupdateopsGetter
 	SecurityProfilesGetter
 	SessionServicesGetter
 	TrafficPoliciesGetter
@@ -84,8 +84,8 @@ func (c *AgentsV1alpha1Client) SandboxTemplates(namespace string) SandboxTemplat
 	return newSandboxTemplates(c, namespace)
 }
 
-func (c *AgentsV1alpha1Client) SandboxUpdateOps(namespace string) SandboxUpdateOpsInterface {
-	return newSandboxUpdateOps(c, namespace)
+func (c *AgentsV1alpha1Client) Sandboxupdateops(namespace string) SandboxUpdateOpsInterface {
+	return newSandboxupdateops(c, namespace)
 }
 
 func (c *AgentsV1alpha1Client) SecurityProfiles(namespace string) SecurityProfileInterface {

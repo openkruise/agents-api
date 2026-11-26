@@ -1,51 +1,18 @@
-CURRENT_DIR=$(shell pwd)
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-
 # Run go vet against code
 vet:
 	go vet ./...
 
 # Generate code
 generate: controller-gen
-	#$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 	@hack/generate_client.sh
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-ifeq ("$(shell $(CONTROLLER_GEN) --version 2> /dev/null)", "Version: v0.18.0")
-else
-	rm -rf $(CONTROLLER_GEN)
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0)
-endif
-
-OPENAPI_GEN = $(shell pwd)/bin/openapi-gen
-module=$(shell go list -f '{{.Module}}' k8s.io/kube-openapi/cmd/openapi-gen | awk '{print $$1}')
-module_version=$(shell go list -m $(module) | awk '{print $$NF}' | head -1)
-openapi-gen: ## Download openapi-gen locally if necessary.
-ifeq ("$(shell command -v $(OPENAPI_GEN) 2> /dev/null)", "")
-	$(call go-get-tool,$(OPENAPI_GEN),k8s.io/kube-openapi/cmd/openapi-gen@$(module_version))
-else
-	@echo "openapi-gen is already installed."
-endif
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
+# controller-gen and the client generators are declared as tool directives
+# in tools.mod and run through the module toolchain (GOWORK=off
+# go run -mod=readonly -modfile=tools.mod, see hack/generate_client.sh)
+# instead of a go-install-tool download to ./bin.
+.PHONY: controller-gen
+controller-gen: ## Tidy tools.mod, which pins the code generation tools as tool directives.
+	go mod tidy -modfile=tools.mod
 
 # Update CRD YAML and Go type definitions from upstream openkruise/agents
 .PHONY: update-upstream
@@ -150,15 +117,17 @@ cleanup-test-e2e:
 test-e2b-patch:
 	cd e2b/python && pip install -e ".[dev]" $(if $(E2B_VERSION),e2b==$(E2B_VERSION)) $(if $(CODE_INTERPRETER_VERSION),e2b-code-interpreter==$(CODE_INTERPRETER_VERSION)) && pytest tests/ -v
 
-# ==================== Schema Generation ====================
+# ==================== Module Dependencies ====================
 
-.PHONY: gen-schema-only
-gen-schema-only:
-	go run cmd/gen-schema/main.go
-
-.PHONY: gen-openapi-schema
-gen-openapi-schema: gen-all-openapi
-	go run cmd/gen-schema/main.go
-
-.PHONY: gen-all-openapi
-	@hack/generate_openapi.sh
+# tools.mod mirrors go.mod (same module path, same dependency versions) and
+# adds tool directives for the code generation tools: controller-gen
+# (sigs.k8s.io/controller-tools) and the client generators
+# (k8s.io/code-generator). Whenever dependencies are upgraded in go.mod,
+# apply the same upgrades to tools.mod and re-run tidy so both files and
+# tools.sum stay in sync; `make deps` tidies both module files. Keep the
+# tool versions in sync with the openkruise/agents repository so both
+# repos produce identical generated output.
+.PHONY: deps
+deps:
+	go mod tidy
+	go mod tidy -modfile=tools.mod

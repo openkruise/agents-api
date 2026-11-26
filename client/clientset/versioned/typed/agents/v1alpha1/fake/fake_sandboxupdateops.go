@@ -24,14 +24,14 @@ import (
 	gentype "k8s.io/client-go/gentype"
 )
 
-// fakeSandboxUpdateOps implements SandboxUpdateOpsInterface
-type fakeSandboxUpdateOps struct {
+// fakeSandboxupdateops implements SandboxUpdateOpsInterface
+type fakeSandboxupdateops struct {
 	*gentype.FakeClientWithList[*v1alpha1.SandboxUpdateOps, *v1alpha1.SandboxUpdateOpsList]
 	Fake *FakeAgentsV1alpha1
 }
 
-func newFakeSandboxUpdateOps(fake *FakeAgentsV1alpha1, namespace string) agentsv1alpha1.SandboxUpdateOpsInterface {
-	return &fakeSandboxUpdateOps{
+func newFakeSandboxupdateops(fake *FakeAgentsV1alpha1, namespace string) agentsv1alpha1.SandboxUpdateOpsInterface {
+	return &fakeSandboxupdateops{
 		gentype.NewFakeClientWithList[*v1alpha1.SandboxUpdateOps, *v1alpha1.SandboxUpdateOpsList](
 			fake.Fake,
 			namespace,
