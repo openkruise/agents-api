@@ -24,6 +24,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${SCRIPT_ROOT}"
 
+# The generators shell out to `go list` sub-processes when parsing the input
+# packages; those inherit the environment but not the -mod flag, so a stale
+# vendor tree in the main module breaks them with "inconsistent vendoring".
+# GOFLAGS=-mod=readonly propagates the vendor bypass to every nested go
+# command, matching the -mod=readonly used for the generator invocations.
+GOFLAGS="${GOFLAGS:+${GOFLAGS} }-mod=readonly"
+export GOFLAGS
+
 SKIP_UPDATE=false
 for arg in "$@"; do
     case "${arg}" in
