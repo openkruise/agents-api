@@ -25,14 +25,14 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// SandboxUpdateOpsLister helps list SandboxUpdateOps.
+// SandboxUpdateOpsLister helps list Sandboxupdateops.
 // All objects returned here must be treated as read-only.
 type SandboxUpdateOpsLister interface {
-	// List lists all SandboxUpdateOps in the indexer.
+	// List lists all Sandboxupdateops in the indexer.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*agentsv1alpha1.SandboxUpdateOps, err error)
-	// SandboxUpdateOps returns an object that can list and get SandboxUpdateOps.
-	SandboxUpdateOps(namespace string) SandboxUpdateOpsNamespaceLister
+	// Sandboxupdateops returns an object that can list and get Sandboxupdateops.
+	Sandboxupdateops(namespace string) SandboxUpdateOpsNamespaceLister
 	SandboxUpdateOpsListerExpansion
 }
 
@@ -46,15 +46,15 @@ func NewSandboxUpdateOpsLister(indexer cache.Indexer) SandboxUpdateOpsLister {
 	return &sandboxUpdateOpsLister{listers.New[*agentsv1alpha1.SandboxUpdateOps](indexer, agentsv1alpha1.Resource("sandboxupdateops"))}
 }
 
-// SandboxUpdateOps returns an object that can list and get SandboxUpdateOps.
-func (s *sandboxUpdateOpsLister) SandboxUpdateOps(namespace string) SandboxUpdateOpsNamespaceLister {
+// Sandboxupdateops returns an object that can list and get Sandboxupdateops.
+func (s *sandboxUpdateOpsLister) Sandboxupdateops(namespace string) SandboxUpdateOpsNamespaceLister {
 	return sandboxUpdateOpsNamespaceLister{listers.NewNamespaced[*agentsv1alpha1.SandboxUpdateOps](s.ResourceIndexer, namespace)}
 }
 
-// SandboxUpdateOpsNamespaceLister helps list and get SandboxUpdateOps.
+// SandboxUpdateOpsNamespaceLister helps list and get Sandboxupdateops.
 // All objects returned here must be treated as read-only.
 type SandboxUpdateOpsNamespaceLister interface {
-	// List lists all SandboxUpdateOps in the indexer for a given namespace.
+	// List lists all Sandboxupdateops in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*agentsv1alpha1.SandboxUpdateOps, err error)
 	// Get retrieves the SandboxUpdateOps from the indexer for a given namespace and name.
