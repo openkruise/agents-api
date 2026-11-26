@@ -15,12 +15,13 @@ This file provides guidance for AI agents working on the `agents-api` repository
 ```
 agents-api/
 ├── agents/v1alpha1/         # Core API type definitions (CRD specs)
+├── security/v1alpha1/       # Security API type definitions (synced from upstream api/security)
 ├── client/                  # Auto-generated Go client (clientset, informers, listers)
 ├── clients/                 # Multi-language client SDKs (Java, Python)
 ├── sdk/                     # Go SDK for E2B API and runtime (proto, sandbox, runtime)
 ├── examples/                # Usage examples (e.g. SandboxClaim)
 ├── hack/                    # Build scripts and code generation tooling
-├── bin/                     # Locally downloaded tool binaries (controller-gen, openapi-gen)
+├── tools.mod / tools.sum    # Code generation tools as Go tool directives
 ├── vendor/                  # Go dependencies (vendored)
 └── .github/workflows/       # CI workflows
 ```
@@ -61,15 +62,16 @@ agents-api/
 - **Module**: `github.com/openkruise/agents-api`
 - **Core Dependencies**:
   - `k8s.io/api`, `k8s.io/apimachinery`, `k8s.io/client-go` v0.37.2
-  - `k8s.io/code-generator` v0.37.2
-  - `k8s.io/kube-openapi` v0.0.0-20260721132016-d427ff9ee9ad
   - `sigs.k8s.io/controller-runtime` v0.25.2
   - `connectrpc.com/connect` v1.19.2
-  - `github.com/go-bindata/go-bindata` v3.1.2
   - `google.golang.org/protobuf` v1.36.12
-- **Code Generation Tools**:
-  - `controller-gen` v0.18.0 (downloaded to `./bin/`)
-  - `openapi-gen` (version derived from go.mod)
+- **Code Generation Tools** (pinned as tool directives in `tools.mod`, run via
+  `GOWORK=off go run -mod=readonly -modfile=tools.mod`):
+  - `sigs.k8s.io/controller-tools/cmd/controller-gen` v0.23.0
+  - `k8s.io/code-generator/cmd/{client,lister,informer}-gen` v0.37.2
+
+  Tool versions are kept in sync with the `openkruise/agents` repository so
+  both repos produce identical generated output.
 
 ## Build Commands
 
@@ -79,28 +81,37 @@ All commands should be run from the project root directory.
 # Run go vet across all packages
 make vet
 
-# Regenerate client code (clientset, informers, listers, deep-copy)
+# Regenerate client code (clientset, informers, listers)
 make generate
 
-# Generate OpenAPI schema
-make openapi-gen
-
-# Generate CRD schema only
-make gen-schema-only
-
-# Generate OpenAPI schema (full pipeline)
-make gen-openapi-schema
+# Tidy go.mod and tools.mod together (run after dependency upgrades)
+make deps
 ```
 
 ### Code Generation Details
 
 - `make generate` runs `hack/generate_client.sh`, which:
-  1. Runs `go mod vendor`
-  2. Uses `kube::codegen::gen_helpers` to generate deep-copy and helper methods
-  3. Uses `kube::codegen::gen_client` to generate clientset/informers/listers
-  4. Copies generated output back into `./client/`
+  1. Optionally updates upstream definitions via `hack/update_upstream.sh`
+     (skip with `--skip-update`)
+  2. Discovers `+genclient`-tagged API packages under `agents/` and `security/`
+  3. Runs `client-gen`, `lister-gen` and `informer-gen` from the tool
+     directives in `tools.mod` — no `go mod vendor`, GOPATH staging, or
+     `go install` is involved
+  4. Publishes the staged output into `./client/`
 
-- `make openapi-gen` downloads `openapi-gen` binary to `./bin/` if not present
+- Deep-copy files (`zz_generated.deepcopy.go`) are synced verbatim from the
+  upstream `openkruise/agents` repository by `hack/update_upstream.sh`
+  (upstream generates them with controller-gen); they are not regenerated
+  locally.
+
+### tools.mod Sync
+
+`tools.mod` mirrors `go.mod` (same module path, same dependency versions) and
+adds tool directives for the code generation tools. When upgrading go.mod
+dependencies, apply the same upgrades to `tools.mod` and run
+`go mod tidy -modfile=tools.mod` (`make deps` tidies both) so `tools.sum`
+stays in sync. Tool versions must also stay aligned with the
+`openkruise/agents` repository.
 
 ## Important Rules
 
@@ -116,22 +127,20 @@ The following files/directories are auto-generated and must not be edited by han
 
 When modifying CRD types in `agents/v1alpha1/*_types.go`:
 1. Edit only the hand-written type files (not `zz_generated.deepcopy.go`)
-2. After changes, run `make generate` to regenerate deep-copy methods and client code
+2. After changes, run `make generate` to regenerate client code
 3. Run `make vet` to verify no issues
-4. For OpenAPI schema changes, run `make gen-openapi-schema`
 
 ### Kubernetes API Conventions
 
 - API group: `agents.kruise.io`
 - API version: `v1alpha1`
 - Types use standard Kubernetes `metav1.TypeMeta` and `metav1.ObjectMeta` embeddings
-- Use `+kubebuilder:` markers for CRD schema annotations
-- Use `+k8s:deepcopy-gen` markers for deep-copy generation
+- Use `+kubebuilder:` markers for CRD schema annotations (deep-copy methods are generated upstream by controller-gen)
 - Follow [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 
 ## CI Workflows
 
-- **`schema-update.yaml`** — Automatically runs `make gen-openapi-schema` on push to `master` when `agents/**` files change
+- **`ci-vet.yaml`** — Runs `make vet` on push/PR
 - **`generate-crd.yml`** — Manual workflow to generate Java CRD models from CRD YAML sources
 - **`publish-maven-central.yml`** — Manual workflow to publish Java client to Maven Central
 
