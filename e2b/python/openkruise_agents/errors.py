@@ -27,12 +27,9 @@ class TemplateProtocolError(TemplateError):
 
 
 class TemplateStateError(TemplateError):
-    def __init__(self, name: str, template_id: str, status: str, message=None):
-        super().__init__(
-            f"Template {name!r} ({template_id}) is {status}: {message or ''}"
-        )
+    def __init__(self, name: str, status: str, message=None):
+        super().__init__(f"Template {name!r} is {status}: {message or ''}")
         self.name = name
-        self.template_id = template_id
         self.status = status
         self.message = message
 

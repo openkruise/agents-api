@@ -23,40 +23,24 @@ from openkruise_agents import (
 from openkruise_agents import template as module
 from openkruise_agents.models import (
     UNSET,
-    AutoPausePolicy,
-    CapacityPolicy,
-    CapacityScalingRules,
+    BusinessProcessOptions,
     Container,
-    CronScalingPolicy,
-    ExecAction,
-    IngressTrafficRule,
-    LifecycleAction,
-    PausePolicy,
     PauseStrategy,
     PodSpec,
-    PoolAutoscalerOptions,
-    Probe,
-    ProbedIdleStateRule,
-    ProbedScheduleTimeRule,
-    ResumePolicy,
     RuntimeConfig,
-    SandboxLifecycle,
+    RunCommand,
     SandboxTemplateSpec,
     TemplateBuildOptions,
     VolumeClaimTemplate,
-    WarmPoolOptions,
 )
-
-ID = "abcdefghijklmnopqrst"
-OTHER_ID = "01234567890123456789"
 
 
 def minimal_spec() -> SandboxTemplateSpec:
     return SandboxTemplateSpec(containers=[Container(name="main", image="python:3.12")])
 
 
-def summary(status="Pending", template_id=ID, name="demo", **extra):
-    return {"name": name, "templateId": template_id, "status": status, **extra}
+def summary(status="Pending", name="demo", **extra):
+    return {"name": name, "templateId": name, "status": status, **extra}
 
 
 @pytest.fixture
@@ -128,20 +112,20 @@ def test_full_workflow_and_legacy_consumption(mock_transport, monkeypatch):
                 return httpx.Response(204)
             if request.url.path == "/v1/templates":
                 return httpx.Response(
-                    200, json=[summary("Ready"), summary("Unknown", None, "empty")]
+                    200, json=[summary("Ready"), summary("Building", name="other")]
                 )
-            assert request.url.params["templateId"] == ID
+            assert request.url.path == "/v1/templates/demo"
             return httpx.Response(
                 200, json=summary(observed.pop(0) if observed else "Ready")
             )
         # Real existing E2B Sandbox.create/kill; no custom consumption route.
         assert request.url.path.startswith("/kruise/api/sandboxes")
         if request.method == "POST":
-            assert json.loads(request.content)["templateID"] == ID
+            assert json.loads(request.content)["templateID"] == "demo"
             return httpx.Response(
                 201,
                 json={
-                    "templateID": ID,
+                    "templateID": "demo",
                     "sandboxID": "sbx-1",
                     "clientID": "client",
                     "envdVersion": "0.2.0",
@@ -155,9 +139,9 @@ def test_full_workflow_and_legacy_consumption(mock_transport, monkeypatch):
         name="demo",
         spec=minimal_spec(),
     )
-    assert built.status == "Pending"
+    assert built.id == "demo" and built.status == "Pending"
     assert built.wait_until_ready(timeout=1, interval=0.001) is built
-    assert Template.get("demo", template_id=ID).id == ID
+    assert Template.get("demo").id == "demo"
     assert len(Template.list()) == 2
     sandbox = Sandbox.create(template=built.id)
     assert sandbox.sandbox_id == "sbx-1"
@@ -188,50 +172,20 @@ def test_auth_headers_transport_and_environment_preserved(mock_transport):
     assert os.environ["E2B_API_URL"] == original
 
 
-def test_warm_pool_presence_and_all_policy_fields():
+def test_build_options_wire_shape():
     assert TemplateBuildOptions().to_dict() == {}
-    assert TemplateBuildOptions(warm_pool=None).to_dict() == {"warmPool": None}
-    assert WarmPoolOptions().to_dict() == {}
-    assert WarmPoolOptions(size=0, autoscaler=None).to_dict() == {
-        "size": 0,
-        "autoscaler": None,
-    }
-    assert WarmPoolOptions(enabled=False).to_dict() == {"enabled": False}
-    for invalid in [
-        WarmPoolOptions(enabled=False, size=0),
-        WarmPoolOptions(enabled=False, size=None),
-        WarmPoolOptions(enabled=False, autoscaler=None),
-        WarmPoolOptions(size=None),
-    ]:
-        with pytest.raises(ValueError):
-            invalid.to_dict()
-    auto = PoolAutoscalerOptions(
-        max_replicas=10,
-        min_replicas=0,
-        capacity_policy=CapacityPolicy(
-            target_available="50%",
-            tolerance=0,
-            scale_up=CapacityScalingRules(stabilization_window_seconds=60),
-            scale_down=CapacityScalingRules(stabilization_window_seconds=300),
-        ),
-        cron_policies=[CronScalingPolicy("peak", "0 9 * * *", 8, "UTC")],
-    ).to_dict()
-    assert auto == {
-        "maxReplicas": 10,
-        "minReplicas": 0,
-        "capacityPolicy": {
-            "targetAvailable": "50%",
-            "tolerance": 0,
-            "scaleUp": {"stabilizationWindowSeconds": 60},
-            "scaleDown": {"stabilizationWindowSeconds": 300},
-        },
-        "cronPolicies": [
-            {
-                "name": "peak",
-                "schedule": "0 9 * * *",
-                "targetReplicas": 8,
-                "timeZone": "UTC",
-            }
+    assert TemplateBuildOptions(checkpoint=None).to_dict() == {"checkpoint": None}
+    assert TemplateBuildOptions(image_cache=False).to_dict() == {"imageCache": False}
+    assert TemplateBuildOptions(
+        checkpoint=True,
+        business_process=BusinessProcessOptions(),
+        run_commands=[RunCommand("pip install requests"), RunCommand(["a", "b"], user="root")],
+    ).to_dict() == {
+        "checkpoint": True,
+        "businessProcess": {"startPolicy": "after_claim_initialization"},
+        "runCommands": [
+            {"command": "pip install requests"},
+            {"command": ["a", "b"], "user": "root"},
         ],
     }
 
@@ -275,37 +229,12 @@ def test_full_podspec_pvc_and_sandbox_policy_are_flattened():
         persistent_contents=["filesystem"],
         runtimes=[RuntimeConfig("agent-runtime")],
         pause_strategy=PauseStrategy(type="Stop"),
-        probes=[
-            Probe(
-                "idle",
-                k8s.V1Probe(
-                    _exec=ExecAction(command=["echo", "idle"]), period_seconds=10
-                ),
-                "main",
-            )
-        ],
-        auto_pause_policy=AutoPausePolicy(
-            pause=PausePolicy(ProbedIdleStateRule("idle", "idle", "5m")),
-            resume=ResumePolicy(
-                ProbedScheduleTimeRule("next", "unix", "5m"), IngressTrafficRule("10m")
-            ),
-        ),
-        lifecycle=SandboxLifecycle(
-            pre_pause=LifecycleAction(
-                exec=ExecAction(command=["sync"]), timeout_seconds=10
-            )
-        ),
     ).to_dict()
     assert "podSpec" not in spec and "template" not in spec
     assert spec["nodeSelector"] == {"role": "worker"}
     assert spec["containers"][0]["resources"]["limits"] == {"cpu": "1"}
     assert spec["volumeClaimTemplates"][0]["metadata"] == {"name": "data"}
-    assert spec["probes"][0]["exec"]["command"] == ["echo", "idle"]
-    assert spec["lifecycle"]["prePause"]["exec"]["command"] == ["sync"]
-    assert (
-        spec["autoPausePolicy"]["pause"]["whenProbedIdleState"]["thresholdDuration"]
-        == "5m"
-    )
+    assert spec["pauseStrategy"] == {"type": "Stop"}
     with pytest.raises(ValueError):
         SandboxTemplateSpec(pod_spec=PodSpec(containers=[]), containers=[])
 
@@ -317,8 +246,8 @@ def test_full_podspec_pvc_and_sandbox_policy_are_flattened():
         (None, None),
         (TemplateBuildOptions(), {}),
         (
-            TemplateBuildOptions(warm_pool=WarmPoolOptions(size=0)),
-            {"warmPool": {"size": 0}},
+            TemplateBuildOptions(checkpoint=True),
+            {"checkpoint": True},
         ),
     ],
 )
@@ -343,7 +272,7 @@ def test_wait_terminal_state(mock_transport, status):
     responder[0] = lambda _request: httpx.Response(
         200, json=summary(status, message="definition invalid")
     )
-    handle = Template(name="demo", template_id=ID, status="Pending")
+    handle = Template(name="demo", template_id="demo", status="Pending")
     with pytest.raises(TemplateStateError) as error:
         handle.wait_until_ready(timeout=1)
     assert error.value.status == status
@@ -356,14 +285,14 @@ def test_wait_terminal_http_error(mock_transport, status):
         status, json={"code": status, "message": "terminal", "request_id": "r1"}
     )
     with pytest.raises(TemplateAPIError) as error:
-        Template(name="demo", template_id=ID, status="Pending").wait_until_ready(
+        Template(name="demo", template_id="demo", status="Pending").wait_until_ready(
             timeout=1
         )
     assert len(requests) == 1
     assert error.value.request_id == "r1"
 
 
-def test_wait_retries_transient_and_binds_version(mock_transport):
+def test_wait_retries_transient_and_polls_by_name(mock_transport):
     requests, responder = mock_transport
     attempts = [
         httpx.ConnectError("offline"),
@@ -378,23 +307,20 @@ def test_wait_retries_transient_and_binds_version(mock_transport):
         return value
 
     responder[0] = serve
-    handle = Template(name="demo", template_id=ID, status="Pending")
+    handle = Template(name="demo", template_id="demo", status="Pending")
     assert handle.wait_until_ready(timeout=1, interval=0.001) is handle
-    assert all(request.url.params["templateId"] == ID for request in requests)
+    assert all(request.url.path == "/v1/templates/demo" for request in requests)
     assert all(request.method == "GET" for request in requests)
 
 
-def test_wait_wrong_version_and_empty_claim(mock_transport):
+def test_wait_rejects_mismatched_template_id(mock_transport):
     requests, responder = mock_transport
-    empty = Template(name="empty", template_id=None, status="Unknown")
-    with pytest.raises(ValueError):
-        empty.wait_until_ready()
-    assert not requests
-    responder[0] = lambda _request: httpx.Response(200, json=summary("Ready", OTHER_ID))
+    responder[0] = lambda _request: httpx.Response(200, json=summary("Ready", "other"))
     with pytest.raises(TemplateProtocolError):
-        Template(name="demo", template_id=ID, status="Pending").wait_until_ready(
+        Template(name="demo", template_id="demo", status="Pending").wait_until_ready(
             timeout=1
         )
+    assert len(requests) == 1
 
 
 def test_wait_total_budget_caps_request_and_sleep(mock_transport, monkeypatch):
@@ -406,7 +332,7 @@ def test_wait_total_budget_caps_request_and_sleep(mock_transport, monkeypatch):
     )
     responder[0] = lambda _request: httpx.Response(503)
     with pytest.raises(TemplateWaitTimeout):
-        Template(name="demo", template_id=ID, status="Pending").wait_until_ready(
+        Template(name="demo", template_id="demo", status="Pending").wait_until_ready(
             timeout=3, interval=2
         )
     assert clock[0] == 3
@@ -422,8 +348,8 @@ def test_wait_total_budget_caps_request_and_sleep(mock_transport, monkeypatch):
         {},
         {"name": "demo", "status": "Ready"},
         summary("invalid"),
-        summary("Ready", "bad-id"),
-        summary("Ready", None),
+        {"name": "demo", "templateId": "other", "status": "Ready"},
+        {"name": "demo", "templateId": None, "status": "Ready"},
     ],
 )
 def test_invalid_success_response(mock_transport, payload):
@@ -492,7 +418,7 @@ def test_late_ready_does_not_escape_wait_budget(mock_transport, monkeypatch):
 
     responder[0] = serve
     with pytest.raises(TemplateWaitTimeout):
-        Template(name="demo", template_id=ID, status="Pending").wait_until_ready(
+        Template(name="demo", template_id="demo", status="Pending").wait_until_ready(
             timeout=1
         )
 
@@ -508,6 +434,20 @@ def test_post_failure_is_not_retried_or_rolled_back(mock_transport):
             spec=minimal_spec(),
         )
     assert len(requests) == 1 and requests[0].method == "POST"
+
+
+@pytest.mark.parametrize("status", ["Pending", "Building"])
+def test_build_accepts_pending_or_building(mock_transport, status):
+    _, responder = mock_transport
+    responder[0] = lambda _request: httpx.Response(201, json=summary(status))
+    assert Template.build(name="demo", spec=minimal_spec()).status == status
+
+
+def test_build_rejects_settled_creation_response(mock_transport):
+    _, responder = mock_transport
+    responder[0] = lambda _request: httpx.Response(201, json=summary("Ready"))
+    with pytest.raises(TemplateProtocolError):
+        Template.build(name="demo", spec=minimal_spec())
 
 
 @pytest.mark.parametrize(
@@ -534,7 +474,7 @@ def test_delete_requires_empty_204(mock_transport):
 
 def test_wait_handles_disabled_request_timeout(mock_transport):
     requests, _ = mock_transport
-    handle = Template.get("demo", template_id=ID, request_timeout=0)
+    handle = Template.get("demo", request_timeout=0)
     handle.wait_until_ready(timeout=1)
     assert requests[0].extensions["timeout"]["read"] is None
     assert 0 < requests[-1].extensions["timeout"]["read"] <= 1
@@ -582,7 +522,7 @@ def test_template_metadata_workflow(mock_transport, metadata):
                 200,
                 json=[
                     summary("Ready", metadata=expected),
-                    summary("Unknown", None, "empty", metadata=expected),
+                    summary("Building", name="other", metadata=expected),
                 ],
             )
         return httpx.Response(200, json=summary("Ready", metadata=expected))

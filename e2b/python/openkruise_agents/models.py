@@ -74,7 +74,6 @@ class _Model:
 # Native types expose the whole PodSpec rather than a reduced image/CPU DSL.
 Container = k8s.V1Container
 PodSpec = k8s.V1PodSpec
-ExecAction = k8s.V1ExecAction
 
 
 @dataclass
@@ -94,68 +93,6 @@ class PauseStrategy(_Model):
 
 
 @dataclass
-class LifecycleAction(_Model):
-    exec: k8s.V1ExecAction
-    timeout_seconds: Omittable[int] = UNSET
-
-
-@dataclass
-class SandboxLifecycle(_Model):
-    pre_pause: Omittable[LifecycleAction] = UNSET
-    post_resume: Omittable[LifecycleAction] = UNSET
-
-
-@dataclass
-class ProbedIdleStateRule(_Model):
-    probe: str
-    message_regex: str
-    threshold_duration: str
-
-
-@dataclass
-class ProbedScheduleTimeRule(_Model):
-    probe: str
-    time_format: Omittable[str] = UNSET
-    lead_time: Omittable[str] = UNSET
-
-
-@dataclass
-class IngressTrafficRule(_Model):
-    pause_timeout: Omittable[str] = UNSET
-
-
-@dataclass
-class PausePolicy(_Model):
-    when_probed_idle_state: Omittable[ProbedIdleStateRule] = UNSET
-
-
-@dataclass
-class ResumePolicy(_Model):
-    when_probed_schedule_time: Omittable[ProbedScheduleTimeRule] = UNSET
-    on_ingress_traffic: Omittable[IngressTrafficRule] = UNSET
-
-
-@dataclass
-class AutoPausePolicy(_Model):
-    pause: Omittable[PausePolicy] = UNSET
-    resume: Omittable[ResumePolicy] = UNSET
-
-
-@dataclass
-class Probe(_Model):
-    name: str
-    probe: k8s.V1Probe
-    container_name: Omittable[str] = UNSET
-
-    def to_dict(self) -> dict:
-        result = to_wire(self.probe)
-        result["name"] = self.name
-        if self.container_name is not UNSET:
-            result["containerName"] = self.container_name
-        return result
-
-
-@dataclass
 class VolumeClaimTemplate(_Model):
     """Only metadata.name/spec are accepted; PVC labels/annotations are rejected."""
 
@@ -167,59 +104,35 @@ class VolumeClaimTemplate(_Model):
 
 
 @dataclass
-class CapacityScalingRules(_Model):
-    stabilization_window_seconds: Omittable[int] = UNSET
+class RunCommand(_Model):
+    """A shell string or an ordered list the backend joins with &&."""
+
+    command: Union[str, List[str]]
+    user: Omittable[Optional[str]] = UNSET
 
 
 @dataclass
-class CapacityPolicy(_Model):
-    target_available: Union[int, str]
-    tolerance: Omittable[Union[int, str]] = UNSET
-    scale_up: Omittable[CapacityScalingRules] = UNSET
-    scale_down: Omittable[CapacityScalingRules] = UNSET
-
-
-@dataclass
-class CronScalingPolicy(_Model):
-    name: str
-    schedule: str
-    target_replicas: int
-    time_zone: Omittable[str] = UNSET
-
-
-@dataclass
-class PoolAutoscalerOptions(_Model):
-    max_replicas: int
-    min_replicas: Omittable[int] = UNSET
-    capacity_policy: Omittable[CapacityPolicy] = UNSET
-    cron_policies: Omittable[List[CronScalingPolicy]] = UNSET
-
-
-@dataclass
-class WarmPoolOptions(_Model):
-    enabled: Omittable[bool] = UNSET
-    size: Omittable[int] = UNSET
-    autoscaler: Omittable[PoolAutoscalerOptions] = UNSET
-
-    def to_dict(self) -> dict:
-        if self.enabled is False and (
-            self.size is not UNSET or self.autoscaler is not UNSET
-        ):
-            raise ValueError("disabled warm_pool must omit size and autoscaler")
-        if self.enabled is None or self.size is None:
-            raise ValueError("warm_pool enabled and size must not be null")
-        return super().to_dict()
+class BusinessProcessOptions(_Model):
+    start_policy: str = "after_claim_initialization"
 
 
 @dataclass
 class TemplateBuildOptions(_Model):
-    warm_pool: Omittable[WarmPoolOptions] = UNSET
+    """Build options of the Kubernetes backend, which refuses every field for
+    another backend.
+    """
+
+    checkpoint: Omittable[bool] = UNSET
+    image_cache: Omittable[bool] = UNSET
+    business_process: Omittable[BusinessProcessOptions] = UNSET
+    run_commands: Omittable[List[RunCommand]] = UNSET
 
 
 class SandboxTemplateSpec(_Model):
     """Flat PodSpec plus Sandbox policy. Pass a complete native pod_spec or
     containers and native PodSpec keyword fields (node_selector, volumes, etc.).
-    Build/checkpoint commands, backend, and outer metadata are not API inputs.
+    Build options travel in the request's options; backend and outer metadata
+    are not part of the spec.
     """
 
     def __init__(
@@ -231,9 +144,6 @@ class SandboxTemplateSpec(_Model):
         persistent_contents: Omittable[List[str]] = UNSET,
         runtimes: Omittable[List[RuntimeConfig]] = UNSET,
         pause_strategy: Omittable[PauseStrategy] = UNSET,
-        probes: Omittable[List[Probe]] = UNSET,
-        auto_pause_policy: Omittable[AutoPausePolicy] = UNSET,
-        lifecycle: Omittable[SandboxLifecycle] = UNSET,
         **pod_fields: Any,
     ):
         if pod_spec is not None:
@@ -251,9 +161,6 @@ class SandboxTemplateSpec(_Model):
             "persistentContents": persistent_contents,
             "runtimes": runtimes,
             "pauseStrategy": pause_strategy,
-            "probes": probes,
-            "autoPausePolicy": auto_pause_policy,
-            "lifecycle": lifecycle,
         }
 
     def to_dict(self) -> dict:

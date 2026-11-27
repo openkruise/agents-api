@@ -5,15 +5,7 @@ This is an opt-in live example, not an automatically executed test.
 import uuid
 
 from openkruise_agents import Sandbox, Template, patch_e2b
-from openkruise_agents.models import (
-    CapacityPolicy,
-    Container,
-    PoolAutoscalerOptions,
-    RuntimeConfig,
-    SandboxTemplateSpec,
-    TemplateBuildOptions,
-    WarmPoolOptions,
-)
+from openkruise_agents.models import Container, RuntimeConfig, SandboxTemplateSpec
 
 
 def main():
@@ -30,21 +22,11 @@ def main():
                 containers=[Container(name="main", image="python:3.12")],
                 runtimes=[RuntimeConfig(name="agent-runtime")],
             ),
-            options=TemplateBuildOptions(
-                warm_pool=WarmPoolOptions(
-                    size=2,
-                    autoscaler=PoolAutoscalerOptions(
-                        min_replicas=1,
-                        max_replicas=10,
-                        capacity_policy=CapacityPolicy(target_available=2),
-                    ),
-                )
-            ),
         )
         template.wait_until_ready(timeout=120, interval=2)
-        print(Template.get(name, template_id=template.id))
+        print(Template.get(name))
         print(Template.list())
-        # Ready is definition-only; pool creation or stock may still be pending.
+        # Ready is the build state of the definition.
         # Instance creation stays on the original Sandbox entrypoint.
         sandbox = Sandbox.create(template=template.id)
     finally:
@@ -54,7 +36,7 @@ def main():
             Template.delete(name)
         # A failed POST can leave partial resources. Inspect the failure and
         # explicitly clean up the reserved name; never delete a pre-existing
-        # Claim just because build returned 409.
+        # template just because build returned 409.
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ import copy
 import math
 import re
 import time
-from typing import Any, List, Optional
+from typing import Any, List
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
@@ -42,7 +42,6 @@ _ALLOWED_CONNECTION_OPTIONS = {
 }
 _STATUSES = {"Unknown", "Pending", "Building", "Ready", "Failed", "Deleting"}
 _NAME = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
-_ID = re.compile(r"^[a-z0-9]{20}$")
 _DEFAULT_OPTIONS = object()
 
 
@@ -129,7 +128,6 @@ def _request(
     path: str,
     *,
     body=None,
-    params=None,
     timeout=None,
 ):
     # Clone the finalized E2B config; never mutate its URL, the global environment,
@@ -150,7 +148,6 @@ def _request(
             method,
             path,
             json=body,
-            params=params,
             timeout=request_timeout,
             follow_redirects=False,
         )
@@ -182,7 +179,7 @@ def _json(response: httpx.Response, expected_code: int):
 
 
 class Template:
-    """A minimal version-bound handle. id is None for an empty Claim.
+    """A minimal handle: id equals the name, which identifies one template.
 
     build/get/list/delete reuse existing E2B credentials and connection defaults.
     Only existing authentication/timeout/header/proxy options are accepted; URL,
@@ -193,7 +190,7 @@ class Template:
         self,
         *,
         name: str,
-        template_id: Optional[str],
+        template_id: str,
         status: str,
         message=None,
         metadata=None,
@@ -220,14 +217,10 @@ class Template:
         name, template_id, status = value["name"], value["templateId"], value["status"]
         if not isinstance(name, str) or not _NAME.fullmatch(name):
             raise TemplateProtocolError("invalid template name in response")
-        if template_id is not None and (
-            not isinstance(template_id, str) or not _ID.fullmatch(template_id)
-        ):
-            raise TemplateProtocolError("invalid templateId in response")
+        if template_id != name:
+            raise TemplateProtocolError("templateId in response must equal the name")
         if not isinstance(status, str) or status not in _STATUSES:
             raise TemplateProtocolError("invalid template status in response")
-        if template_id is None and status not in {"Unknown", "Deleting"}:
-            raise TemplateProtocolError("a version status requires templateId")
         message = value.get("message")
         if message is not None and not isinstance(message, str):
             raise TemplateProtocolError("invalid template message in response")
@@ -270,43 +263,30 @@ class Template:
         result = cls._parse(
             _json(_request(config, "POST", "/v1/templates", body=body), 201), config
         )
-        if result.name != name or result.id is None or result.status != "Pending":
+        if result.name != name or result.status not in {"Pending", "Building"}:
             raise TemplateProtocolError(
-                "creation response must identify the requested Pending version"
+                "creation response must report the requested Pending or Building template"
             )
         return result
 
     @classmethod
-    def _get(
-        cls,
-        name: str,
-        template_id: Optional[str],
-        config: ConnectionConfig,
-        timeout=None,
-    ):
-        path = "/v1/templates/" + _name(name)
-        if template_id is not None and (
-            not isinstance(template_id, str) or not _ID.fullmatch(template_id)
-        ):
-            raise ValueError(
-                "template_id must contain 20 lowercase alphanumeric characters"
-            )
-        params = {"templateId": template_id} if template_id is not None else None
+    def _get(cls, name: str, config: ConnectionConfig, timeout=None):
         result = cls._parse(
-            _json(_request(config, "GET", path, params=params, timeout=timeout), 200),
+            _json(
+                _request(
+                    config, "GET", "/v1/templates/" + _name(name), timeout=timeout
+                ),
+                200,
+            ),
             config,
         )
-        if result.name != name or (
-            template_id is not None and result.id != template_id
-        ):
-            raise TemplateProtocolError(
-                "response does not match the requested name/version"
-            )
+        if result.name != name:
+            raise TemplateProtocolError("response does not match the requested name")
         return result
 
     @classmethod
-    def get(cls, name: str, *, template_id: Optional[str] = None, **connection_options):
-        return cls._get(name, template_id, _config(connection_options))
+    def get(cls, name: str, **connection_options):
+        return cls._get(name, _config(connection_options))
 
     @classmethod
     def list(cls, **connection_options) -> List["Template"]:
@@ -333,13 +313,11 @@ class Template:
     def wait_until_ready(
         self, *, timeout: float = 120, interval: float = 2
     ) -> "Template":
-        """Poll only this exact version, using a total monotonic time budget.
-        Ready validates the definition, not pool/stock/runtime readiness. Failed,
-        Deleting, auth errors, and a server-confirmed 404 terminate immediately.
-        Temporary transport/backend errors are retried; timeout has no side effects.
+        """Poll this template under a total monotonic time budget.
+        Ready is the build state of the definition. Failed, Deleting, auth
+        errors, and a server-confirmed 404 terminate immediately. Temporary
+        transport/backend errors are retried; timeout has no side effects.
         """
-        if self.id is None:
-            raise ValueError("an empty Claim has no version to wait on")
         if (
             not math.isfinite(timeout)
             or timeout <= 0
@@ -347,17 +325,17 @@ class Template:
             or interval <= 0
         ):
             raise ValueError("timeout and interval must be finite positive numbers")
-        name, template_id = self.name, self.id
+        name = self.name
         config = self._connection or _config({})
         deadline = time.monotonic() + timeout
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TemplateWaitTimeout(
-                    f"Template {self.name!r} ({self.id}) did not become Ready within {timeout}s"
+                    f"Template {name!r} did not become Ready within {timeout}s"
                 )
             try:
-                current = self._get(name, template_id, config, timeout=remaining)
+                current = self._get(name, config, timeout=remaining)
             except TemplateAPIError as exc:
                 if exc.status_code not in {429, 500, 502, 503, 504}:
                     raise
@@ -370,16 +348,14 @@ class Template:
             else:
                 if time.monotonic() >= deadline:
                     raise TemplateWaitTimeout(
-                        f"Template {name!r} ({template_id}) exceeded its wait budget"
+                        f"Template {name!r} exceeded its wait budget"
                     )
                 self.status, self.message = current.status, current.message
                 self.metadata = copy.deepcopy(current.metadata)
                 if current.status == "Ready":
                     return self
                 if current.status in {"Failed", "Deleting"}:
-                    raise TemplateStateError(
-                        name, template_id, current.status, current.message
-                    )
+                    raise TemplateStateError(name, current.status, current.message)
             remaining = deadline - time.monotonic()
             if remaining > 0:
                 time.sleep(min(interval, remaining))
